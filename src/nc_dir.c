@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.9 1995/06/02 15:28:17 sdh Exp $
+ *  $Id: nc_dir.c,v 1.10 1996/08/16 22:59:10 sdh Exp $
  */
 
 #include <strings.h>
@@ -40,6 +40,7 @@ lde_keymap dirmode_keymap[] = {
   { 'n', CMD_NEXT_DIR_BLOCK },
   { 'Q', CMD_EXIT },
   { 'q', CMD_EXIT },
+  { ESC, CMD_EXIT },
   { 'd', CMD_EXPAND_SUBDIR },
   { CTRL('J'), CMD_EXPAND_SUBDIR },
   { CTRL('M'), CMD_EXPAND_SUBDIR },
