@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.33 2003/12/03 18:33:10 scottheavner Exp $
+ *  $Id: tty_lde.c,v 1.34 2003/12/06 08:01:46 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -155,6 +155,14 @@ unsigned long lde_seek_block(unsigned long block_nr)
     return block_nr;
 
 #else
+#if ( SIZEOF_OFF_T > SIZEOF_UNSIGNED_LONG )
+
+  off_t dbnr = (off_t)block_nr * sb->blocksize;
+
+  if (lseek(CURR_DEVICE, dbnr, SEEK_SET)==dbnr)
+    return block_nr;
+
+#else
 #define MAX_OFF_T (~(1L << (sizeof(off_t)*8-1)))
 #warning System does not have llseek() or lseek64(), using slow lookups for blocks > 2GB
   
@@ -183,7 +191,8 @@ unsigned long lde_seek_block(unsigned long block_nr)
 
   if (lseek(CURR_DEVICE, (off_t)b, whence)==b)
     return block_nr;
-#endif
+#endif /* off_t > ul */
+#endif /* HAVE_LLSEEK */
 #endif /* HAVE_LSEEK64 */
 
   lde_warn("lde_seek_block: seek failed, errno=%d",errno);

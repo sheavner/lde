@@ -3,6 +3,7 @@
 	  problems with newer versions of bison ( 1.35 < broke <= 1.875b)
 	- make sure all options have short option equivalent
 	- remove all longoptions from test scripts
+	- detect llseek or better masquerading as lseek [OS X]
 
 2003-12-03    Scott Heavner
 	- cleanup some warnings that show with -pendantic
