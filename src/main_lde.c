@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.36 2001/11/26 00:07:23 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.37 2001/11/26 03:10:41 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -24,15 +24,9 @@
 #include <sys/stat.h>
 
 #include "lde.h"
-#include "no_fs.h"
+#include "allfs.h"
 #include "recover.h"
 #include "tty_lde.h"
-
-#include "iso9660.h"
-#include "ext2fs.h"
-#include "minix.h"
-#include "msdos_fs.h"
-#include "xiafs.h"
 
 #ifdef HAS_CURSES
 #  include "curses.h"
@@ -72,15 +66,6 @@ struct _search_types {
 /* Initialize some global variables */
 char *program_name = "lde";
 char *device_name = NULL;
-char *text_names[] = { "autodetect",
-		       "no file system"
-		       , "minix"
-		       , "xiafs"
-		       , "ext2fs"
-		       , "msdos"
-                       , "iso9660"
- };
-
 char *inode_map=NULL;
 char *zone_map=NULL;
 char *bad_map=NULL;
@@ -99,6 +84,8 @@ volatile struct _lde_flags lde_flags =
 
 void (*lde_warn)(char *fmt, ...) = tty_warn;
 int  (*mgetch)(void) = tty_mgetch;
+
+struct _lde_typedata lde_typedata[] = LDE_ALLTYPES;
 
 
 /* Check if device is mounted, return 1 if is mounted else 0 */
@@ -161,26 +148,21 @@ void read_tables(int fs_type)
    */
  
   nocache_read_block(0UL,super_block_buffer,sb->blocksize);
-  lde_warn("User requested %s filesystem. Checking device . . .",text_names[fs_type]);
+  lde_warn("User requested %s filesystem. Checking device . . .",lde_typedata[fs_type].name);
 
-  if ( ((fs_type==AUTODETECT)&&(MINIX_test(super_block_buffer,1))) || (fs_type==MINIX) ) {
-    MINIX_init(super_block_buffer);
-  } else
-  if ( ((fs_type==AUTODETECT)&&(EXT2_test(super_block_buffer,1))) || (fs_type==EXT2) ) {
-    EXT2_init(super_block_buffer);
-  } else 
-  if ( ((fs_type==AUTODETECT)&&(XIAFS_test(super_block_buffer,1))) || (fs_type==XIAFS) ) {
-    XIAFS_init(super_block_buffer);
-  } else 
-  if ( ((fs_type==AUTODETECT)&&(DOS_test(super_block_buffer,1))) || (fs_type==DOS) ) {
-    DOS_init(super_block_buffer);
-  } else
-  if ( ((fs_type==AUTODETECT)&&(ISO9660_test(super_block_buffer,1))) || (fs_type==ISO9660) ) {
-    ISO9660_init(super_block_buffer);
-  } else
-  {
+  if ( fs_type == AUTODETECT ) {
+    for ( fs_type = NONE+1 ; fs_type<LAST_FSTYPE; fs_type++) {
+      if (lde_typedata[fs_type].test(super_block_buffer,1)) {
+	break;
+      }
+    }
+  }
+
+  if ( fs_type < LAST_FSTYPE ) {
+    lde_typedata[fs_type].init(super_block_buffer);
+  } else {
     lde_warn("No file system found on device");
-    NOFS_init(super_block_buffer,0);
+    lde_typedata[NONE].init(super_block_buffer);
   }
 }
 
@@ -361,8 +343,8 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	break;
       case 't': /* Specify the FS on the disk */
 	i = NONE;
-	while (text_names[i]) {
-	  if (!strncmp(optarg, text_names[i], strlen(optarg))) {
+	while (lde_typedata[i].name) {
+	  if (!strncmp(optarg, lde_typedata[i].name, strlen(optarg))) {
 	    opts->fs_type = i;
 	    break;
 	  }
@@ -372,8 +354,8 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	  lde_warn("`%s' type not recognized.",optarg);
 	  i = NONE;
 	  fprintf(stderr,"Supported file systems include: ");
-	  while (text_names[i]) {
-	    fprintf(stderr,"\"%s\" ",text_names[i]);
+	  while (lde_typedata[i].name) {
+	    fprintf(stderr,"\"%s\" ",lde_typedata[i].name);
 	    i++;
 	  }
 	  fprintf(stderr,"\n");

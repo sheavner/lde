@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.20 2001/11/26 00:07:23 scottheavner Exp $
+ *  $Id: minix.c,v 1.21 2001/11/26 03:10:41 scottheavner Exp $
  */
 
 /* 
@@ -72,7 +72,6 @@ struct inode_fields MINIX_inode_fields = {
 };
 
 struct fs_constants MINIX_constants = {
-  MINIX,                        /* int FS */
   MINIX_ROOT_INO,               /* int ROOT_INODE */
   (sizeof(struct minix_inode)), /* int INODE_SIZE */
   7,                            /* unsigned short N_DIRECT */

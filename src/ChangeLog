@@ -7,6 +7,9 @@
 	Thanks to John Quirk for noticing and tracking down the problem
 	with the ext2 misbehaviour.
 
+	* Move filesystem specific information into allfs.h.  No other
+	generic module should know which types of filesystems are
+	supported by lde.
 	
 2001-10-25    Scott Heavner
 

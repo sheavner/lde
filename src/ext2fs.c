@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.26 2001/11/26 00:07:23 scottheavner Exp $
+ *  $Id: ext2fs.c,v 1.27 2001/11/26 03:10:41 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -98,7 +98,6 @@ static struct inode_fields EXT2_inode_fields = {
 };
 
 static struct fs_constants EXT2_constants = {
-  EXT2,                         /* int FS */
   EXT2_ROOT_INO,                /* int ROOT_INODE */
   (sizeof(struct ext2_inode)),  /* int INODE_SIZE */
   EXT2_NDIR_BLOCKS,             /* unsigned short N_DIRECT */

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.31 2001/11/26 00:07:23 scottheavner Exp $
+ *  $Id: recover.c,v 1.32 2001/11/26 03:10:41 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -21,13 +21,7 @@
 #include "lde.h"
 #include "recover.h"
 #include "tty_lde.h"
-
-#include "iso9660.h"
-#include "ext2fs.h"
-#include "minix.h"
-#include "msdos_fs.h"
-#include "xiafs.h"
-#include "no_fs.h"
+#include "allfs.h"
 
 /* This takes care of the mapping from a char pointer to unsigned
  * long/short, depending on the file system */
@@ -832,32 +826,37 @@ int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, i
 
 int search_for_superblocks(int fs_type) {
   unsigned long sbnr = 0;
+  int i;
   char *buffer[512*500];
   size_t  bytesread;
  
   /* Want to do all searches on 512 byte boundries, in case something has gotten screwed up */
   NOFS_init(NULL,512);
 
+  if ( fs_type >= LAST_FSTYPE || fs_type == NONE || fs_type < AUTODETECT ) {
+    lde_warn("Bad filetype specified (i.e. why would \"no\" have a superblock) . . . Aborting.");
+    return -1;
+  }
+
+  lde_warn("Searching disk for %s superblocks . . .",(fs_type==AUTODETECT)?"":lde_typedata[fs_type].name);
+
   for ( ; sbnr<sb->nzones; ++sbnr) {
     bytesread = nocache_read_block(sbnr, buffer, 512);
     if (bytesread < 0)
       break;
 
-    if ( ((fs_type==AUTODETECT)||(fs_type==MINIX)) && (MINIX_test(buffer,0)) )
-      lde_warn("Found minix superblock at 0x%lx",sbnr);
-
-    if ( ((fs_type==AUTODETECT)||(fs_type==EXT2)) && (EXT2_test(buffer,0)) )
-      lde_warn("Found ext2 superblock at 0x%lx",sbnr);
-
-    if ( ((fs_type==AUTODETECT)||(fs_type==XIAFS)) && (XIAFS_test(buffer,0)) )
-      lde_warn("Found xiafs superblock at 0x%lx",sbnr);
-
-    if ( ((fs_type==AUTODETECT)||(fs_type==DOS)) && (DOS_test(buffer,0)) )
-      lde_warn("Found DOS superblock at 0x%lx",sbnr);
-
-    if ( ((fs_type==AUTODETECT)||(fs_type==ISO9660)) && (ISO9660_test(buffer,0)) )
-      lde_warn("Found ISO9660 superblock at 0x%lx",sbnr);
-
+    if ( fs_type == AUTODETECT ) {
+      for ( i = NONE+1 ; i<LAST_FSTYPE; i++) {
+	if (lde_typedata[i].test(buffer,0)) {
+	  lde_warn("Found %s superblock at 0x%lx",lde_typedata[i],sbnr);
+	}
+      }
+    } else {
+      if (lde_typedata[fs_type].test(buffer,0)) {
+	lde_warn("Found %s superblock at 0x%lx",lde_typedata[fs_type],sbnr);
+      }
+    }
+    
     if (lde_flags.quit_now) {
       lde_warn("Search aborted");
       return -1;

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.17 2001/11/26 00:07:23 scottheavner Exp $
+ *  $Id: no_fs.c,v 1.18 2001/11/26 03:10:41 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -75,7 +75,6 @@ static struct inode_fields NOFS_inode_fields = {
 };
 
 static struct fs_constants NOFS_constants = {
-  NONE,                         /* int FS */
   1,                            /* int ROOT_INODE */
   4,                            /* int INODE_SIZE */
   1,                            /* unsigned short N_DIRECT */
@@ -200,7 +199,7 @@ static void NOFS_sb_init(char * sb_buffer, unsigned long blocksize)
   firsttime = 0;
 }
 
-void NOFS_init(char * sb_buffer, unsigned long blocksize)
+void NOFS_init(void * sb_buffer, unsigned long blocksize)
 {
   fsc = &NOFS_constants;
 

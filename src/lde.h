@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.29 2001/11/26 00:07:23 scottheavner Exp $
+ *  $Id: lde.h,v 1.30 2001/11/26 03:10:41 scottheavner Exp $
  */
 
 #ifndef LDE_H
@@ -32,10 +32,6 @@ extern int  (*mgetch)(void);
 #define INODE_BLKS 15 /* EXT2_N_BLOCKS or higher -- can't use EXT2 references after
 		       * mulitiple architecture support was added to ext2.
 		       */
-
-
-enum lde_fstypes { AUTODETECT, NONE, MINIX, XIAFS, EXT2, DOS, ISO9660, LAST_FSTYPE };
-extern char *text_names[]; /* defined in main.c */
 
 struct _lde_buffer {
   unsigned long size;
@@ -187,7 +183,6 @@ enum {
 
 /* Constants for each defined file system */
 struct fs_constants {
-  int FS;
   int ROOT_INODE;
   int INODE_SIZE;
   unsigned short N_DIRECT;

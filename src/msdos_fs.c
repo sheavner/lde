@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.19 2001/11/26 00:07:23 scottheavner Exp $
+ *  $Id: msdos_fs.c,v 1.20 2001/11/26 03:10:41 scottheavner Exp $
  */
 
 /* 
@@ -85,7 +85,6 @@ static struct inode_fields DOS_inode_fields = {
 };
 
 static struct fs_constants DOS_constants = {
-  DOS,                          /* int FS */
   2,                            /* int ROOT_INODE */
   2,                            /* int INODE_SIZE */
   2,                            /* unsigned short N_DIRECT */

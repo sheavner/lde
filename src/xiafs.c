@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.23 2001/11/26 00:07:23 scottheavner Exp $
+ *  $Id: xiafs.c,v 1.24 2001/11/26 03:10:41 scottheavner Exp $
  */
 
 #include <string.h>
@@ -68,7 +68,6 @@ static struct inode_fields XIAFS_inode_fields = {
 };
 
 static struct fs_constants XIAFS_constants = {
-  XIAFS,                        /* int FS */
   _XIAFS_ROOT_INO,              /* int ROOT_INODE */
   (sizeof(struct xiafs_inode)), /* int INODE_SIZE */
   8,                            /* unsigned short N_DIRECT */
@@ -215,7 +214,7 @@ static void XIAFS_sb_init(void *sb_buffer)
   sb->last_block_size = sb->blocksize;
 }
 
-int XIAFS_init(void *sb_buffer)
+void XIAFS_init(void *sb_buffer)
 {
   fsc = &XIAFS_constants;
 
@@ -233,7 +232,7 @@ int XIAFS_init(void *sb_buffer)
 
   MINIX_read_tables();
 
-  return check_root();
+  (void) check_root();
 }
 
 int XIAFS_test(void *sb_buffer, int use_offset)
