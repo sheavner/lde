@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.25 1998/06/09 18:01:25 sdh Exp $
+ *  $Id: nc_block.c,v 1.26 1998/06/14 21:12:46 sdh Exp $
  */
 
 #include <stdio.h>
@@ -426,6 +426,12 @@ int block_mode(void) {
   /* Start main loop - should never exit while */
   while (flags.dontwait||(c = mgetch())) {
 
+    /* Horrible, Horrible hack */
+    if (curs.rs != 16) { /* Should probably create a flag to indicate we
+			  * are in all ASCII MODE */
+      flags.ascii_mode = 1;
+    }
+
     /* By default we don't want to redraw the screen or move the cursor
      * each time through the loop */
     flags.redraw = flags.highlight = 0;
@@ -524,8 +530,11 @@ int block_mode(void) {
 	break;
 
       case CMD_TOGGLE_ASCII: /* Toggle Ascii/Hex edit mode */
-	flags.ascii_mode = 1 - flags.ascii_mode;
-	flags.highlight = 1;
+	if (curs.rs != 16) { /* Should probably create a flag to indicate we
+			      * are in all ASCII MODE */
+	  flags.ascii_mode = 1 - flags.ascii_mode;
+	  flags.highlight = 1;
+	}
         break;
 
       case CMD_NEXT_FIELD:
