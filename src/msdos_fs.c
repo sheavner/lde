@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.9 1998/06/05 20:55:44 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.10 1998/06/09 19:06:47 sdh Exp $
  */
 
 /* 
@@ -37,6 +37,7 @@ static int DOS_write_inode_NOTYET(unsigned long ino,
 				struct Generic_Inode *GInode);
 static int DOS_one_i__ul(unsigned long nr);
 static int DOS_zero_i__ul(unsigned long nr);
+static unsigned short align_ushort(char cp[2]);
 
 static struct inode_fields DOS_inode_fields = {
   0,   /*   unsigned short i_mode; */
@@ -144,11 +145,12 @@ struct Generic_Inode *DOS_init_junk_inode(void)
   return &DOS_junk_inode;
 }
 
-/* Align values in boot block, converts char[2] values (defined in msdos_fs.h) to integer */
-int cvt_c2(char cp[2]);
-int cvt_c2(char cp[2])
+/* Align values in boot block, converts char[2] values 
+ * (defined in msdos_fs.h) to unsigned short, making sure we observe
+ * word boundries */
+static unsigned short align_ushort(char cp[2])
 {
-  int i = 0;
+  unsigned short i = 0;
   memcpy(&i, cp, 2);
   return i;
 }
@@ -197,10 +199,9 @@ static void DOS_sb_init(void *sb_buffer)
   struct msdos_boot_sector *Boot;
   Boot = sb_buffer;
 
-  sb->blocksize = (unsigned long) cvt_c2(Boot->sector_size);
-  if ( cvt_c2(Boot->sectors) )
-    sb->nzones = (unsigned long) cvt_c2(Boot->sectors);
-  else
+  sb->blocksize = (unsigned long) align_ushort(Boot->sector_size);
+  sb->nzones = (unsigned long) align_ushort(Boot->sectors);
+  if ( !sb->nzones )
     sb->nzones = Boot->total_sect;
 
   sb->last_block_size = sb->blocksize;
