@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.27 2001/11/26 00:07:23 scottheavner Exp $
+ *  $Id: tty_lde.c,v 1.28 2002/01/11 18:30:41 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -30,8 +30,10 @@
 /* llseek seems to appear in different places on different systems,
  * and some docs say call it via syscall5, this seems to work on
  * most recent systems */
+#if HAVE_LLSEEK
 #ifndef UNISTD_LLSEEK_PROTO
 extern loff_t llseek (int fd, loff_t offset, int whence);
+#endif
 #endif
 #if NEED_LSEEK64_PROTO
 extern off64_t lseek64 (int __fd, off64_t __offset, int __whence);

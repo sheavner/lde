@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.39 2001/11/26 05:19:55 scottheavner Exp $
+ *  $Id: nc_lde.c,v 1.40 2002/01/11 18:30:41 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -1079,7 +1079,7 @@ void interactive_main(void)
 # endif
 
   /* Clear out restore buffer */
-  bzero(fake_inode_zones,sizeof(long)*(INODE_BLKS+1));
+  bzero((void *)fake_inode_zones,sizeof(long)*(INODE_BLKS+1));
  
   /* Our three curses windows */
 # if HEADER_SIZE>0

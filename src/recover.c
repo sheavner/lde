@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.32 2001/11/26 03:10:41 scottheavner Exp $
+ *  $Id: recover.c,v 1.33 2002/01/11 18:30:41 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -757,11 +757,13 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 
 /* Do a regular expression search across the filesystem */
 int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, int *moffset) {
-  int     rs = 500, retval=0;
+  int     retval=0;
+
+#if HAVE_MEMMEM
+  int     rs = 500;
   size_t  bytesread, rbs = 0, lsearchstring;
   char    *buffer = 0, *match;
 
-#if HAVE_MEMMEM
   if ( (!searchstring) || (!*searchstring) ) {
     lde_warn("NULL searchstring ignored");
     return -1;
