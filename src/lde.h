@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.16 1996/09/14 02:34:09 sdh Exp $
+ *  $Id: lde.h,v 1.17 1996/09/15 19:13:23 sdh Exp $
  */
 
 #ifndef VERSION
@@ -215,6 +215,8 @@ volatile struct _lde_flags {
   unsigned write_ok:        1;
   unsigned paranoid:        1;
   unsigned inode_lookup:    1;
+  unsigned check_recover:   1;
+  unsigned always_append:   1;
   unsigned indirect_search: 1;
   unsigned quit_now:        1;
   unsigned mounted:         1;
