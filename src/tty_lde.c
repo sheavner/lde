@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.21 1998/08/11 04:21:13 sdh Exp $
+ *  $Id: tty_lde.c,v 1.22 1998/08/11 05:06:28 sdh Exp $
  */
 
 #include <stdio.h>
@@ -22,6 +22,13 @@
 #include "lde.h"
 #include "tty_lde.h"
 #include "swiped.h"
+
+/* llseek seems to appear in different places on different systems,
+ * and some docs say call it via syscall5, this seems to work on
+ * most recent systems */
+#ifndef UNISTD_LLSEEK_PROTO
+extern loff_t llseek (int fd, loff_t offset, int whence);
+#endif
 
 /* We don't need no stinkin' linked list */
 char *error_save[ERRORS_SAVED];
