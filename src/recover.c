@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.9 1996/08/16 22:34:34 sdh Exp $
+ *  $Id: recover.c,v 1.10 1996/09/14 02:38:04 sdh Exp $
  */
 
 #include <stdio.h>
@@ -120,14 +120,21 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
    * level of indirection? easy.
    */
   if (fsc->X3_INDIRECT) {
-    *mapped_block = 0UL;
-#   ifdef LDE_CURSES /* Don't wan't too many of these when not using curses */
-    if (!warn_once) {
-        warn("Teach me how to handle triple indirect blocks :)");
-	warn_once = 1;
+    if (blknr<(ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK)) {
+      block = zone_index[fsc->X3_INDIRECT];
+      if (block==0UL) {
+	*mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(ZONES_PER_BLOCK+1) + ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK;
+	return (EMB_3IND_ZERO);
+      } else {
+	*mapped_block = 0UL;
+	if (!warn_once) {
+	  warn("Teach me how to handle triple indirect blocks :)");
+	  warn_once = 1;
+	}
+	return (EMB_3IND_NOT_YET);
+      }
     }
-#   endif
-    return (EMB_3IND_NOT_YET);
+    blknr -= (ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK);
   }
 
   return (EMB_WAY_OUT_OF_RANGE);
@@ -151,7 +158,10 @@ void recover_file(int fp,unsigned long zone_index[])
   size_t write_count;
 
   j = 0;
+  lde_flags.quit_now = 0;
   while (1) {
+    if (lde_flags.quit_now)
+      break;
     if ((result=map_block(zone_index,j,&nr))) {
       if (result < EMB_HALT) {
 	break;
@@ -184,7 +194,14 @@ int check_recover_file(unsigned long zone_index[])
   int j, result, cr_result = 0;
   
   j = 0;
+  lde_flags.quit_now = 0;
+
   while (1) {
+    if (lde_flags.quit_now) {
+      lde_flags.quit_now = 0;
+      warn("Search terminated.");
+      return 1;
+    }
     if ((result=map_block(zone_index,j,&nr))) {
       if (result < EMB_HALT) {
 	break;
@@ -242,11 +259,15 @@ unsigned long find_inode(unsigned long nr, unsigned long last_nr)
   struct Generic_Inode *GInode=NULL;
   int result;
 
+  lde_flags.quit_now = 0;
+
   for (inode_nr=(last_nr+1UL);(inode_nr<sb->ninodes);inode_nr++) {
     if ((lde_flags.search_all)||(!FS_cmd.inode_in_use(inode_nr))) {
       GInode = FS_cmd.read_inode(inode_nr);
       b = 0UL;
       while (1) {
+	if (lde_flags.quit_now)
+	  return 0L;
 	if ((result=map_block(GInode->i_zone, b++, &test_block))) {
 	  if (result < EMB_HALT ) {
 	    break;
@@ -312,8 +333,15 @@ void search_fs(unsigned char *search_string, int search_len, int search_off)
   unsigned char *dind;
   unsigned char match[5];
 
+  lde_flags.quit_now = 0;
+
   for (nr=sb->first_data_zone;nr<sb->nzones;nr++) {
-    
+
+    if (lde_flags.quit_now) {
+      warn("Search aborted at block 0x%lX",nr);
+      break;
+    }
+
     /* Do all the searches in the unused data space */
     if ((!FS_cmd.zone_in_use(nr))||(lde_flags.search_all)) {
       dind = cache_read_block(nr,CACHEABLE);
