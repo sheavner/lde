@@ -170,7 +170,7 @@ AC_ARG_ENABLE(debug,
 
 AC_ARG_ENABLE(dist,
         [  --enable-dist           Make for distribution],
-	CFLAGS="-O2 -Wall
+	CFLAGS="-O2 -Wall"
 	LDFLAGS="$LDFLAGS -s"
 	STATIC_LDFLAGS="--static"
 )
