@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.9 1995/06/02 14:54:02 sdh Exp $
+ *  $Id: nc_block.c,v 1.10 1995/06/02 15:28:07 sdh Exp $
  */
 
 #include <stdio.h>
@@ -442,7 +442,10 @@ int block_mode(void) {
 	break;
 
       case CMD_VIEW_AS_DIR: /* View the current block as a directory */
-	c = directory_popup(current_block);
+        if (directory_popup(current_block) == CMD_INODE_MODE_MC) {
+	  c = CMD_INODE_MODE;
+	  flags.dontwait = 1;
+	}
 	flags.redraw = 1;
 	break;
 

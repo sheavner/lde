@@ -1,3 +1,11 @@
+/*
+ *  lde/keymap.h -- The Linux Disk Editor
+ *
+ *  Copyright (C) 1995  Scott D. Heavner
+ *
+ *  $Id: keymap.h,v 1.3 1995/06/02 15:25:10 sdh Exp $
+ *
+ */
 #ifndef KEYMAP_H
 #define KEYMAP_H
 
@@ -25,8 +33,6 @@ enum lde_actions {
   CMD_PREV_LINE,            /* Goto previous line */
   CMD_NEXT_SCREEN,          /* Goto next screen */
   CMD_PREV_SCREEN,          /* Goto previous screen */
-  CMD_SET_CURRENT_INODE,    /* Sets this inode to be the current inode */
-  CMD_SET_CURRENT_INODE_MC, /* Sets this inode to be the current inode and views it */
   CMD_EXPAND_SUBDIR,        /* Expand the current subdirectory */
   CMD_EXPAND_SUBDIR_MC,     /* Expand the current subdirectory, set inode to point to new directory */
   CMD_NEXT_DIR_BLOCK,       /* Pop up a level and find the next block in the directory chain, then come back */
@@ -43,6 +49,7 @@ enum lde_actions {
   CMD_VIEW_AS_DIR,          /* View the current selection as a directory */
   CMD_BLOCK_MODE,           /* Switch to block mode */
   CMD_BLOCK_MODE_MC,        /* Switch to block mode, set current block accordingly */
+  CMD_SET_CURRENT_INODE,    /* Sets this inode to be the current inode */
   CMD_INODE_MODE,           /* Switch to inode mode */
   CMD_INODE_MODE_MC,        /* Switch to inode mode, set current inode accordingly */
   CMD_VIEW_SUPER,           /* Switch to viewing the super block */
