@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.21 1998/01/18 06:34:53 sdh Exp $
+ *  $Id: main_lde.c,v 1.22 1998/01/24 04:32:54 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -27,7 +27,7 @@
 #include "xiafs.h"
 
 #ifdef LDE_CURSES
-#  include "ncurses.h"
+#  include "curses.h"
 #  include "nc_lde.h"
 #endif
 
@@ -186,6 +186,7 @@ static void long_usage(void)
                  "                            (also use with -b)\n"
                  "   --recoverable        Check to see if inode is recoverable\n" 
                  "                            (requires --ilookup or -i/-I)\n"
+                 "   --all                Search entire disk (else just unused portions)\n"
                  "   --blanked-indirects  Work around indirects with useless info (Linux 2.0 bug)\n"
                  "   -t fstype            Overide the autodetect.\n"
                  "                            fstype = {no, minix, xiafs, ext2fs, msdos}\n"
