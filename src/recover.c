@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.20 1998/01/18 06:35:06 sdh Exp $
+ *  $Id: recover.c,v 1.21 1998/01/24 01:42:41 sdh Exp $
  */
 
 #include <stdio.h>
@@ -11,6 +11,9 @@
 #include <unistd.h>
 #include <ctype.h>
 
+#ifdef   HAVE_UNAME
+#include <sys/utsname.h>
+#endif
 #include <linux/fs.h>
 
 #include "lde.h"
@@ -38,8 +41,9 @@ unsigned long block_pointer(unsigned char *ind,
 /* Try to work around Linux <= 2.0.33 bug */ 
 /* This is used to pull the correct block from the inode block table which
  * should have been copied into zone_index */
-int hacked_map_block(unsigned long zone_index[], unsigned long blknr,
-		     unsigned long *mapped_block)
+static int hacked_map_block_helper(unsigned long zone_index[],
+				   unsigned long blknr,
+				   unsigned long *mapped_block)
 {
   long last_direct = 0, i, offset = 0;
 
@@ -107,6 +111,39 @@ int hacked_map_block(unsigned long zone_index[], unsigned long blknr,
 
   /* Nothing */
   return (EMB_WAY_OUT_OF_RANGE);
+}
+
+static int hacked_map_block(unsigned long zone_index[],
+			    unsigned long blknr,
+			    unsigned long *mapped_block, 
+			    unsigned long *skipped_block)
+{
+  int result;
+
+  /* Adjust desired block by our skip count */
+  blknr -= *skipped_block;
+
+  /* Lookup block, return any error */
+  result = hacked_map_block_helper(zone_index,blknr,mapped_block);
+  if (result!=EMB_NO_ERROR)
+    return result;
+
+  /* else
+    return result; */
+
+  *mapped_block += *skipped_block;
+
+  /* Check for system/used blocks and skip */
+  while ( ((!lde_flags.search_all)&&FS_cmd.zone_in_use(*mapped_block)) ||
+	  FS_cmd.is_system_block(*mapped_block) ) {
+    (*skipped_block)++;
+    if ( ++(*mapped_block) > sb->nzones)
+      break;
+  }
+
+  if (*mapped_block > sb->nzones)
+    return (EMB_WAY_OUT_OF_RANGE);
+  return EMB_NO_ERROR;
 }
 #endif
 
@@ -349,12 +386,26 @@ int advance_zone_pointer(unsigned long zone_index[], unsigned long *currblk,
 int recover_file(int fp,unsigned long zone_index[],unsigned long filesize)
 {
   unsigned char *dind;
-  unsigned long nr, written=0UL;
+  unsigned long nr, written=0UL, skipped=0UL;
   int j, result;
   size_t write_count;
 
   j = 0;
   lde_flags.quit_now = 0;
+
+  /* Lookup system version, warn about linux 2.0.33 */
+#ifdef HAVE_UNAME /* Why bother with a HAVE_UNAME check,
+                   *  I don't check for Linux name, just version */
+  if (!lde_flags.blanked_indirects) {
+    struct utsname nm;
+    uname(&nm);
+    if ( (nm.release[0]=='2')&&(nm.release[2]=='0') ) {
+      lde_warn("Linux 2.0.* users should activate the blanked_indirects"
+	       " flag for proper recovery!  See the manual!");
+    }
+  }
+#endif
+
   while (1) {
 
     /* User has pressed ctrl-c, abort recover */
@@ -366,10 +417,12 @@ int recover_file(int fp,unsigned long zone_index[],unsigned long filesize)
     /* Lookup block number from inode */
 #ifdef ALPHA_CODE
     if (lde_flags.blanked_indirects) 
-      result = hacked_map_block(zone_index,j,&nr);
+      result = hacked_map_block(zone_index,j,&nr,&skipped);
     else 
-#endif
       result=map_block(zone_index,j,&nr);
+#else
+    result=map_block(zone_index,j,&nr);
+#endif
 
     /* Block successfully looked up? */
     if (result) {
@@ -431,12 +484,7 @@ int check_recover_file(unsigned long zone_index[],unsigned long filesize)
       return 1;
     }
 
-#ifdef ALPHA_CODE
-    if (lde_flags.blanked_indirects) 
-      result = hacked_map_block(zone_index,j,&nr);
-    else 
-#endif
-      result=map_block(zone_index,j,&nr);
+    result=map_block(zone_index,j,&nr);
 
     if (result) {
       if (result < EMB_HALT) {
