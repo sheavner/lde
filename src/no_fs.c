@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.2 1994/03/21 09:24:40 sdh Exp $
+ *  $Id: no_fs.c,v 1.3 1994/03/23 05:58:58 sdh Exp $
  */
 
 /* 
@@ -25,10 +25,21 @@ struct fs_constants NOFS_constants = {
   4,                            /* int INODE_ENTRY_SIZE */
 };
 
-/* Returns 1 always */
-unsigned long one(unsigned long nr)
+unsigned long NOFS_null_call()
 {
-  return 1;
+  return 0UL;
+}
+
+/* Returns 1 always */
+unsigned long NOFS_one(unsigned long nr)
+{
+  return 1UL;
+}
+
+char* NOFS_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
+{
+  *inode_nr = 1UL;
+  return ( (char *) "" );
 }
 
 void NOFS_sb_init(char * sb_buffer)
@@ -65,17 +76,18 @@ void NOFS_init(char * sb_buffer)
   sb->namelen = 1;
   sb->dirsize = 1;
 
-  DInode.i_mode = (unsigned short (*)()) MINIX_null_call;
-  DInode.i_uid = (unsigned short (*)()) MINIX_null_call;
-  DInode.i_size = (unsigned long (*)()) MINIX_null_call;
-  DInode.i_atime = (unsigned long (*)()) MINIX_null_call;
-  DInode.i_ctime = (unsigned long (*)()) MINIX_null_call;
-  DInode.i_mtime = (unsigned long (*)()) MINIX_null_call;
-  DInode.i_gid = (unsigned short (*)()) MINIX_null_call;
-  DInode.i_links_count = (unsigned short (*)()) MINIX_null_call;
-  DInode.i_zone = (unsigned long (*)()) MINIX_null_call;
+  DInode.i_mode = (unsigned short (*)()) NOFS_null_call;
+  DInode.i_uid = (unsigned short (*)()) NOFS_null_call;
+  DInode.i_size = (unsigned long (*)()) NOFS_null_call;
+  DInode.i_atime = (unsigned long (*)()) NOFS_null_call;
+  DInode.i_ctime = (unsigned long (*)()) NOFS_null_call;
+  DInode.i_mtime = (unsigned long (*)()) NOFS_null_call;
+  DInode.i_gid = (unsigned short (*)()) NOFS_null_call;
+  DInode.i_links_count = (unsigned short (*)()) NOFS_null_call;
+  DInode.i_zone = (unsigned long (*)()) NOFS_null_call;
 
-  FS_cmd.inode_in_use = (int (*)()) one;
-  FS_cmd.zone_in_use = (int (*)()) one;
+  FS_cmd.inode_in_use = (int (*)()) NOFS_one;
+  FS_cmd.zone_in_use = (int (*)()) NOFS_one;
+  FS_cmd.dir_entry = NOFS_dir_entry;
 
 }

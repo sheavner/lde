@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.4 1994/03/21 09:24:33 sdh Exp $
+ *  $Id: tty_lde.c,v 1.5 1994/03/23 05:58:15 sdh Exp $
  */
 
 #include "lde.h"
@@ -39,12 +39,12 @@ long read_num(char *cinput)
 }
 
 static char cache[MAX_BLOCK_SIZE];
-char * cache_read_block (unsigned long block_nr)
+char * cache_read_block (unsigned long block_nr, int force)
 {
-  static unsigned long cache_block_nr = -1L;
+  static unsigned long cache_block_nr = -1L; /* set to an outrageous number */
   int read_count;
   
-  if (block_nr != cache_block_nr)
+  if (force||(block_nr != cache_block_nr))
     {
       cache_block_nr = block_nr;
       memset(cache,0,sb->blocksize);
@@ -90,7 +90,7 @@ unsigned long nr;
   int i;
   unsigned char *dind;
 
-  dind = cache_read_block(nr);
+  dind = cache_read_block(nr,0);
   for (i=0;i<BLOCK_SIZE;i++) printf("%c",dind[i]);
 }
 
@@ -101,19 +101,19 @@ unsigned short nr;
   int i,j;
   unsigned char *dind,	 c;
 
-  dind = cache_read_block(nr);
+  dind = cache_read_block(nr,0);
 
-  printf("\nDATA FOR BLOCK %d (%#x):\n",nr,nr);
+  printf("\nDATA FOR BLOCK %d (%#X):\n",nr,nr);
 
   j = 0;
 
   while (j*16<BLOCK_SIZE) {
-    printf("\n0x%04x = ",j*16);
+    printf("\n0x%04X = ",j*16);
     for (i=0;i<8;i++)
-      printf("%2.2x ",dind[j*16+i]);
+      printf("%2.2X ",dind[j*16+i]);
     printf(" : ");
     for (i=0;i<8;i++)
-      printf("%2.2x ",dind[j*16+i+8]);
+      printf("%2.2X ",dind[j*16+i+8]);
     
     printf("   ");
     for (i=0;i<16;i++) {
@@ -138,7 +138,7 @@ void dump_inode(unsigned int nr)
   struct group *NC_GROUP;
 
   /* Print inode number and file type */
-  printf("\nINODE: %-6d (0x%5.5x) TYPE: ",nr,nr);
+  printf("\nINODE: %-6d (0x%5.5X) TYPE: ",nr,nr);
   printf("%14s",entry_type(DInode.i_mode(nr)));
 
   if (FS_cmd.inode_in_use(nr)) 
@@ -177,7 +177,7 @@ void dump_inode(unsigned int nr)
       } else if ((fsc->X3_INDIRECT)&&(j == fsc->X3_INDIRECT )) {
 	printf("\nTRIPLE INDIRECT BLOCK: ");
       }
-      printf("0x%7.7lx ",DInode.i_zone(nr,j));
+      printf("0x%7.7lX ",DInode.i_zone(nr,j));
     }
   }
   

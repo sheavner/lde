@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.5 1994/03/21 09:24:48 sdh Exp $
+ *  $Id: lde.h,v 1.7 1994/03/23 06:03:45 sdh Exp $
  */
 
 #include <stdio.h>
@@ -24,7 +24,7 @@
 #include <grp.h>
 #include <pwd.h>
 
-#define VERSION "2.1beta4"
+#define VERSION "2.1"
 extern char *program_name;
 extern char *device_name;
 
@@ -44,10 +44,11 @@ void dump_inode();
 char *entry_type();
 /* no_fs.c */
 void NOFS_init();
+unsigned long NOFS_null_call();
+unsigned long NOFS_one();
 /* minix.c */
 void MINIX_init();
 int MINIX_test();
-unsigned long MINIX_null_call();
 /* xiafs.c */
 int XIAFS_init();
 int XIAFS_test();
@@ -164,6 +165,8 @@ struct {
 struct {
 	int (*inode_in_use)();		/* File mode */
 	int (*zone_in_use)();		/* File mode */
+	char* (*dir_entry)();    
+       /* Get dir name and inode number */
 } FS_cmd;
 
 struct _rec_flags {

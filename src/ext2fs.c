@@ -1,17 +1,17 @@
 /*
- *  lde/ext2fs.c -- The Linux Disk Editor
- *
- *  Copyright (C) 1994  Scott D. Heavner
- *
- *  $Id: ext2fs.c,v 1.4 1994/03/19 20:46:49 sdh Exp $
- *
- *  The following routines were taken almost verbatim from
- *  the e2fsprogs-0.4a package by Remy Card. 
- *    Copyright (C) 1992, 1993  Remy Card <card@masi.ibp.fr> 
- *       EXT2_read_inode_bitmap()
- *       EXT2_read_block_bitmap()
- *       EXT2_read_tables()
- */
+*  lde/ext2fs.c -- The Linux Disk Editor
+*
+*  Copyright (C) 1994  Scott D. Heavner
+*
+*  $Id: ext2fs.c,v 1.5 1994/03/23 05:59:09 sdh Exp $
+*
+*  The following routines were taken almost verbatim from
+*  the e2fsprogs-0.4a package by Remy Card. 
+*    Copyright (C) 1992, 1993  Remy Card <card@masi.ibp.fr> 
+*       EXT2_read_inode_bitmap()
+*       EXT2_read_block_bitmap()
+*       EXT2_read_tables()
+*/
 
 #include "lde.h"
 
@@ -27,24 +27,23 @@
 #define L_EXT2_DESC_PER_BLOCK       (sb->blocksize / sizeof(struct ext2_group_desc))
 
 struct fs_constants EXT2_constants = {
-  EXT2,                         /* int FS */
-  EXT2_ROOT_INO,                /* int ROOT_INODE */
-  (sizeof(struct ext2_inode)),  /* int INODE_SIZE */
-  EXT2_NDIR_BLOCKS,             /* unsigned short N_DIRECT */
-  EXT2_IND_BLOCK,               /* unsigned short INDIRECT */
-  EXT2_DIND_BLOCK,              /* unsigned short X2_INDIRECT */
-  EXT2_TIND_BLOCK,              /* unsigned short X3_INDIRECT */
-  EXT2_N_BLOCKS,                /* unsigned short N_BLOCKS */
-  4,                            /* int ZONE_ENTRY_SIZE */
-  4,                            /* int INODE_ENTRY_SIZE */
+EXT2,                         /* int FS */
+EXT2_ROOT_INO,                /* int ROOT_INODE */
+(sizeof(struct ext2_inode)),  /* int INODE_SIZE */
+EXT2_NDIR_BLOCKS,             /* unsigned short N_DIRECT */
+EXT2_IND_BLOCK,               /* unsigned short INDIRECT */
+EXT2_DIND_BLOCK,              /* unsigned short X2_INDIRECT */
+EXT2_TIND_BLOCK,              /* unsigned short X3_INDIRECT */
+EXT2_N_BLOCKS,                /* unsigned short N_BLOCKS */
+4,                            /* int ZONE_ENTRY_SIZE */
+4,                            /* int INODE_ENTRY_SIZE */
 };
 
 unsigned long group_desc_count;
 struct ext2_group_desc * group_desc = NULL;
 
-static EXT2_last_inode = 0;
+static EXT2_last_inode = 0; /* cacheable inode */
 static struct ext2_inode local_inode;
-
 struct ext2_inode * EXT2_read_inode (unsigned long ino)
 {
   unsigned long group;
@@ -52,16 +51,22 @@ struct ext2_inode * EXT2_read_inode (unsigned long ino)
   unsigned long block_nr;
   int i;
   char * buffer;
-
+  
   if (EXT2_last_inode == ino) return &local_inode;
   EXT2_last_inode = ino;
+
+  if ((ino<1)||(ino>sb->ninodes)) {
+    warn("inode out of range in EXT2_read_inode");
+    EXT2_last_inode = ino = 1;
+  }
+
   group = (ino - 1) / sb->s_inodes_per_group;
   block = ((ino - 1) % sb->s_inodes_per_group) /
     (sb->blocksize/fsc->INODE_SIZE);
   i = ((ino - 1) % sb->s_inodes_per_group) %
     (sb->blocksize/fsc->INODE_SIZE);
   block_nr = group_desc[group].bg_inode_table + block;
-  buffer = cache_read_block(block_nr);
+  buffer = cache_read_block(block_nr,0);
   memcpy (&local_inode, (struct ext2_inode *) buffer + i,
 	  sizeof (struct ext2_inode));
   return &local_inode;
@@ -138,7 +143,7 @@ static int block_cache = -1;
 static void EXT2_read_inode_bitmap (unsigned long nr)
 {
   int i;
-  
+
 #ifdef READ_FULL_TABLES
   for (i = 0; i < group_desc_count; i++) {
 #else  
@@ -147,15 +152,14 @@ static void EXT2_read_inode_bitmap (unsigned long nr)
     inode_cache = i;
 #endif
     if (lseek (CURR_DEVICE, group_desc[i].bg_inode_bitmap * sb->blocksize,
-	       SEEK_SET) !=
-	group_desc[i].bg_inode_bitmap * sb->blocksize)
+	       SEEK_SET) != group_desc[i].bg_inode_bitmap * sb->blocksize)
       die ("seek failed in EXT2_read_inode_bitmap");
     if (read (CURR_DEVICE, inode_map, sb->s_inodes_per_group / 8) !=
 	sb->s_inodes_per_group / 8)
       die ("read failed in EXT2_read_inode_bitmap");
   }
 }
-
+  
 int EXT2_inode_in_use(unsigned long nr)
 {
   nr--;
@@ -168,7 +172,7 @@ int EXT2_inode_in_use(unsigned long nr)
 static void EXT2_read_block_bitmap(unsigned long nr)
 {
   int i;
-
+  
 #ifdef READ_FULL_TABLES
   for (i = 0; i < group_desc_count; i++) {
 #else  
@@ -177,15 +181,14 @@ static void EXT2_read_block_bitmap(unsigned long nr)
     block_cache = i;
 #endif
     if (lseek (CURR_DEVICE, group_desc[i].bg_block_bitmap * sb->blocksize,
-	       SEEK_SET) !=
-	group_desc[i].bg_block_bitmap * sb->blocksize)
+	       SEEK_SET) != group_desc[i].bg_block_bitmap * sb->blocksize)
       die ("seek failed in EXT2_read_block_bitmap");
     if (read (CURR_DEVICE, zone_map, sb->s_blocks_per_group / 8) !=
 	sb->s_blocks_per_group / 8)
       die ("read failed in EXT2_read_block_bitmap");
   }
 }
-
+  
 int EXT2_zone_in_use(unsigned long nr)
 {
   if (nr < sb->first_data_zone) return 1;
@@ -195,7 +198,28 @@ int EXT2_zone_in_use(unsigned long nr)
 #endif
   return bit(zone_map,nr%sb->s_blocks_per_group);
 }
-                                                                                                                                
+
+/* Could use some optimization maybe?? */
+char* EXT2_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
+{
+  char *bp;
+  int j;
+  static char EXT2_cname[EXT2_NAME_LEN];
+
+  bzero(EXT2_cname,EXT2_NAME_LEN);
+  bp = block_buffer;
+
+  if (i)
+    for (j = 0; j < i ; j++) {
+      bp += block_pointer(bp,(unsigned long)(fsc->INODE_ENTRY_SIZE/2),2);
+    }
+  *inode_nr = block_pointer(bp,0UL,fsc->INODE_ENTRY_SIZE);
+  strncpy(EXT2_cname, (bp+fsc->INODE_ENTRY_SIZE+2*sizeof(unsigned short)),
+	  block_pointer(bp,(unsigned long)( (fsc->INODE_ENTRY_SIZE+sizeof(unsigned short))/sizeof(unsigned short) ),
+			sizeof(unsigned short)));
+  return (EXT2_cname);
+}
+
 void EXT2_read_tables()
 {
   int isize, addr_per_block, inode_blocks_per_group;
@@ -203,10 +227,10 @@ void EXT2_read_tables()
   unsigned long desc_blocks;
   char notify[100];
   long desc_loc;
-
+  
   if (inode_map) free(inode_map);
   if (zone_map) free(zone_map);
-
+  
   addr_per_block = sb->blocksize/sizeof(unsigned long);
   inode_blocks_per_group = sb->s_inodes_per_group / (sb->blocksize/fsc->INODE_SIZE);
   
@@ -227,7 +251,7 @@ void EXT2_read_tables()
     die ("seek failed");
   if (read (CURR_DEVICE, group_desc, group_desc_size) != group_desc_size)
     die ("Unable to read group descriptors");
-
+  
 #ifdef READ_FULL_TABLES
   isize = (sb->ninodes / 8) + 1;
 #else
@@ -239,7 +263,7 @@ void EXT2_read_tables()
     die ("Unable to allocate inodes bitmap");
   memset (inode_map, 0, isize);
   EXT2_read_inode_bitmap((unsigned long) 1);
-
+  
 #ifdef READ_FULL_TABLES
   isize = (sb->nzones / 8) + 1;
 #else
@@ -251,14 +275,14 @@ void EXT2_read_tables()
     die ("Unable to allocate blocks bitmap");
   memset (zone_map, 0, isize);
   EXT2_read_block_bitmap((unsigned long) 1);
-
-/*
-  bad_map = malloc (((sb->nzones - FIRSTBLOCK) / 8) + 1);
-  if (!bad_map)
-    die ("Unable to allocate bad block bitmap");
-  memset (bad_map, 0, ((sb->nzones - FIRSTBLOCK) / 8) + 1);
- */
-
+  
+  /*
+     bad_map = malloc (((sb->nzones - FIRSTBLOCK) / 8) + 1);
+     if (!bad_map)
+     die ("Unable to allocate bad block bitmap");
+     memset (bad_map, 0, ((sb->nzones - FIRSTBLOCK) / 8) + 1);
+     */
+  
   if (NORM_FIRSTBLOCK != FIRSTBLOCK) {
     sprintf(notify, "Warning: First block (%lu)"
 	    " != Normal first block (%lu)\n",
@@ -308,6 +332,7 @@ void EXT2_init(char * sb_buffer)
 
   FS_cmd.inode_in_use = EXT2_inode_in_use;
   FS_cmd.zone_in_use = EXT2_zone_in_use;
+  FS_cmd.dir_entry = EXT2_dir_entry;
 
   EXT2_read_tables();
 

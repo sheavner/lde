@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.2 1994/03/19 20:00:41 sdh Exp $
+ *  $Id: recover.c,v 1.3 1994/03/23 05:58:07 sdh Exp $
  */
 
 #include "lde.h"
@@ -43,7 +43,7 @@ unsigned long map_block(unsigned long zone_index[], unsigned long blknr)
     if (blknr<ZONES_PER_BLOCK) {
       block = zone_index[fsc->INDIRECT];
       if ((block>0)&&(block<sb->nzones)) {
-	ind = cache_read_block(block);
+	ind = cache_read_block(block,0);
 	result = block_pointer(ind,blknr,fsc->ZONE_ENTRY_SIZE);
       }
       return result;
@@ -55,10 +55,10 @@ unsigned long map_block(unsigned long zone_index[], unsigned long blknr)
     if (blknr<(ZONES_PER_BLOCK*ZONES_PER_BLOCK)) {
       block = zone_index[fsc->X2_INDIRECT];
       if ((block>0)&&(block<sb->nzones)) {
-	ind = cache_read_block(block);
+	ind = cache_read_block(block,0);
 	block = block_pointer(ind,(unsigned long)(blknr/ZONES_PER_BLOCK),fsc->ZONE_ENTRY_SIZE);
 	if ((block>0)&&(block<sb->nzones)) {
-	  ind = cache_read_block(block);
+	  ind = cache_read_block(block,0);
 	  result = block_pointer(ind,(unsigned long)(blknr%ZONES_PER_BLOCK),fsc->ZONE_ENTRY_SIZE);
 	}
 	return result;
@@ -87,7 +87,7 @@ void recover_file(FILE *fp,unsigned long zone_index[])
 
   j = 0;
   while ((nr=map_block(zone_index,j))) {
-    dind = cache_read_block(nr);
+    dind = cache_read_block(nr,0);
     for (i=0;i<sb->blocksize;i++) fprintf(fp,"%c",dind[i]);
     j++;
   }
@@ -124,7 +124,7 @@ void parse_grep()
 	blknr = blknr / sb->blocksize + 1;
 	inode_nr = find_inode(blknr);
 	if (inode_nr) {
-	  printf("Block 0x%lx indexed by inode 0x%lx",blknr,inode_nr);
+	  printf("Block 0x%lX indexed by inode 0x%lX",blknr,inode_nr);
 	  if (FS_cmd.inode_in_use(inode_nr))
 	    printf(" (This inode is marked in use)");
 	  if (FS_cmd.zone_in_use(blknr))
@@ -132,7 +132,7 @@ void parse_grep()
 	  printf("\n");
 	}
 	else
-	  printf("Block 0x%lx is not referenced by any inode.\n",blknr);
+	  printf("Block 0x%lX is not referenced by any inode.\n",blknr);
       }
     }
     else /* EOF doesn't seem to work */
@@ -161,7 +161,7 @@ void search_fs(unsigned char *search_string, int search_len)
     
     /* Do all the searches in the unused data space */
     if ((!FS_cmd.zone_in_use(nr))||(rec_flags.search_all)) {
-      dind = cache_read_block(nr);
+      dind = cache_read_block(nr,0);
 
       /* Search codes for a gzipped tar file --
        * see /etc/magic or make a similar file and read off the first
@@ -176,9 +176,9 @@ void search_fs(unsigned char *search_string, int search_len)
       } while (++i<search_len);
 
       if (i==search_len) {
-	printf("Pattern match at start of block 0x%lx",nr);
+	printf("Pattern match at start of block 0x%lX",nr);
 	if ( (inode_nr = find_inode(nr)) )
-	  printf(" check inode 0x%lx",inode_nr);
+	  printf(" check inode 0x%lX",inode_nr);
 	printf(".\n");
       }
 
@@ -235,7 +235,7 @@ void search_fs(unsigned char *search_string, int search_len)
 	}
 	
 	if (match[2]>SEQ_COUNT) {
-	  fprintf(stderr,"%d hits on possible indirect block at 0x%lx\n",
+	  fprintf(stderr,"%d hits on possible indirect block at 0x%lX\n",
 		  match[2],nr);
 	  match_total++;
 	}

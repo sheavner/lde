@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.2 1994/03/19 20:00:51 sdh Exp $
+ *  $Id: xiafs.c,v 1.3 1994/03/23 05:58:31 sdh Exp $
  */
 
 #include "lde.h"
@@ -14,7 +14,7 @@ int MINIX_inode_in_use();
 int MINIX_zone_in_use();
 
 #undef Inode
-#define Inode (((struct xiafs_inode *) inode_buffer)-1)
+#define Inode (((struct xiafs_inode *) inode_buffer)-1+nr)
 
 #undef Super
 #define Super (*(struct xiafs_super_block *)sb_buffer)
@@ -34,62 +34,82 @@ struct fs_constants XIAFS_constants = {
 
 unsigned short XIAFS_i_mode(unsigned long nr)
 {
-  struct xiafs_inode * inode = (Inode + nr);
-  return (unsigned short) inode->i_mode;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned short) Inode->i_mode;
 }
 
 unsigned short XIAFS_i_uid(unsigned long nr)
 {
-  struct xiafs_inode * inode = (Inode + nr);
-  return (unsigned short) inode->i_uid;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned short) Inode->i_uid;
 }
 
 unsigned long XIAFS_i_size(unsigned long nr)
 {
-  struct xiafs_inode * inode = (Inode + nr);
-  return (unsigned long) inode->i_size;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned long) Inode->i_size;
 }
 
 unsigned long XIAFS_i_atime(unsigned long nr)
 {
-  struct xiafs_inode * inode = (Inode + nr);
-  return (unsigned long) inode->i_atime;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned long) Inode->i_atime;
 }
 
 unsigned long XIAFS_i_ctime(unsigned long nr)
 {
-  struct xiafs_inode * inode = (Inode + nr);
-  return (unsigned long) inode->i_ctime;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned long) Inode->i_ctime;
 }
 
 unsigned long XIAFS_i_mtime(unsigned long nr)
 {
-  struct xiafs_inode * inode = (Inode + nr);
-  return (unsigned long) inode->i_mtime;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned long) Inode->i_mtime;
 }
 
 unsigned short XIAFS_i_gid(unsigned long nr)
 {
-  struct xiafs_inode * inode = (Inode + nr);
-  return (unsigned short) inode->i_gid;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned short) Inode->i_gid;
 }
 
 unsigned short XIAFS_i_links_count(unsigned long nr)
 {
-  struct xiafs_inode * inode = (Inode + nr);
-  return (unsigned short) inode->i_nlinks;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned short) Inode->i_nlinks;
 }
 
 unsigned long XIAFS_zoneindex(unsigned long nr, unsigned long znr)
 {
-  struct xiafs_inode * inode = (Inode + nr);
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
   if (znr<XIAFS_constants.N_DIRECT)
-    return (unsigned short) inode->i_zone[znr];
+    return (unsigned short) Inode->i_zone[znr];
   else if (znr==XIAFS_constants.INDIRECT)
-    return (unsigned short) inode->i_ind_zone;
+    return (unsigned short) Inode->i_ind_zone;
   else if (znr==XIAFS_constants.X2_INDIRECT)
-    return (unsigned short) inode->i_dind_zone;
+    return (unsigned short) Inode->i_dind_zone;
   return 0;
+}
+
+/* Could use some optimization maybe?? */
+char* XIAFS_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
+{
+  char *bp;
+  int j;
+  static char cname[_XIAFS_NAME_LEN];
+
+  bzero(cname,_XIAFS_NAME_LEN);
+  bp = block_buffer;
+
+  if (i)
+    for (j = 0; j < i ; j++) {
+      bp += block_pointer(bp,(unsigned long)(fsc->INODE_ENTRY_SIZE/2),2);
+    }
+  *inode_nr = block_pointer(bp,0UL,fsc->INODE_ENTRY_SIZE);
+  strncpy(cname, (bp+fsc->INODE_ENTRY_SIZE+sizeof(unsigned short)+sizeof(unsigned char)),
+	  bp[fsc->INODE_ENTRY_SIZE+sizeof(unsigned short)+sizeof(unsigned char)]);
+  return (cname);
 }
 
 void XIAFS_sb_init(char * sb_buffer)
@@ -129,6 +149,7 @@ int XIAFS_init(char * sb_buffer)
 
   FS_cmd.inode_in_use = MINIX_inode_in_use;
   FS_cmd.zone_in_use = MINIX_zone_in_use;
+  FS_cmd.dir_entry = XIAFS_dir_entry;
 
   MINIX_read_tables();
 

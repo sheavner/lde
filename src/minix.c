@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.2 1994/03/19 20:00:11 sdh Exp $
+ *  $Id: minix.c,v 1.3 1994/03/23 05:58:38 sdh Exp $
  */
 
 /* 
@@ -14,7 +14,7 @@
 #include "lde.h"
 
 #undef Inode
-#define Inode (((struct minix_inode *) inode_buffer)-1)
+#define Inode (((struct minix_inode *) inode_buffer)-1+nr)
 
 #undef Super
 #define Super (*(struct minix_super_block *)sb_buffer)
@@ -34,63 +34,69 @@ struct fs_constants MINIX_constants = {
 
 unsigned short MINIX_i_mode(unsigned long nr)
 {
-  struct minix_inode * inode = (Inode + nr);
-  return (unsigned short) inode->i_mode;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned short) Inode->i_mode;
 }
 
 unsigned short MINIX_i_uid(unsigned long nr)
 {
-  struct minix_inode * inode = (Inode + nr);
-  return (unsigned short) inode->i_uid;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned short) Inode->i_uid;
 }
 
 unsigned long MINIX_i_size(unsigned long nr)
 {
-  struct minix_inode * inode = (Inode + nr);
-  return (unsigned long) inode->i_size;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned long) Inode->i_size;
 }
 
 unsigned long MINIX_i_time(unsigned long nr)
 {
-  struct minix_inode * inode = (Inode + nr);
-  return (unsigned long) inode->i_time;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned long) Inode->i_time;
 }
 
 unsigned short MINIX_i_gid(unsigned long nr)
 {
-  struct minix_inode * inode = (Inode + nr);
-  return (unsigned short) inode->i_gid;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned short) Inode->i_gid;
 }
 
 unsigned short MINIX_i_links_count(unsigned long nr)
 {
-  struct minix_inode * inode = (Inode + nr);
-  return (unsigned short) inode->i_nlinks;
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned short) Inode->i_nlinks;
 }
 
 unsigned long MINIX_zoneindex(unsigned long nr, unsigned long znr)
 {
-  struct minix_inode * inode = (Inode + nr);
-  return (unsigned long) inode->i_zone[znr];
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
+  return (unsigned long) Inode->i_zone[znr];
 }
 
 int MINIX_inode_in_use(unsigned long nr)
 {
+  if ((!nr)||(nr>sb->ninodes)) nr = 1;
   return bit(inode_map,nr);
 }
 
 int MINIX_zone_in_use(unsigned long nr)
 {
-  if (nr < sb->first_data_zone) return 1;
+  if (nr < sb->first_data_zone) 
+    return 1;
+  else if ( nr > sb->nzones )
+    return 0;
   return bit(zone_map,(nr-sb->first_data_zone+1));
 }
 
-unsigned long MINIX_null_call()
+static char cname[32];
+char* MINIX_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
 {
-  return 0;
+  memset(cname,65,32);
+  strncpy(cname, block_buffer+(i*sb->dirsize+fsc->INODE_ENTRY_SIZE), sb->namelen);
+  *inode_nr = block_pointer(block_buffer, i*sb->dirsize, fsc->INODE_ENTRY_SIZE);
+  return (cname);
 }
-
-struct fs_constants MINIX_fs_constants;
 
 void MINIX_sb_init(char * sb_buffer)
 {
@@ -179,6 +185,7 @@ void MINIX_init(char * sb_buffer)
 
   FS_cmd.inode_in_use = MINIX_inode_in_use;
   FS_cmd.zone_in_use = MINIX_zone_in_use;
+  FS_cmd.dir_entry = MINIX_dir_entry;
 
   MINIX_read_tables();
 
