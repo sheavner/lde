@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.17 1996/08/16 22:37:12 sdh Exp $
+ *  $Id: nc_lde.c,v 1.18 1996/09/14 02:39:59 sdh Exp $
  */
 
 #include <stdio.h>
@@ -727,6 +727,10 @@ void interactive_main(void)
   current_block = 0UL;
 
   /* Curses initialization junk */
+  if (!(newterm(NULL,stdout,stdin))) {
+    printf("It seems you have not set up ncurses correctly -- See INSTALL for assistance.\n");
+    return;
+  }
   initscr();
   cbreak();
   noecho();
