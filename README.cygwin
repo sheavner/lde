@@ -1,0 +1,11 @@
+
+To access your drives under cygwin, you have to do something like this ...
+
+mount -s -b -f //./physicaldrive0 /dev/hda
+
+Where you can use physicaldrive0, physicaldrive1 corresponding to each
+harddisk installed on your system.  For partitions, something like
+this is supposed to work, but I'm not sure it really does ...
+
+mount -s -b -f //./C /dev/hda1
+
