@@ -3,12 +3,12 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.13 1998/05/30 17:57:32 sdh Exp $
+ *  $Id: xiafs.c,v 1.14 1998/06/05 20:59:39 sdh Exp $
  */
 
 #include <string.h>
 #include <unistd.h>
-
+#include <sys/types.h>
 #include <linux/fs.h>
 #include <linux/minix_fs.h>
 #include <linux/xia_fs.h>
