@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.15 1996/06/01 04:56:54 sdh Exp $
+ *  $Id: lde.h,v 1.16 1996/09/14 02:34:09 sdh Exp $
  */
 
 #ifndef VERSION
@@ -209,13 +209,15 @@ struct {
 } FS_cmd;
 
 /* Flags */
-struct _lde_flags {
+volatile struct _lde_flags {
   unsigned search_all:      1;
   unsigned quiet:           1;
   unsigned write_ok:        1;
   unsigned paranoid:        1;
   unsigned inode_lookup:    1;
   unsigned indirect_search: 1;
+  unsigned quit_now:        1;
+  unsigned mounted:         1;
 } lde_flags;
 
 extern struct sbinfo *sb;
