@@ -1,4 +1,8 @@
 2003-12-06    Scott Heavner
+	* recover.c: search_for_superblocks()
+	  - fix bad buffer allocation, appears when running ppc tests
+
+2003-12-06    Scott Heavner
 	- remove references to ftime/timeb
 	- don't update inode date field if can't parse new date 
 	- ditch the kernel bitops forever, let's all use the c ones, we don't need

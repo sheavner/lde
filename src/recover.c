@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.41 2002/05/29 05:38:32 scottheavner Exp $
+ *  $Id: recover.c,v 1.42 2003/12/07 19:27:14 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -833,7 +833,7 @@ int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, i
 int search_for_superblocks(int fs_type) {
   unsigned long sbnr = 0;
   int i;
-  char *buffer[512*500];
+  char buffer[512*500];
   size_t  bytesread;
  
   /* Want to do all searches on 512 byte boundries, in case something has gotten screwed up */
@@ -847,18 +847,18 @@ int search_for_superblocks(int fs_type) {
   lde_warn("Searching disk for %s superblocks . . .",(fs_type==AUTODETECT)?"any":lde_typedata[fs_type].name);
 
   for ( ; sbnr<sb->nzones; ++sbnr) {
-    bytesread = nocache_read_block(sbnr, buffer, 512);
+    bytesread = nocache_read_block(sbnr, &buffer, 512);
     if (bytesread < 0)
       break;
 
     if ( fs_type == AUTODETECT ) {
       for ( i = AUTODETECT+1 ; lde_typedata[i].test; i++) {
-	if (lde_typedata[i].test(buffer,0)) {
+	if (lde_typedata[i].test(&buffer,0)) {
 	  lde_warn("Found %s superblock at 0x%lx",lde_typedata[i].name,sbnr);
 	}
       }
     } else {
-      if (lde_typedata[fs_type].test(buffer,0)) {
+      if (lde_typedata[fs_type].test(&buffer,0)) {
 	lde_warn("Found %s superblock at 0x%lx",lde_typedata[fs_type].name,sbnr);
       }
     }
