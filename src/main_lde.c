@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.15 1996/09/15 21:24:01 sdh Exp $
+ *  $Id: main_lde.c,v 1.16 1996/09/23 04:26:49 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <signal.h>
+#include <time.h>
 
 #include <sys/stat.h>
 
@@ -390,6 +391,7 @@ void main(int argc, char ** argv)
 {
   int i, hasdata;
   unsigned long nr, inode_nr;
+  char *thispointer;
 
   struct Generic_Inode *GInode = NULL;
 
@@ -468,8 +470,15 @@ void main(int argc, char ** argv)
 	    for (i=0; i<INODE_BLKS ; i++)
 	      if (GInode->i_zone[i])
 		hasdata = 1;
-	    if ((hasdata)&&(check_recover_file( GInode->i_zone )))
-		printf("Inode 0x%lX recovery possible\n",nr);
+	    if ((hasdata)&&(check_recover_file( GInode->i_zone ))) {
+		printf("Inode 0x%lX recovery possible",nr);
+		if (fsc->inode->i_dtime) {
+                  thispointer = ctime(&(GInode->i_dtime));
+                  thispointer[24] = 0;
+		  printf(" (deleted %24s)",thispointer);
+                }
+		printf("\n");
+	    }
 	  }
 	}
 	exit(0);
