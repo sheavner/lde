@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: iso9660.c,v 1.2 2001/02/21 20:01:04 sdh Exp $
+ *  $Id: iso9660.c,v 1.3 2001/02/23 23:36:12 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -257,7 +257,6 @@ int ISO9660_test(void *sb_buffer)
   char *testbuffer = (char *)sb_buffer + 16*2048 + 1;
   char s[3] = {0};
 
-  lde_warn("TESTING ISO9660");
   s[0] = testbuffer[2];
   s[1] = testbuffer[3];
   lde_warn(s);
