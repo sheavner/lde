@@ -4,7 +4,7 @@
  *  Copyright (C) 1994  Scott D. Heavner
  *  Portions Copyright (C) 2002 John Quirk
  *
- *  $Id: ext2fs.c,v 1.37 2002/02/01 03:35:19 scottheavner Exp $
+ *  $Id: ext2fs.c,v 1.38 2002/02/09 12:57:54 jquirk Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -48,7 +48,7 @@ static unsigned long EXT2_next_entry(struct ext2_dir_entry_2 *bp, void *end );
 /* this variable holds a pointer to the last directory entry returned */
 static struct ext2_dir_entry_2 *dir_last;
 static int in_del = 0;        /* processing deleted entry */
-static int ext2_check_valid_name(__u8 len, char *name);
+static int ext2_check_valid_name(__u8 len, char *name,void *end);
 #endif /* JQDIR */
 
 /* Haven't defined ACL and stuff because inode mode doesn't do anything 
@@ -570,11 +570,11 @@ static unsigned long EXT2_next_entry( struct ext2_dir_entry_2 *bp, void *end )
   tag_bp = (void *)bp + entry_size; /* look ahead to next entry */
 
   if ( (void *)tag_bp > end ) return entry_size;
-  
+
   /* look ahead in buffer to see if inode valid */
   /* 20-01-02 removed test for zeroed inode */
   if(in_del && (tag_bp->inode > sb->ninodes
-		|| ext2_check_valid_name(tag_bp->name_len,tag_bp->name)
+		|| ext2_check_valid_name(tag_bp->name_len,tag_bp->name,end)
 		|| tag_bp->name_len < 1
 		|| tag_bp->name_len > sb->namelen) )
     {/* bad inode possibly reading garbage */
@@ -625,17 +625,21 @@ int EXT2_dir_undelete(int entry, lde_buffer *buffer)
   struct Generic_Inode *GInode, dotNode;
   struct ext2_dir_entry_2 *ent1 , *ent2;
   lde_dirent d;
-  
+
   i = 0;
   EXT2_dir_entry(i, buffer, &d);
   fname = d.name;
   inode_nr = d.inode_nr;
-  if(inode_nr == 0)
+  /* A Basic check to make sure the Dot entry is ok and
+   * is in fact the dot entry! If it not we maybe dealing with
+   * a fragment so its not really a good idea to undelete entry
+   */
+  if(inode_nr == 0 || fname[0] != '.')
     {
-      lde_warn("Bad current directory");
+      lde_warn("Bad current directory. Try copy instead");
       return 1;
     }
-  
+
   GInode = EXT2_read_inode(inode_nr);
   memcpy(&dotNode,GInode,sizeof(dotNode));
   if(GInode->i_links_count == 0)
@@ -647,14 +651,16 @@ int EXT2_dir_undelete(int entry, lde_buffer *buffer)
   EXT2_dir_entry(i,buffer,&d);
   inode_nr = d.inode_nr;
   fname = d.name;
-  if(inode_nr ==0 )
+  /* Same basic checks as above but looking for dot dot */
+
+  if(inode_nr == 0 || fname[0] != '.' || fname[1] != '.' )
     {
-      lde_warn("bad parent directory");
+      lde_warn("Bad parent directory. Try copy instead");
       return 1;
     }
-  
+
   GInode = EXT2_read_inode(inode_nr);
-  
+
   if(GInode->i_links_count == 0)
     {
       lde_warn("Parent directory deleted undelete first");
@@ -670,9 +676,17 @@ int EXT2_dir_undelete(int entry, lde_buffer *buffer)
   inode_nr = d.inode_nr;
   ent1 = 	dir_last; /* actual directory entry */
   GInode = EXT2_read_inode(inode_nr);
+  /* We can have a possible of three states here if inode is not unlinked
+   * 1) Inode has been reused
+   * 2) File was had multipul hard links
+   * 3) File isn't deleted at all!
+   */
   if(GInode->i_links_count != 0)
     {
-      lde_warn("File does not appear to be deleted");
+    if(d.isdel)
+      lde_warn("Inode has been reused or was multi linked file");
+    else
+      lde_warn("File is not deleted nothing to do");
       return 1;
     }
   inode_nr2 = inode_nr;
@@ -688,19 +702,24 @@ int EXT2_dir_undelete(int entry, lde_buffer *buffer)
 	    break;
 	}
       ent2 = (void *)dir_last + ldeswab16(dir_last->rec_len);
-      /* we should have three entries last valid one, 
+      /* we should have three entries last valid one,
        * deleted one and next one.
        * note to self what if last is end of block.
-       */ 
+       */
       if(!(ent2 > ent1))
 	{
-	  lde_warn("could not find correct chain");
+	  lde_warn("Unable to reconstruct directory entry. Try copy instead");
 	  return 1;
 	}
       temp = (void *)ent2 - (void *)ent1;
       ent1->rec_len = ldeswab16(temp);
       temp = (void *)ent1 - (void *)dir_last;
       dir_last->rec_len = ldeswab16(temp);
+      /* We now use the save dot inode to write out this directory
+       * which is why I need it to be undeleted before we start or we could
+       * overwriting system data. Again this code asumes that the dot inode
+       * is valid with out doing any checks other than those at the start
+       */
       i = 0;
       while (i < dotNode.i_blocks) { /* using block because this is kept */
 	FS_cmd.map_block(dotNode.i_zone,i,&bnr);
@@ -714,7 +733,7 @@ int EXT2_dir_undelete(int entry, lde_buffer *buffer)
    * for now a fairly quick and dirty fixup 
    */
   GInode->i_links_count = 1; /* no science here just undeleted */ 	
-  GInode->i_dtime =0;
+  GInode->i_dtime =0;        /* fsck complains if not done */
   /*Check size and block count make size correct for block count */
   if( GInode->i_size == 0 && GInode->i_blocks !=0)
     GInode->i_size = GInode->i_blocks * 512;
@@ -731,12 +750,12 @@ int EXT2_is_deleted(void)
   return in_del;
 }	
 
-static int ext2_check_valid_name(__u8 len, char *name)
+static int ext2_check_valid_name(__u8 len, char *name, void *end)
 {
   int i;
   for( i=0; i < len; i++, name++)
     {
-      if(!isprint(*name))
+      if(!isprint(*name)|| (void *)name > end)
 	return(1);
     }
   return(0);

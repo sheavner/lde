@@ -305,35 +305,42 @@ NON FATAL ERROR MESSAGES:
         Catch all for the attempted use of the ext2fs only commands on
         other file systems.
 "Bad current directory"
-"bad parent directory"
-	Directory . or ..has a zeroed inode we are unable to proceed.
+"Bad parent directory"
+	Directory . or .. has a zeroed inode we are unable to proceed.
+        Or these entries where not found and you be trying to undelete
+        in a block that's part of a larger directory.
 "Current directory deleted undelete first"
 "Parent directory deleted undelete first"
 	Directory . or .. is deleted, undelete before continuing. Note
-	inode number step up one look or inode undelete this entry
-	then step back down to the file you want to undelete. This is
-	done to try and prevent directories that don't link back to
-	root.
-"File does not appear to be deleted"
+	inode number step up one and look for the inode and undelete
+        this entry then step back down to the file you want to undelete.
+        This is done to try and prevent directories that don't link back
+        to root. Another reason we need the . and .. to be valid is that
+        we write what's in the . inode back to disk if this data is bad
+        who know's where we would end up writing or directory entry.
+"File is not deleted nothing to do"
 	You are trying to undelete a file that does appear to be
-	deleted - doesn't make sense to me so I don't do it.  "could
-	not find correct chain" A cryptic one this, even confused me,
-	an error was found when transversing the linked list and we
+	deleted - doesn't make sense to me so I don't do it.
+"Inode has been reused or was multi linked file"
+        The directory entry has been removed but the inode is not
+        deleted so its possible been reused or it was file with more
+        than one hard link.
+"Unable to reconstruct directory entry"
+	An error was found when transversing the linked list and we
 	could not find he correct place to reinsert the deleted
-	entry. If you get this error message try the t command and
-	then the copy command.
+	entry. If you get this error message try the t [Test] command and
+	then the c [copy] command.
 
 FATAL ERROR MESSAGES
 "fatal error unable to allocate memory"
-	The bit that prints up your 'pwd' display could get memory,
-	shouldn't see this one to often as the buffers are used more
-	often.
-	
+	The bit that prints up your 'pwd' display couldn't get memory.
+	Something has gone wrong and you should email me as i will need
+        see if it can be fixed.
+
 
 
 NOTES to ME
 Soon
-* Add the end paramatter to the deleted entry transverser.
 * Clean up code for the deleted transverser.
 * add the utime call to file create code
 * add option to set dir where files are dumped.

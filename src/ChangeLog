@@ -1,3 +1,10 @@
+2002-02-09    John Quirk
+        - Added code to test for end of Buffer in ext2_check_valid_name.
+        - Cleaned up error messages and added tests in the undelete code
+          to try and catch an udelete on a fragment. Tested code on
+          various styles of entries seems to give when it should. Also
+          updated undelete_ext2fs.doc to reflect error code changes. 
+
 2002-01-31    Scott Heavner
 
 	- major bug in xiafs code, was casting inode's block pointer to
