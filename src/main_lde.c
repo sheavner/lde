@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.38 2002/01/10 19:39:03 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.39 2002/01/11 17:59:35 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -119,7 +119,7 @@ static int check_mount(char *device_name)
 }
 
 /* Define a handler for Interrupt signals: Ctrl-C */
-static void handle_sigint(int a, siginfo_t * b, void *c)
+static void handle_sigint(int a, void * b, void *c)
 {
   lde_flags.quit_now = 1;
 }
