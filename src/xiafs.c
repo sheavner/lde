@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.16 1998/07/03 19:02:17 sdh Exp $
+ *  $Id: xiafs.c,v 1.17 1998/07/03 23:20:32 sdh Exp $
  */
 
 #include <string.h>
@@ -224,7 +224,7 @@ void XIAFS_scrub(int flag)
   else
     Super.s_magic = _XIAFS_SUPER_MAGIC;
 
-  if (lde_lseek(0))
+  if (lde_lseek_block(0))
     die("unable to seek block in XIAFS_scrub() prior to write");
 
   if ( sizeof(struct xiafs_super_block) != 
