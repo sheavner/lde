@@ -1,3 +1,4 @@
 config.cache
 config.log
-config.status*
+config.status
+configure
