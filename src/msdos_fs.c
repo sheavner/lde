@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.4 1996/10/11 00:33:04 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.5 1996/10/11 03:14:53 sdh Exp $
  */
 
 /* 
@@ -186,7 +186,9 @@ int DOS_test(void *sb_buffer)
   struct msdos_boot_sector *Boot;
   Boot = sb_buffer;
 
-  if ( !(strncmp(Boot->system_id,"MSDOS",5)) || !(strncmp(Boot->system_id,"IBM  ",5)) ) {
+  if ( !(strncmp(Boot->system_id,"MSDOS",5)) ||
+       !(strncmp(Boot->system_id,"IBM  ",5)) ||
+       !(strncmp(Boot->system_id,"MSWIN",5)) ) {
     lde_warn("Found msdos_fs on device");
     return 1;
   }
