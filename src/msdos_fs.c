@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.7 1998/01/23 04:04:27 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.8 1998/05/30 18:10:11 sdh Exp $
  */
 
 /* 
@@ -17,7 +17,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <linux/msdos_fs.h>
- 
 #include "lde.h"
 #include "no_fs.h"
 #include "msdos_fs.h"
@@ -247,6 +246,7 @@ int DOS_test(void *sb_buffer)
 
   if ( !(strncmp(Boot->system_id,"MSDOS",5)) ||
        !(strncmp(Boot->system_id,"IBM  ",5)) ||
+       !(strncmp(Boot->system_id,"NWDOS",5)) ||
        !(strncmp(Boot->system_id,"MSWIN",5)) ) {
     lde_warn("Found msdos_fs on device");
     return 1;
