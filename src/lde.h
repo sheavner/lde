@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.17 1996/09/15 19:13:23 sdh Exp $
+ *  $Id: lde.h,v 1.18 1996/10/11 00:10:53 sdh Exp $
  */
 
 #ifndef VERSION
@@ -20,8 +20,11 @@ int check_root(void);
 void (*warn)(char *fmt, ...);
 int  (*mgetch)(void);
 
-/* filemode.c  */
+/* swiped/fileutils-3.12/filemode.c  */
 void mode_string(unsigned short mode, char *str);
+
+/* swiped/cnews/getdate.y */
+time_t getdate(char *p, struct timeb *now);
 
 #define MAX_NAME_LEN      30
 #define MAX_BLOCK_POINTER 200
