@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.12 1996/09/15 04:12:43 sdh Exp $
+ *  $Id: nc_inode.c,v 1.13 1996/09/15 05:07:22 sdh Exp $
  */
 
 #include <ctype.h>
@@ -89,10 +89,18 @@ static void cwrite_inode(unsigned long inode_nr, struct Generic_Inode *GInode, i
 /* Display current labels */
 static void cdump_inode_labels()
 {
-  int i;
+  int vstart,vsize=17, i;
+
+  /* Do some bounds checking on our window */
+  if (VERT>vsize) {
+    vstart = ((VERT-vsize)/2+HEADER_SIZE);
+  } else {
+    vsize  = LINES-HEADER_SIZE-TRAILER_SIZE;
+    vstart = HEADER_SIZE;
+  }
 
   clobber_window(workspace); 
-  workspace = newwin(17,WIN_COL,((VERT-17)/2+HEADER_SIZE),HOFF);
+  workspace = newwin(vsize,WIN_COL,vstart,HOFF);
   werase(workspace);
 
   for (i=0;(inode_labels[i].sb_entry>=0);i++)
