@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.13 1996/10/11 00:42:48 sdh Exp $
+ *  $Id: recover.c,v 1.14 1996/10/13 01:41:00 sdh Exp $
  */
 
 #include <stdio.h>
@@ -138,6 +138,34 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
   }
 
   return (EMB_WAY_OUT_OF_RANGE);
+}
+
+int advance_zone_pointer(unsigned long zone_index[], unsigned long *currblk, 
+		     unsigned long *ipointer, long increment)
+{
+  int result;
+  unsigned long blknr = 0UL, local_ipointer;
+
+  /* Check that we are at a block that is indexed by this inode */
+  if ((map_block(zone_index, *ipointer, &blknr))||(blknr!=(*currblk)))
+    return AZP_BAD_START;
+
+  local_ipointer = *ipointer;
+
+  /* Now adjust the pointer and find us a block */
+  do {
+    local_ipointer += increment;
+    result = map_block(zone_index, local_ipointer, &blknr);
+    if (result < EMB_HALT)
+      return result;
+  } while(result!=EMB_NO_ERROR);
+
+  if (blknr) {
+    *ipointer = local_ipointer;
+    *currblk = blknr;
+  }
+
+  return 0;
 }
 
 /* This is the non-magic undelete.  inode will contain a 
