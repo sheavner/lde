@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1996  Scott D. Heavner
  *
- *  $Id: swiped.h,v 1.2 1996/10/12 21:12:12 sdh Exp $
+ *  $Id: swiped.h,v 1.3 2001/02/26 18:53:45 scottheavner Exp $
  */
 
 #include <sys/timeb.h>        /* Include this here for getdate() prototype below */
@@ -12,6 +12,6 @@
 void mode_string(unsigned short mode, char *str);
 
 /* cnews/getdate.y */
-time_t getdate(char *p, struct timeb *now);
+time_t lde_getdate(char *p, struct timeb *now);
 
 

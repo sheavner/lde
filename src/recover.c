@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.28 2001/02/23 23:40:04 scottheavner Exp $
+ *  $Id: recover.c,v 1.29 2001/02/26 18:53:45 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -750,7 +750,7 @@ int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, i
   size_t  bytesread, rbs = 0, lsearchstring;
   char    *buffer = 0, *match;
 
-#ifdef ALPHA_CODE
+#if HAVE_MEMMEM
   if ( (!searchstring) || (!*searchstring) ) {
     lde_warn("NULL searchstring ignored");
     return -1;
@@ -797,7 +797,8 @@ int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, i
   
   free(buffer);
 #else
-  lde_warn("Block search is still Alpha -- Reconfigure & recompile with --enable-debug");
+#warning No memmem() found, block search disabled.
+  lde_warn("Block search needs memmem, try recompiling.");
 #endif
 
   if (retval==0)

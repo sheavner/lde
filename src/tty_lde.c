@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.24 2001/02/22 19:48:20 sdh Exp $
+ *  $Id: tty_lde.c,v 1.25 2001/02/26 18:53:45 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -28,6 +28,10 @@
 #ifndef UNISTD_LLSEEK_PROTO
 extern loff_t llseek (int fd, loff_t offset, int whence);
 #endif
+#if NEED_LSEEK64_PROTO
+extern off64_t lseek64 (int __fd, off64_t __offset, int __whence);
+#endif
+
 
 /* We don't need no stinkin' linked list */
 char *error_save[ERRORS_SAVED];
@@ -121,7 +125,7 @@ unsigned long lde_seek_block(unsigned long block_nr)
 {
 #if HAVE_LSEEK64
 
-  loff_t dbnr = (loff_t)block_nr * sb->blocksize;
+  off64_t dbnr = (off64_t)block_nr * (off64_t)sb->blocksize;
 
   if (lseek64(CURR_DEVICE, dbnr, SEEK_SET)==dbnr)
     return block_nr;
@@ -185,7 +189,7 @@ size_t nocache_read_block (unsigned long block_nr, void *dest,
    * contents are not changed */
   if (lde_seek_block (block_nr) != block_nr )
     lde_warn("Read error: unable to seek to block"
-	     " in nocache_read_block, errno=%d",
+	     "0x%lx in nocache_read_block, errno=%d",
 	     block_nr,errno);
   else if ( (act_size=read (CURR_DEVICE, dest, read_size)) != read_size)
     lde_warn("Unable to read full block (%lu) in nocache_read_block,"

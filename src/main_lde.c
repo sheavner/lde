@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.31 2001/02/23 23:40:04 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.32 2001/02/26 18:53:45 scottheavner Exp $
  */
 
 #include <fcntl.h>
@@ -52,6 +52,7 @@ struct _main_opts {
   char *search_string;
   char *recover_file_name;
   int log_to_file;
+  int blocksize;
 };
 
 struct _search_types {
@@ -195,6 +196,7 @@ static void long_usage(void)
 	         "   -b {number}          Dump block to stdout (-B all blocks after {number})\n"
                  "   -N {number}          Number of blocks to dump (using -I or -B option)\n"
                  "   -d {number}          Dump block's data to stdout (binary format)\n"
+                 "   -s {number}          Override blocksize\n"
                  "   -S {string}          Search disk for data (questionable usefulness, try grep)\n"
                  "   -T {type}            Search disk for data, type={gz, tgz, script, {filename}}\n"
                  "   -L {number}          Search length (when using specified filename)\n"
@@ -240,6 +242,8 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       {"help", 0, 0, 'h'},
       {"inode", 1, 0, 'i'},
       {"block", 1, 0, 'b'},
+      {"blocksize", 1, 0, 's'},
+      {"bs", 1, 0, 's'},
       {"limit", 1, 0, 'l'},
       {"all", 0, 0, 'a'},
       {"grep", 0, 0, 'g'},
@@ -267,7 +271,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
   while (1) {
     option_index = 0;
 
-    c = getopt_long (argc, argv, "avFf:I:i:n:N:B:b:D:d:gpqS:t:T:whH?O:L:",
+    c = getopt_long (argc, argv, "avFf:I:i:n:N:B:b:D:d:gpqs:S:t:T:whH?O:L:",
 		     long_options, &option_index);
 
     if (c == -1)
@@ -330,6 +334,9 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	break;
       case 'q': /* no audio -- well nop beeps */
 	lde_flags.quiet = 1;
+	break;
+      case 's': /* Override blocksize */
+	opts->blocksize = read_num(optarg);
 	break;
       case 'S': /* Search for a string of data */
 	opts->search_string = optarg;
@@ -445,7 +452,7 @@ int main(int argc, char ** argv)
   sigset_t sa_mask;
   struct sigaction intaction = { {(void *)handle_sigint}, sa_mask, SA_RESTART};
 
-  struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0, 0UL, 0UL, NULL, NULL, NULL, 0 };
+  struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0, 0UL, 0UL, NULL, NULL, NULL, 0, 0 };
 
   /* Set things up to handle control-c:  just sets lde_flags.quit_now to 1 */
   sigemptyset(&sa_mask);
@@ -488,6 +495,11 @@ int main(int argc, char ** argv)
   }
 
   read_tables(main_opts.fs_type);
+
+  /* Override blocksize, if desired */
+  if (main_opts.blocksize) {
+    sb->blocksize = main_opts.blocksize;
+  }
 
   /* Process requests handled by tty based lde */
   if (main_opts.recover_file_name!=NULL) {

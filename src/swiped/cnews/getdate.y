@@ -484,7 +484,7 @@ char *id;
 }
 
 time_t
-getdate(p, now)
+lde_getdate(p, now)
 char *p;
 struct timeb *now;
 {

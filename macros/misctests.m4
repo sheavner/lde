@@ -16,6 +16,7 @@ AC_DEFUN(AC_CHECK_KERNEL_BITOPS,[
         fi
 ])
 
+
 dnl -------------- Check if we can supress -Wall ------------------------
 dnl Check if compiler accepts -w (supress all warnings)
 AC_SUBST(shutup)

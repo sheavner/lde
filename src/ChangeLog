@@ -1,3 +1,14 @@
+Mon Feb 26 2001 Scott Heavner
+
+	* tty_lde.c: fix seeking on large (>2GB) partitions, need proper proto for lseek64
+	* configure.in: 
+		- define(_GNU_SOURCE)
+		- add tests for memmem
+		- better tests for lseek64
+	* rename getdate -> lde_getdate, conflicts with one that appeared with define(_GNU_SOURCE)
+	* add blocksize runtime option -s N, --bs N, --blocksize N to override autodetect blocksize
+
+
 Sun Feb 25 2001 Scott Heavner
 
 	* remove msdos_boot_sector/fat_boot_sector checks, it's named

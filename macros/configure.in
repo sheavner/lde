@@ -6,6 +6,8 @@ AC_INIT(../src/main_lde.c)
 LDEVERSION=2.6.0
 AC_SUBST(LDEVERSION)
 
+AC_DEFINE(_GNU_SOURCE)
+
 dnl Must use builtin() as it is overridden by some AC_ macros
 builtin(include,./curses.m4)
 builtin(include,./misctests.m4)
@@ -27,18 +29,29 @@ AC_PATH_PROG(AR, ar, ar)
 
 AC_CHECK_PROG(system,uname,`uname`,unknown)
 
+dnl Checks for header files.
+dnl AC_HEADER_STDC
+dnl AC_CHECK_HEADERS(fcntl.h strings.h unistd.h)
+
 dnl Check that <asm/bitops.h> exists and works
 AC_CHECK_KERNEL_BITOPS
 
-dnl llseek seems to appear in different places
+# See if we can find an lseek64
+AC_CHECK_FUNCS(lseek64,
+	[
+		AC_EGREP_CPP(lseek64,[#include <unistd.h>],,AC_DEFINE(NEED_LSEEK64_PROTO))
+		AC_CHECK_TYPE(off64_t, __off64_t)
+		AC_CHECK_TYPE(__off64_t, long long)
+	]
+	)
+
+# Also look for llseek, only used if no lseek64
 AC_EGREP_HEADER(llseek,unistd.h,[
 		AC_DEFINE(UNISTD_LLSEEK_PROTO)
-		AC_DEFINE(HAVE_LLSEEK)
-	],
-	AC_CHECK_FUNCS(llseek))
+		AC_DEFINE(HAVE_LLSEEK) ],
+	AC_CHECK_FUNCS(llseek)
+)
 AC_CHECK_TYPE(loff_t, long long)
-
-AC_CHECK_FUNCS(lseek64)
 
 dnl Can we override -Wall on swiped code. 
 AC_CC_NOWARN
@@ -173,22 +186,23 @@ dnl ************************************************************************
 dnl I haven't bothered to do anything with these yet, so why check for them?
 dnl ************************************************************************
 
-dnl Checks for header files.
-dnl AC_HEADER_STDC
-dnl AC_CHECK_HEADERS(fcntl.h strings.h unistd.h)
-
 dnl Checks for typedefs, structures, and compiler characteristics.
-dnl AC_C_CONST
-dnl AC_TYPE_SIZE_T
-dnl AC_STRUCT_TM
+AC_C_CONST
+AC_TYPE_UID_T
+AC_C_INLINE
+AC_TYPE_MODE_T
+AC_TYPE_OFF_T
+AC_TYPE_SIZE_T
+AC_STRUCT_TM
+
 
 dnl Checks for library functions.
 dnl AC_FUNC_VPRINTF
-dnl AC_CHECK_FUNCS(ftime strstr strtol)
+dnl AC_CHECK_FUNCS(ftime strstr strtol uname memmem)
 
 dnl ************************************************************************
 
-AC_CHECK_FUNCS(uname)
+AC_CHECK_FUNCS(uname memmem)
 
 
 AC_OUTPUT(../Makefile:./Makefile.in)

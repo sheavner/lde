@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.22 2001/02/23 23:40:04 scottheavner Exp $
+ *  $Id: nc_inode.c,v 1.23 2001/02/26 18:53:45 scottheavner Exp $
  */
 
 #include <ctype.h>
@@ -410,7 +410,7 @@ void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *G
     case I_MTIME:
     case I_CTIME:
       if ((result = ncread("Enter new time and/or date:",NULL,&s)))
-	a = (unsigned long) getdate(s,NULL);
+	a = (unsigned long) lde_getdate(s,NULL);
       break;
     default:
       result = ncread("Enter new value: ",&a,NULL);
@@ -439,7 +439,7 @@ void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *G
       case I_DTIME:
       case I_MTIME:
       case I_CTIME:
-	a = (unsigned long) getdate(cinput,NULL);
+	a = (unsigned long) lde_getdate(cinput,NULL);
 	break;
       default:
 	a = read_num(cinput);
