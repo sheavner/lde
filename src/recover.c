@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.8 1996/06/01 04:59:55 sdh Exp $
+ *  $Id: recover.c,v 1.9 1996/08/16 22:34:34 sdh Exp $
  */
 
 #include <stdio.h>
@@ -41,6 +41,7 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
 {
   unsigned char *ind = NULL;
   unsigned long block;
+  static char warn_once=0;     /* Only warn once about not using 3x indirects */
 
   /* Direct blocks */
   if (fsc->N_DIRECT) {
@@ -121,7 +122,10 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
   if (fsc->X3_INDIRECT) {
     *mapped_block = 0UL;
 #   ifdef LDE_CURSES /* Don't wan't too many of these when not using curses */
+    if (!warn_once) {
         warn("Teach me how to handle triple indirect blocks :)");
+	warn_once = 1;
+    }
 #   endif
     return (EMB_3IND_NOT_YET);
   }
