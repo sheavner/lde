@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.3 1994/03/19 20:46:02 sdh Exp $
+ *  $Id: ext2fs.c,v 1.4 1994/03/19 20:46:49 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -165,7 +165,6 @@ int EXT2_inode_in_use(unsigned long nr)
   return bit(inode_map,nr%sb->s_inodes_per_group);
 }
 
-static int block_cache = -1;
 static void EXT2_read_block_bitmap(unsigned long nr)
 {
   int i;
