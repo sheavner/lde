@@ -33,6 +33,12 @@ fi
 
 ./configure "$@"
 
-echo
-echo "Now type 'make' to compile lde."
+
+if test "$*" = "--enable-dist" ; then 
+	cd ..
+	make dist
+else
+	echo
+	echo "Now type 'make' to compile lde."
+fi
 
