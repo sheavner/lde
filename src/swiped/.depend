@@ -1,6 +1,0 @@
-filemode.o: fileutils-3.12/filemode.c /usr/include/sys/types.h \
- /usr/include/linux/types.h /usr/include/linux/posix_types.h \
- /usr/include/asm/posix_types.h /usr/include/asm/types.h \
- /usr/include/sys/bitypes.h /usr/include/sys/stat.h \
- /usr/include/features.h /usr/include/sys/cdefs.h \
- /usr/include/linux/stat.h
