@@ -5,6 +5,10 @@ Tue Feb 20 16:02:56 EST 2001 Scott Heavner
 	* msdos_fs.c: Some stuff to make the directory mode work a bit better.
 	  (should go back and clean this one up -- hardcoded i_mode==0040000)
 
+	* merge lde-2.5 changes back into tree
+		- #define VERSION --> LDE_VERSION
+		- lseek64 if available
+
 Feb 2001 Scott Heavner
 
 	* iso9660.c,h: Added to distribution.  Completely useless, except

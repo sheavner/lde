@@ -52,6 +52,8 @@ AC_EGREP_HEADER(llseek,unistd.h,[
 	AC_CHECK_FUNCS(llseek))
 AC_CHECK_TYPE(loff_t, long long)
 
+AC_CHECK_FUNCS(lseek64)
+
 dnl Can we override -Wall on swiped code. 
 AC_CC_NOWARN
 
