@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.9 1995/06/01 06:02:59 sdh Exp $
+ *  $Id: main_lde.c,v 1.10 1995/06/02 14:24:26 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -126,7 +126,7 @@ void read_tables(int fs_type)
    */
  
   super_block_buffer = cache_read_block(0UL, FORCE_READ);
-  warn("FSTYPE = %2d:%20s\n",fs_type,text_names[fs_type]);
+  warn("User requested %s filesystem. Checking device . . .\n",text_names[fs_type]);
   if ( ((fs_type==AUTODETECT)&&(MINIX_test(super_block_buffer))) || (fs_type==MINIX) ) {
     MINIX_init(super_block_buffer);
   } else if ( ((fs_type==AUTODETECT)&&(EXT2_test(super_block_buffer))) || (fs_type==EXT2) ) {

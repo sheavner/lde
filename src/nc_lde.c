@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.11 1995/06/01 06:02:16 sdh Exp $
+ *  $Id: nc_lde.c,v 1.12 1995/06/02 14:22:37 sdh Exp $
  */
 
 #include <stdio.h>
@@ -144,7 +144,7 @@ int cquery(char *data_string, char *data_options, char *warn_string)
  * what the hell.  If coutput begins with a space, cinput is returned in
  * coutput and the number processing does not occurr.
  */
-int cread_num(char *coutput, long *a)
+int cread_num(char *coutput, unsigned long *a)
 {
   char cinput[80];
 
@@ -291,6 +291,8 @@ void nc_warn(char *fmt, ...)
  
   if (!quiet) beep();
 #if TRAILER_SIZE>0
+  wmove(trailer,TRAILER_SIZE-1,0);
+  wclrtoeol(trailer);
   mvwaddstr(trailer,TRAILER_SIZE-1,(COLS-strlen(echo_string))/2-1,
 	    echo_string);
   wrefresh(trailer);
@@ -306,12 +308,17 @@ int error_popup(void)
   int  present_error, i;
   char *errors[ERRORS_SAVED+1];
 
+  /* Stick a null in the last saved error to signal then end of the array
+   * for do_scroll_help() call */
   errors[ERRORS_SAVED] = NULL;
-  for (i=-1;(++i<ERRORS_SAVED); ) {
+
+  /* Sort errors, most recent on top (=0) */
+  for (i=0;(i<ERRORS_SAVED); i++) {
     present_error = current_error - i;
     if (present_error<0) present_error += ERRORS_SAVED;
     errors[i] = error_save[present_error];
   }
+
   do_scroll_help(errors, (PLAIN|HELP_BOXED));
 
   refresh_all();
@@ -618,7 +625,7 @@ void crecover_file(unsigned long inode_zones[])
 /* This lists all the tagged inodes */
 int recover_mode(void)
 {
-  int j,c,next_cmd=CMD_NO_ACTION;
+  int j,c,next_cmd=CMD_REFRESH;
   unsigned long a;
 
   clobber_window(workspace); 
@@ -648,7 +655,7 @@ int recover_mode(void)
       case REC_FILE13:
       case REC_FILE14:
 	if (cread_num("Enter block number (leading 0x or $ indicates hex):", &a))
-	    fake_inode_zones[c-REC_FILE0] = (unsigned long) a;
+	  fake_inode_zones[c-REC_FILE0] = (unsigned long) a;
         break;
       case CMD_BLOCK_MODE:
       case CMD_VIEW_SUPER:
@@ -765,7 +772,10 @@ void interactive_main(void)
     RED_ON_BLACK = A_NORMAL;
     WHITE_ON_RED = A_UNDERLINE;
   }
-  
+
+  /* Clear out restore buffer */
+  bzero(fake_inode_zones,sizeof(long)*MAX_BLOCK_POINTER);
+ 
   /* Our three curses windows */
 #if HEADER_SIZE>0
   header = newwin(HEADER_SIZE,COLS,0,0);

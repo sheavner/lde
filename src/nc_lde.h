@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.h,v 1.5 1995/06/01 05:56:57 sdh Exp $
+ *  $Id: nc_lde.h,v 1.6 1995/06/02 14:25:04 sdh Exp $
  */
 
 #include "keymap.h"		/* For lde_keymap struct definition */
@@ -36,7 +36,7 @@ unsigned long fake_inode_zones[MAX_BLOCK_POINTER];
 extern int mgetch(void);
 extern void redraw_win(WINDOW *win);
 extern int cquery(char *data_string, char *data_options, char *warn_string);
-extern int cread_num(char *coutput, long *a);
+extern int cread_num(char *coutput, unsigned long *a);
 extern void display_trailer(char *line1, char *line2);
 extern void update_header(void);
 extern void clobber_window(WINDOW *win);

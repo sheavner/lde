@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.7 1995/06/01 06:02:41 sdh Exp $
+ *  $Id: nc_block.c,v 1.8 1995/06/02 14:22:08 sdh Exp $
  */
 
 #include <stdio.h>
@@ -238,7 +238,7 @@ int block_mode(void) {
   static unsigned char *copy_buffer = NULL;
   unsigned char block_buffer[MAX_BLOCK_SIZE];
   char *HEX_PTR, *HEX_NOS = "0123456789ABCDEF";
-  unsigned long temp_ptr, inode_ptr[2] = { 0UL, 0UL };
+  unsigned long a, temp_ptr, inode_ptr[2] = { 0UL, 0UL };
   struct bm_flags flags = { 0, 0, 0, 0, 0, 1 };
 
   if (current_block >= sb->nzones)
@@ -389,13 +389,14 @@ int block_mode(void) {
 	break;
 
       case CMD_FIND_INODE: /* Find an inode which references this block */
+        warn("Searching for inode containing block 0x%lX.",current_block);
 	if ( (temp_ptr = find_inode(current_block)) )
 	  warn("Block is indexed under inode 0x%lX.",temp_ptr);
 	else
 	  if (rec_flags.search_all)
 	    warn("Unable to find inode referenece.");
 	  else
-	    warn("Unable to find inode referenece try activating the --all option.\n");
+	    warn("Unable to find inode referenece try activating the --all option.");
 	break;
 
       case REC_FILE0: /* Add current block to recovery list at position 'n' */
@@ -491,7 +492,8 @@ int block_mode(void) {
 
       case CMD_NUMERIC_REF: /* Jump to a block by numeric reference */
         cwrite_block(current_block, block_buffer, &flags.modified);
-        if (cread_num("Enter block number (leading 0x or $ indicates hex):",&current_block)) {
+        if (cread_num("Enter block number (leading 0x or $ indicates hex):",&a)) {
+	  current_block = a;
 	  flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
 	  flags.redraw = 1;
 	  if (current_block >= sb->nzones)

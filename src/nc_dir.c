@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.5 1995/06/01 06:02:34 sdh Exp $
+ *  $Id: nc_dir.c,v 1.6 1995/06/02 14:24:16 sdh Exp $
  */
 
 #include <strings.h>
@@ -35,7 +35,7 @@ static char *dp_help[] = {
 /* default keymap for directory mode */
 lde_keymap dirmode_keymap[] = {
   { 'i', CMD_SET_CURRENT_INODE },
-  { 'I', CMD_SET_CURRENT_INODE },
+  { 'I', CMD_SET_CURRENT_INODE_MC },
   { 'N', CMD_NEXT_DIR_BLOCK },
   { 'n', CMD_NEXT_DIR_BLOCK },
   { 'Q', CMD_EXIT },

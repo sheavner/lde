@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.10 1995/06/01 06:03:15 sdh Exp $
+ *  $Id: ext2fs.c,v 1.11 1995/06/02 14:22:25 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -18,6 +18,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <linux/ext2_fs.h>
+
 /* I'm not going to support these until someone cleans up the ext2_fs.h file.
  * The multi-architecture support looks like it was just hacked in, there really
  * should be a better way to do it.
@@ -47,12 +48,6 @@ static int EXT2_zone_in_use(unsigned long nr);
 static char* EXT2_dir_entry(int i, void *block_buffer, unsigned long *inode_nr);
 static void EXT2_read_tables(void);
 static void EXT2_sb_init(void * sb_buffer);
-
-#define NORM_FIRSTBLOCK      1UL
-#undef  FIRSTBLOCK
-#define FIRSTBLOCK           sb->first_data_zone
-#undef  EXT2_DESC_PER_BLOCK
-#define EXT2_DESC_PER_BLOCK  (sb->blocksize / sizeof(struct ext2_group_desc))
 
 /* Haven't defined ACL and stuff because inode mode doesn't do anything with them. */
 /* Should probably see what flags is, sorry, but I don't claim to be an ext2fs guru. */
@@ -124,7 +119,7 @@ static unsigned long EXT2_map_inode(unsigned long ino)
   return (unsigned long) group_desc[group].bg_inode_table + block;
 }
 
-#define INODE_POINTER ((struct ext2_inode *) inode_buffer + ((ino - 1) % sb->s_inodes_per_group) % (sb->blocksize/fsc->INODE_SIZE))
+#define INODE_POINTER 
 
 static struct Generic_Inode *EXT2_read_inode (unsigned long ino)
 {
@@ -141,7 +136,11 @@ static struct Generic_Inode *EXT2_read_inode (unsigned long ino)
   }
 
   inode_buffer = cache_read_block(EXT2_map_inode(ino),CACHEABLE);
-  memcpy (&GInode, INODE_POINTER, sizeof (struct ext2_inode));
+  memcpy (&GInode, 
+	  ((struct ext2_inode *) inode_buffer +
+	   ((ino - 1) % sb->s_inodes_per_group) %
+	   (sb->blocksize/fsc->INODE_SIZE)),
+	  sizeof (struct ext2_inode));
 
   return &GInode;
 }
@@ -153,7 +152,10 @@ static int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode)
 
   blknr = EXT2_map_inode(ino);
   inode_buffer = cache_read_block(blknr,CACHEABLE);
-  memcpy ( INODE_POINTER, GInode, sizeof (struct ext2_inode));
+  memcpy ( ((struct ext2_inode *) inode_buffer +
+	    ((ino - 1) % sb->s_inodes_per_group) %
+	    (sb->blocksize/fsc->INODE_SIZE)),
+	  GInode, sizeof (struct ext2_inode));
 
   return write_block( blknr, inode_buffer);
 }
@@ -217,7 +219,7 @@ static void EXT2_read_block_bitmap(unsigned long nr)
     if (read (CURR_DEVICE, local_map, sb->s_blocks_per_group / 8) !=
 	sb->s_blocks_per_group / 8)
       die ("read failed in EXT2_read_block_bitmap");
-    local_map += sb->s_inodes_per_group / 8;
+    local_map += sb->s_blocks_per_group / 8;
   }
 }
   
@@ -227,7 +229,7 @@ static int EXT2_zone_in_use(unsigned long nr)
   nr -= sb->first_data_zone;
 #ifdef READ_PART_TABLES
   EXT2_read_block_bitmap(nr);
-  return test_bit(nr%sb->s_blocks_per_group,one_map);
+  return test_bit(nr%sb->s_blocks_per_group,zone_map);
 #endif
   return test_bit(nr,zone_map);
 }
@@ -270,13 +272,13 @@ static void EXT2_read_tables()
   addr_per_block = sb->blocksize/sizeof(unsigned long);
   inode_blocks_per_group = sb->s_inodes_per_group / (sb->blocksize/fsc->INODE_SIZE);
   
-  group_desc_count = (sb->nzones - NORM_FIRSTBLOCK) / sb->s_blocks_per_group;
-  if ((group_desc_count * sb->s_blocks_per_group) != (sb->nzones - NORM_FIRSTBLOCK))
+  group_desc_count = (sb->nzones - sb->first_data_zone) / sb->s_blocks_per_group;
+  if ((group_desc_count * sb->s_blocks_per_group) != (sb->nzones - sb->first_data_zone))
     group_desc_count++;
-  if (group_desc_count % EXT2_DESC_PER_BLOCK )
-    desc_blocks = (group_desc_count / EXT2_DESC_PER_BLOCK) + 1;
+  if (group_desc_count % (sb->blocksize / sizeof(struct ext2_group_desc)) )
+    desc_blocks = (group_desc_count / (sb->blocksize / sizeof(struct ext2_group_desc))) + 1;
   else
-    desc_blocks = group_desc_count / EXT2_DESC_PER_BLOCK;
+    desc_blocks = group_desc_count / (sb->blocksize / sizeof(struct ext2_group_desc));
   group_desc_size = desc_blocks * sb->blocksize;
   group_desc = (struct ext2_group_desc *) malloc(group_desc_size);
   
@@ -293,36 +295,34 @@ static void EXT2_read_tables()
 #else
   isize = (sb->s_inodes_per_group / 8) + 1;
 #endif
-  sb->imap_blocks = (sb->ninodes / 8 / sb->blocksize) + 1;
   inode_map = (char *) malloc(isize);
   if (!inode_map)
     die ("Unable to allocate inodes bitmap");
   memset (inode_map, 0, isize);
-  EXT2_read_inode_bitmap(1UL);
+  EXT2_read_inode_bitmap(0UL);
   
 #ifndef READ_PART_TABLES
   isize = (sb->nzones / 8) + 1;
 #else
   isize = (sb->s_blocks_per_group / 8) + 1;
 #endif
-  sb->zmap_blocks = sb->nzones / 8 / sb->blocksize + 1;
   zone_map = (char *) malloc(isize);
   if (!zone_map)
     die ("Unable to allocate blocks bitmap");
   memset (zone_map, 0, isize);
-  EXT2_read_block_bitmap((unsigned long) 1);
+  EXT2_read_block_bitmap(0UL);
   
   /*
-     bad_map = malloc (((sb->nzones - FIRSTBLOCK) / 8) + 1);
+     bad_map = malloc (((sb->nzones - sb->first_data_zone) / 8) + 1);
      if (!bad_map)
      die ("Unable to allocate bad block bitmap");
-     memset (bad_map, 0, ((sb->nzones - FIRSTBLOCK) / 8) + 1);
+     memset (bad_map, 0, ((sb->nzones - sb->first_data_zone) / 8) + 1);
    */
   
-  if (NORM_FIRSTBLOCK != FIRSTBLOCK) {
+  if (sb->first_data_zone != 1UL) {
     warn("Warning: First block (%lu)"
 	    " != Normal first block (%lu)",
-	    FIRSTBLOCK, NORM_FIRSTBLOCK);
+	    sb->first_data_zone, 1UL);
   }
 }
 
@@ -334,8 +334,6 @@ static void EXT2_sb_init(void *sb_buffer)
 
   sb->ninodes            = Super->s_inodes_count;
   sb->nzones             = Super->s_blocks_count;
-  sb->imap_blocks        = 1;
-  sb->zmap_blocks        = 1;
   sb->first_data_zone    = Super->s_first_data_block;
   sb->max_size           = 0;
   sb->zonesize           = Super->s_log_block_size;
@@ -343,12 +341,14 @@ static void EXT2_sb_init(void *sb_buffer)
   sb->magic              = Super->s_magic;
   sb->s_inodes_per_group = Super->s_inodes_per_group;
   sb->s_blocks_per_group = Super->s_blocks_per_group;
+  sb->imap_blocks        = (sb->ninodes / 8 / sb->blocksize) + 1;
+  sb->zmap_blocks        = sb->nzones / 8 / sb->blocksize + 1;
 
   sb->INODES_PER_BLOCK = sb->blocksize / sizeof (struct ext2_inode);
   sb->namelen = EXT2_NAME_LEN;
   temp = ((double) sb->blocksize) / fsc->ZONE_ENTRY_SIZE;
   sb->max_size = fsc->N_DIRECT + temp * ( 1 + temp + temp * temp);
-  sb->norm_first_data_zone = FIRSTBLOCK;
+  sb->norm_first_data_zone = 1UL;
 }
 
 void EXT2_init(void *sb_buffer)

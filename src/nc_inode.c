@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.5 1995/06/01 06:02:22 sdh Exp $
+ *  $Id: nc_inode.c,v 1.6 1995/06/02 14:24:03 sdh Exp $
  */
 
 #include <ctype.h>
@@ -30,13 +30,6 @@ static lde_keymap inodemode_keymap[] = {
   { 'q', CMD_EXIT_PROG },
   { 'D', CMD_EXPAND_SUBDIR_MC },
   { CTRL('L'), CMD_REFRESH },
-  { CTRL('N'), CMD_NEXT_LINE },
-  { KEY_DOWN, CMD_NEXT_LINE },
-  { 'J', CMD_NEXT_LINE },
-  { CTRL('P'), CMD_PREV_LINE },
-  { KEY_UP, CMD_PREV_LINE },
-  { 'K', CMD_PREV_LINE },
-  { 'k', CMD_PREV_LINE },
   { '?', CMD_HELP },
   { KEY_F(1), CMD_HELP },
   { CTRL('H'), CMD_HELP },
@@ -64,16 +57,12 @@ static lde_keymap inodemode_keymap[] = {
   { 'S', CMD_VIEW_SUPER },
   { 'r', CMD_RECOVERY_MODE },
   { 'R', CMD_RECOVERY_MODE_MC },
-  { KEY_UP, CMD_PREV_INODE },
-  { CTRL('P'), CMD_PREV_INODE },
-  { 'k', CMD_PREV_INODE },
-  { 'K', CMD_PREV_INODE },
+  { CTRL('U'), CMD_PREV_INODE },
+  { META('V'), CMD_PREV_INODE },
   { KEY_PPAGE, CMD_PREV_INODE },
-  { 'j', CMD_NEXT_INODE },
-  { 'J', CMD_NEXT_INODE },
-  { KEY_DOWN, CMD_NEXT_INODE },
   { KEY_NPAGE, CMD_NEXT_INODE },
-  { CTRL('N'), CMD_NEXT_INODE },
+  { CTRL('V'), CMD_NEXT_INODE },
+  { CTRL('D'), CMD_NEXT_INODE },
   { 'h', CMD_PREV_FIELD },
   { 'H', CMD_PREV_FIELD },
   { KEY_BTAB, CMD_PREV_FIELD },
@@ -83,6 +72,10 @@ static lde_keymap inodemode_keymap[] = {
   { KEY_LEFT, CMD_PREV_FIELD },
   { CTRL('U'), CMD_PREV_FIELD },
   { CTRL('V'), CMD_PREV_FIELD },
+  { CTRL('P'), CMD_PREV_FIELD },
+  { KEY_UP, CMD_PREV_FIELD },
+  { 'K', CMD_PREV_FIELD },
+  { 'k', CMD_PREV_FIELD },
   { 'l', CMD_NEXT_FIELD },
   { 'L', CMD_NEXT_FIELD },
   { CTRL('D'), CMD_NEXT_FIELD },
@@ -90,6 +83,10 @@ static lde_keymap inodemode_keymap[] = {
   { META('V'), CMD_NEXT_FIELD },
   { KEY_RIGHT, CMD_NEXT_FIELD },
   { CTRL('I'), CMD_NEXT_FIELD },
+  { CTRL('N'), CMD_NEXT_FIELD },
+  { KEY_DOWN, CMD_NEXT_FIELD },
+  { 'J', CMD_NEXT_FIELD },
+  { 'j', CMD_NEXT_FIELD },
   { '0', REC_FILE0 },
   { '1', REC_FILE1 },
   { '2', REC_FILE2 },
@@ -470,7 +467,7 @@ void limit_inode(unsigned long *local_inode, struct sbinfo *local_sb)
 void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *GInode,
 		int highlight_field, int park_x, int park_y )
 {
-  long a;
+  unsigned long a;
 
 #ifndef NC_FIXED_UNGETCH
   if (cread_num("Enter new value: ",&a)) {
@@ -502,8 +499,8 @@ void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *G
 /* This is the parser for inode_mode: previous/next inode, etc. */
 int inode_mode() {
   int c, next_cmd=0, i, modified = 0, highlight_field = I_ZONE_0;
-  long a;
   struct Generic_Inode *GInode = NULL;
+  unsigned long a;
   static unsigned char *copy_buffer = NULL;
 
   display_trailer("F1/H for help.  F2/^O for menu.  Q to quit",
@@ -560,6 +557,8 @@ int inode_mode() {
       case REC_FILE14:
 	if (GInode->i_zone[c-REC_FILE0])
 	  fake_inode_zones[c-REC_FILE0] = GInode->i_zone[c-REC_FILE0];
+	update_header();
+	beep();
 	break;
 
       case CMD_RECOVERY_MODE_MC: /* Goto recovery mode, set to recover all blocks in this inode */
@@ -636,6 +635,7 @@ int inode_mode() {
 
       case CMD_NUMERIC_REF: /* Go to an inode specified by number */
 	if (cread_num("Enter inode number (leading 0x or $ indicates hex):",&a)) {
+	  current_inode = a;
 	  limit_inode(&current_inode, sb);
 	  cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
 	}
