@@ -36,7 +36,7 @@ AC_CHECK_PROG(system,uname,`uname`,unknown)
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h unistd.h getopt.h pwd.h grp.h sys/timeb.h errno.h)
+AC_CHECK_HEADERS(fcntl.h sys/fcntl.h unistd.h getopt.h pwd.h grp.h sys/timeb.h errno.h)
 
 dnl Determine variable sizes
 ACLDE_SETVARSIZES

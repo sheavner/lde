@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.42 2002/01/27 23:11:51 scottheavner Exp $
+ *  $Id: nc_lde.c,v 1.43 2003/12/03 18:33:10 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -14,6 +14,9 @@
 #endif
 #if HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
+#if HAVE_SYS_FCNTL_H
+#include <sys/fcntl.h>
 #endif
 #include <stdarg.h>
 

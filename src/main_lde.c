@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.50 2003/12/03 18:07:20 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.51 2003/12/03 18:33:10 scottheavner Exp $
  */
 
 #include <signal.h>
@@ -12,6 +12,9 @@
 #endif
 #if HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
+#if HAVE_SYS_FCNTL_H
+#include <sys/fcntl.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>

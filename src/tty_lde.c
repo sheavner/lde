@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.32 2002/02/14 19:44:51 scottheavner Exp $
+ *  $Id: tty_lde.c,v 1.33 2003/12/03 18:33:10 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -15,6 +15,9 @@
 #endif
 #if HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
+#if HAVE_SYS_FCNTL_H
+#include <sys/fcntl.h>
 #endif
 #include <time.h>
 #if HAVE_PWD_H

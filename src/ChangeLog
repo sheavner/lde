@@ -2,6 +2,7 @@
 	- cleanup some warnings that show with -pendantic
  	- update autoconf to handle VOLITILE definition, #ifdef volatile
 	  wasn't really working, broke on redhat 8+	
+	- fix compile warnings on MacOS (still doesn't run properly)
 
 2002-05-28    Scott Heavner
 	- Fix segfault when specifying file type on command line,
