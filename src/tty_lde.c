@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.15 1996/10/12 21:13:49 sdh Exp $
+ *  $Id: tty_lde.c,v 1.16 1996/10/13 17:30:17 sdh Exp $
  */
 
 #include <stdio.h>
@@ -30,7 +30,7 @@ int current_error = -1;
 void log_error(char *echo_string)
 {
   if ((++current_error)>=ERRORS_SAVED) current_error=0;
-  error_save[current_error] = realloc(error_save[current_error],strlen(echo_string));
+  error_save[current_error] = realloc(error_save[current_error],(strlen(echo_string)+1));
   strcpy(error_save[current_error], echo_string);
 }
 
