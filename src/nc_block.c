@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.22 1998/01/18 06:34:55 sdh Exp $
+ *  $Id: nc_block.c,v 1.23 1998/05/30 18:20:09 sdh Exp $
  */
 
 #include <stdio.h>
@@ -958,6 +958,10 @@ int block_mode(void) {
       highlight_block(&curs,&flags);
 
     wrefresh(workspace);
+
+    /* Moderate scrolling through blocks */
+    if (!flags.edit_block)
+      flushinp();
   }
 
   free(curs.data);
