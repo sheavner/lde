@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.19 1998/01/24 02:00:00 sdh Exp $
+ *  $Id: ext2fs.c,v 1.20 1998/05/30 17:43:24 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -127,7 +127,7 @@ unsigned long EXT2_map_inode(unsigned long ino)
 /* Read an inode from disk */
 static struct Generic_Inode *EXT2_read_inode (unsigned long ino)
 {
-  static EXT2_last_inode = 0; /* cacheable inode */
+  static unsigned long EXT2_last_inode = 0; /* cacheable inode */
   static struct Generic_Inode GInode;
   char * inode_buffer;
 
@@ -317,8 +317,9 @@ static void EXT2_read_tables()
   /* Free up any memory we may have previously allocated 
    *  (I don't think this will ever happen -- EXT2_read_tables is only
    *   called at startup) */
-  if (inode_map) free(inode_map);
-  if (zone_map) free(zone_map);
+  if (inode_map)  free(inode_map);
+  if (zone_map)   free(zone_map);
+  if (group_desc) free(group_desc);
   
   addr_per_block = sb->blocksize/sizeof(unsigned long);
   inode_blocks_per_group = sb->s_inodes_per_group /
@@ -358,7 +359,8 @@ static void EXT2_read_tables()
    * 2) Clear it (why?)
    * 3) Read it from disk */
 #ifndef READ_PART_TABLES
-  if (sb->ninodes > sb->s_inodes_per_group) /* Allocate room for at least one block */
+  if (sb->ninodes > sb->s_inodes_per_group) 
+    /* Allocate room for at least one (really 8) block */
     isize = (group_desc_count * sb->s_inodes_per_group / 8) + 1;
   else
 #endif
@@ -371,7 +373,7 @@ static void EXT2_read_tables()
   
 #ifndef READ_PART_TABLES
   if (sb->nzones > sb->s_blocks_per_group) 
-    /* (+1) Allocate room for at least one block */
+    /* (+1) Allocate room for at least one (really 8) block */
     isize = (group_desc_count * sb->s_blocks_per_group / 8) + 1;
   else
 #endif
