@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.41 2002/01/12 03:50:56 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.42 2002/01/12 04:56:31 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -407,6 +407,8 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	break;
       case '!': /* Search for indirect blocks. */
 	lde_flags.indirect_search = 1;
+	opts->search_string = "";
+	opts->search_len = 0;
 	break;
       case '@': /* Lookup inodes on search matches. */
 	lde_flags.inode_lookup = 1;
