@@ -18,7 +18,9 @@
 
 /* FOR LDE, USE asm instead of linux */
 /* #include <linux/types.h> */
+#if HAVE_ASM_TYPES_H
 #include <asm/types.h>
+#endif
 
 /*
  * The second extended filesystem constants/structures

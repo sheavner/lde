@@ -14,7 +14,9 @@
  * #include <asm/byteorder.h>
 */
 #include <sys/types.h>
+#if HAVE_ASM_TYPES_H
 #include <asm/types.h>
+#endif
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif

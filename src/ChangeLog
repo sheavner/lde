@@ -1,3 +1,7 @@
+Tue Feb 27 2001 Scott Heavner
+
+	* Solaris compile cleanup -- still probably has wrong endianness.
+
 Mon Feb 26 2001 Scott Heavner
 
 	* tty_lde.c: fix seeking on large (>2GB) partitions, need proper proto for lseek64
@@ -9,6 +13,7 @@ Mon Feb 26 2001 Scott Heavner
 	* add blocksize runtime option -s N, --bs N, --blocksize N to override autodetect blocksize
 	* #ifdef all unistd.h / fcntl.h
 	* remove scrubxiafs feature
+	* remove debugging warning in iso9660.c:ISO9660_test()
 
 
 Sun Feb 25 2001 Scott Heavner

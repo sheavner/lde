@@ -3,7 +3,9 @@
 
 /* FOR LDE, BLOCK_SIZE lifted from <linux/fs.h> */
 
+#if HAVE_ASM_TYPES_H
 #include <asm/types.h>
+#endif
 #define BLOCK_SIZE_BITS 10
 #define BLOCK_SIZE (1<<BLOCK_SIZE_BITS)
 

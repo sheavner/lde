@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.34 2001/02/26 21:09:09 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.35 2001/02/27 21:43:00 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -15,7 +15,9 @@
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#if HAVE_GETOPT_H
 #include <getopt.h>
+#endif
 #include <signal.h>
 #include <time.h>
 
@@ -126,7 +128,7 @@ static int check_mount(char *device_name)
 }
 
 /* Define a handler for Interrupt signals: Ctrl-C */
-static void handle_sigint(void)
+static void handle_sigint(int a, siginfo_t * b, void *c)
 {
   lde_flags.quit_now = 1;
 }
@@ -237,6 +239,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       { "script", "#!/", 3, 0 },
       { "", NULL, 0, 0 }
   };
+#if HAVE_GETOPT_LONG
   struct option long_options[] =
     {
       {"version", 0, 0, 'v'},
@@ -264,6 +267,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       {"logtofile",0,0,'F'},
       {0, 0, 0, 0}
     };
+#endif
 
 
   /* if (argc && *argv)
@@ -272,8 +276,12 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
   while (1) {
     option_index = 0;
 
+#if HAVE_GETOPT_LONG
     c = getopt_long (argc, argv, "avFf:I:i:n:N:B:b:D:d:gpqs:S:t:T:whH?O:L:",
 		     long_options, &option_index);
+#else
+    c = getopt (argc, argv, "avFf:I:i:n:N:B:b:D:d:gpqs:S:t:T:whH?O:L:");
+#endif
 
     if (c == -1)
       break;
@@ -448,12 +456,15 @@ int main(int argc, char ** argv)
   struct Generic_Inode *GInode = NULL;
 
   sigset_t sa_mask;
-  struct sigaction intaction = { {(void *)handle_sigint}, sa_mask, SA_RESTART};
+  struct sigaction intaction ;
 
   struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0UL, 0UL, NULL, NULL, NULL, 0, 0 };
 
   /* Set things up to handle control-c:  just sets lde_flags.quit_now to 1 */
   sigemptyset(&sa_mask);
+  intaction.sa_handler = (void *)handle_sigint;
+  intaction.sa_mask = sa_mask;
+  intaction.sa_flags = SA_RESTART;
   sigaction(SIGINT,&intaction,NULL);
 
   parse_cmdline(argc, argv, &main_opts);

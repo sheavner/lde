@@ -2,6 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 dnl Autoconf requires the name of a unique file in the source tree
 AC_INIT(../src/main_lde.c)
+dnl AC_CONFIG_HEADER(lde_autoconf.h)
 
 LDEVERSION=2.6.0
 AC_SUBST(LDEVERSION)
@@ -31,7 +32,10 @@ AC_CHECK_PROG(system,uname,`uname`,unknown)
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h unistd.h)
+AC_CHECK_HEADERS(fcntl.h unistd.h getopt.h)
+
+dnl Determine variable sizes
+ACLDE_SETVARSIZES
 
 dnl Check that <asm/bitops.h> exists and works
 AC_CHECK_KERNEL_BITOPS
@@ -41,17 +45,24 @@ AC_CHECK_FUNCS(lseek64,
 	[
 		AC_EGREP_CPP(lseek64,[#include <unistd.h>],,AC_DEFINE(NEED_LSEEK64_PROTO))
 		AC_CHECK_TYPE(off64_t, __off64_t)
-		AC_CHECK_TYPE(__off64_t, long long)
+		if test x$ac_cv_type_off64_t = xno; then
+			AC_CHECK_TYPE(__off64_t, long long)
+		fi
 	]
 	)
 
 # Also look for llseek, only used if no lseek64
-AC_EGREP_HEADER(llseek,unistd.h,[
-		AC_DEFINE(UNISTD_LLSEEK_PROTO)
-		AC_DEFINE(HAVE_LLSEEK) ],
-	AC_CHECK_FUNCS(llseek)
-)
-AC_CHECK_TYPE(loff_t, long long)
+if test x$ac_cv_func_lseek64 = xno ; then
+	AC_EGREP_HEADER(llseek,unistd.h,[
+			AC_DEFINE(UNISTD_LLSEEK_PROTO)
+			AC_DEFINE(HAVE_LLSEEK) ],
+		AC_CHECK_FUNCS(llseek)
+	)
+fi
+AC_CHECK_TYPE(loff_t, __s64)
+
+dnl Has long getopt?
+AC_CHECK_FUNCS(getopt_long)
 
 dnl Can we override -Wall on swiped code. 
 AC_CC_NOWARN

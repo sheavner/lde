@@ -136,6 +136,9 @@ you may want to specify
 .B \-N
 also.
 .TP
+.B \-\-logtofile
+Debugging option.  All of lde's messages will be dumped to /tmp/ldeerrors.
+.TP
 .B \-L \-\-length
 Sets search string length (when using
 .B \-T
@@ -196,16 +199,12 @@ The deletion time of the inode will be printed to the screen if it is
 recoverable.
 .RE
 .TP
-.B \-\-scrubxiafs
-Clobbers the xiafs magic number.  This is stored on the very first
-block of the file system which is usually reserved for boot code
-(xiafs does reserve 512 bytes for booting).  If you make another file
-system on a device which once housed an xiafs, lde will always
-autodetect xiafs (other progs may do the same).  As of v2.2alpha4, 
-.B lde
-will check block 1, then block 0, so it is not a problem any more.
-.B \-\-unscrubxiafs
-will reverse the changes.
+.B \-s (\-\-bs or \-\-blocksize) block_size
+Override blocksize which lde has detected.  The blocksize may have
+been read from the information (superblock) stored on the disk or is
+what lde would consider the default blocksize for that type of
+filesystem (generally 1024 bytes).  With this option, you can force
+lde to use a different blocksize.
 .TP
 .B \-S string
 Search disk for data (of questionable usefulness).  This was more for searching for a
@@ -531,6 +530,11 @@ or octal).
 .TP
 .B ^R
 Look up inode which references this block.
+.TP /
+Search for a string.  You will be prompted for a case-sensative
+search string.  The search will proceede from the current block, if
+a match is found, the block pointer will be advanced and the matching
+block will be displayed.
 .RE
 
 .B Recover Mode:
