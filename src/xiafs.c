@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.21 2001/02/26 19:02:40 scottheavner Exp $
+ *  $Id: xiafs.c,v 1.22 2001/02/26 21:09:09 scottheavner Exp $
  */
 
 #include <string.h>
@@ -212,27 +212,6 @@ int XIAFS_init(void *sb_buffer)
   MINIX_read_tables();
 
   return check_root();
-}
-
-void XIAFS_scrub(int flag)
-{
-  struct xiafs_super_block Super;
-
-  if (sizeof(struct xiafs_super_block) != 
-      nocache_read_block(0, &Super, sizeof(struct xiafs_super_block)))
-    die("unable to read super block in XIAFS_scrub()");
-
-  if (flag > 0)
-    Super.s_magic = 0;
-  else
-    Super.s_magic = _XIAFS_SUPER_MAGIC;
-
-  if (lde_seek_block(0))
-    die("unable to seek block in XIAFS_scrub() prior to write");
-
-  if ( sizeof(struct xiafs_super_block) != 
-       write(CURR_DEVICE, &Super, sizeof(struct xiafs_super_block)) )
-    die("unable to write super block in XIAFS_scrub()");
 }
 
 int XIAFS_test(void *sb_buffer)

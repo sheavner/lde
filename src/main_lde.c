@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.33 2001/02/26 19:02:40 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.34 2001/02/26 21:09:09 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -48,7 +48,6 @@ struct _main_opts {
   int search_off;
   int fs_type;
   int grep_mode;
-  int scrubxiafs;
   int dump_all;
   unsigned dump_start;
   unsigned dump_end;
@@ -240,8 +239,6 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
   };
   struct option long_options[] =
     {
-      {"scrubxiafs", 0, 0, 0},
-      {"unscrubxiafs", 0, 0, 0},
       {"version", 0, 0, 'v'},
       {"help", 0, 0, 'h'},
       {"inode", 1, 0, 'i'},
@@ -284,14 +281,11 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
     switch(c)
       {
 
-      case 0: /* Some XIAFS utils of limited usefulness */
+      case 0: /* long options only */
 	switch (option_index)
 	  {
 	  case 0:
-	     opts->scrubxiafs = 1;
-	     break;
-	   case 1:
-	     opts->scrubxiafs = -1;
+	  case 1:
 	     break;
 	  }
 	break;
@@ -456,7 +450,7 @@ int main(int argc, char ** argv)
   sigset_t sa_mask;
   struct sigaction intaction = { {(void *)handle_sigint}, sa_mask, SA_RESTART};
 
-  struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0, 0UL, 0UL, NULL, NULL, NULL, 0, 0 };
+  struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0UL, 0UL, NULL, NULL, NULL, 0, 0 };
 
   /* Set things up to handle control-c:  just sets lde_flags.quit_now to 1 */
   sigemptyset(&sa_mask);
@@ -492,11 +486,6 @@ int main(int argc, char ** argv)
     sync();
 
   NOFS_init(NULL);
-
-  if (main_opts.scrubxiafs) {
-    XIAFS_scrub(main_opts.scrubxiafs);
-    exit(0);
-  }
 
   read_tables(main_opts.fs_type);
 
