@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Autoconf requires the name of a unique file in the source tree
 AC_INIT(../src/main_lde.c)
 
-LDEVERSION=2.4.pre1
+LDEVERSION=2.6.0
 AC_SUBST(LDEVERSION)
 
 dnl Must use builtin() as it is overridden by some AC_ macros
