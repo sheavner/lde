@@ -1,3 +1,15 @@
+Tue Feb 20 16:02:56 EST 2001 Scott Heavner
+
+	* nc_block.c: Fix logic to re-enable hex-ascii toggle
+
+	* msdos_fs.c: Some stuff to make the directory mode work a bit better.
+	  (should go back and clean this one up -- hardcoded i_mode==0040000)
+
+Feb 2001 Scott Heavner
+
+	* iso9660.c,h: Added to distribution.  Completely useless, except
+	  sets the blocksize correctly for cdrom filesystems.
+
 Mon Dec  7 12:08:40 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here.net>
 
 	* main_lde.c: add a bunch of ifdef's to automatically support
