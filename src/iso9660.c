@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: iso9660.c,v 1.1 2001/02/07 18:31:13 sdh Exp $
+ *  $Id: iso9660.c,v 1.2 2001/02/21 20:01:04 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -16,6 +16,7 @@
  */
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
  
 #include "lde.h"
 #include "tty_lde.h"
@@ -31,6 +32,7 @@ static int NOFS_one_i__ul(unsigned long nr);
 static unsigned long NOFS_one_ul__ul(unsigned long nr);
 static int NOFS_zero_i__ul(unsigned long nr);
 static unsigned long NOFS_get_device_size(void);
+static struct Generic_Inode *ISO9660_init_junk_inode(void);
 
 static struct inode_fields NOFS_inode_fields = {
   0, /*   unsigned short i_mode; */
@@ -90,7 +92,7 @@ static struct fs_constants NOFS_constants = {
 
 static struct Generic_Inode ISO9660_junk_inode;
 
-struct Generic_Inode *ISO9660_init_junk_inode(void)
+static struct Generic_Inode *ISO9660_init_junk_inode(void)
 {
   int i;
 

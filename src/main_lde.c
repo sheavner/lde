@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.28 2001/02/21 00:04:55 sdh Exp $
+ *  $Id: main_lde.c,v 1.29 2001/02/21 20:01:04 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -467,7 +467,7 @@ int main(int argc, char ** argv)
   struct Generic_Inode *GInode = NULL;
 
   sigset_t sa_mask;
-  struct sigaction intaction = { (void *)handle_sigint, sa_mask, SA_RESTART, NULL };
+  struct sigaction intaction = { {(void *)handle_sigint}, sa_mask, SA_RESTART, NULL };
 
   struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0, 0UL, 0UL, NULL, NULL, NULL };
 

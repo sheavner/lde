@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.16 2001/02/07 18:31:13 sdh Exp $
+ *  $Id: minix.c,v 1.17 2001/02/21 20:01:04 sdh Exp $
  */
 
 /* 
@@ -12,7 +12,7 @@
  */
 
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <linux/fs.h>

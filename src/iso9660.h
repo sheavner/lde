@@ -3,11 +3,11 @@
  *
  *  Copyright (C) 2001  Scott D. Heavner
  *
- *  $Id: iso9660.h,v 1.1 2001/02/07 18:31:13 sdh Exp $
+ *  $Id: iso9660.h,v 1.2 2001/02/21 20:01:04 sdh Exp $
  */
 
-void iso9660_init(char * sb_buffer);
-int iso9660_test(void *sb_buffer);
+void ISO9660_init(char * sb_buffer);
+int ISO9660_test(void *sb_buffer);
 
 
 

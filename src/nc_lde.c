@@ -3,11 +3,11 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.34 2001/02/21 00:04:55 sdh Exp $
+ *  $Id: nc_lde.c,v 1.35 2001/02/21 20:01:04 sdh Exp $
  */
 
 #include <stdio.h>
-#include <strings.h>
+#include <string.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <fcntl.h>

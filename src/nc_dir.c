@@ -3,10 +3,10 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.17 1998/07/05 18:20:43 sdh Exp $
+ *  $Id: nc_dir.c,v 1.18 2001/02/21 20:01:04 sdh Exp $
  */
 
-#include <strings.h>
+#include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <sys/stat.h>
