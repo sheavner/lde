@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.7 1994/09/06 01:32:02 sdh Exp $
+ *  $Id: main_lde.c,v 1.8 1994/09/06 02:50:14 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -32,8 +32,28 @@
 #define volatile
 #endif
 
-static void long_usage(void);
+/* Some internal structures */
+struct _main_opts {
+  int search_len;
+  int search_all;
+  int fs_type;
+  int idump_all;
+  int bdump_all;
+  int grep_mode;
+  int scrubxiafs;
+  unsigned long idump;
+  unsigned long bdump;
+  unsigned long ddump;
+  char *search_string;
+};
 
+struct _search_types {
+  char *name;
+  char *string;
+  int length; 
+};
+
+/* Initialize some global variables */
 char *program_name = "lde";
 char *device_name = NULL;
 char *text_names[5] = { "autodetect", "no file system" , "minix", "xiafs", "ext2fs" };
@@ -125,7 +145,7 @@ void read_tables(int fs_type)
 }
 
 
-static void long_usage()
+static void long_usage(void)
 {
   printf("This is %s (version %s), Usage %s %s\n",program_name,VERSION,program_name,USAGE_STRING);
   printf("   -i ##:      dump inode number # to stdout (-I all inodes after #) \n");
@@ -141,30 +161,18 @@ static void long_usage()
   printf("   --write:    Allow writes to the device.\n");
 }
 
-
-void main(int argc, char ** argv)
+static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 {
-  char search_type[10], *search_string = search_type;
+  int option_index = 0, i;
+  char c;
   static char gzip_tar_type[] = { 31, 138, 8, 0 };
   static char gzip_type[] = { 31, 139 };
-  struct _search_types {
-    char *name;
-    char *string;
-    int length; } search_types[] = {
+  struct _search_types search_types[] = {
       { "tgz", gzip_tar_type, 4 },
       { "gz", gzip_type, 2 },
       { "script", "#!/b", 4 }
   };
-  
-  
-  int search_len = 0, fs_type = AUTODETECT;
-  int count,idump_all=0,bdump_all=0;
-  int grep_mode = 0, scrubxiafs = 0;
-  unsigned int idump=0,bdump=0,i,ddump=0;
-  unsigned int search_all=0;
-  char c;
-
-  static struct option long_options[] =
+  struct option long_options[] =
     {
       {"scrubxiafs", 0, 0, 0},
       {"unscrubxiafs", 0, 0, 0},
@@ -181,13 +189,12 @@ void main(int argc, char ** argv)
       {0, 0, 0, 0}
     };
 
-  warn = tty_warn;
 
   if (argc && *argv)
     program_name = *argv;
 
   while (1) {
-    int option_index = 0;
+    option_index = 0;
 
     c = getopt_long (argc, argv, "avI:i:b:B:d:cCgpqS:t:T:whH?",
 		     long_options, &option_index);
@@ -201,10 +208,10 @@ void main(int argc, char ** argv)
 	switch (option_index)
 	  {
 	  case 0:
-	     scrubxiafs = 1;
+	     opts->scrubxiafs = 1;
 	     break;
 	   case 1:
-	     scrubxiafs = -1;
+	     opts->scrubxiafs = -1;
 	     break;
 	   }
 
@@ -217,19 +224,20 @@ void main(int argc, char ** argv)
 	rec_flags.search_all = 1;
 	break;
       case 'g':
-	grep_mode = 1;
+	opts->grep_mode = 1;
 	break;
       case 'I':
-	idump_all=1;
+	opts->idump_all=1;
       case 'i':
-	idump = read_num(optarg);
+	opts->idump = read_num(optarg);
 	break;
-      case 'B': bdump_all=1;
+      case 'B': 
+	opts->bdump_all=1;
       case 'b': 
-	bdump = read_num(optarg);
+	opts->bdump = read_num(optarg);
 	break;
       case 'd':
-	ddump = read_num(optarg);
+	opts->ddump = read_num(optarg);
 	break;
       case 'p':
 	paranoid = 1;
@@ -238,19 +246,19 @@ void main(int argc, char ** argv)
 	quiet = 1;
 	break;
       case 'S': 
-	search_all = 1;
-	search_string = optarg;
+	opts->search_all = 1;
+	opts->search_string = optarg;
 	break;
       case 't':
 	i = NONE;
 	while (text_names[i]) {
 	  if (!strncmp(optarg, text_names[i], strlen(optarg))) {
-	    fs_type = i;
+	    opts->fs_type = i;
 	    break;
 	  }
 	  i++;
 	}
-	if (fs_type==AUTODETECT) {
+	if (opts->fs_type==AUTODETECT) {
 	  warn("`%s' type not recognized.",optarg);
 	  i = NONE;
 	  printf("Supported file systems include: ");
@@ -263,16 +271,16 @@ void main(int argc, char ** argv)
 	}
 	break;
       case 'T':
-	search_all = 1;
+	opts->search_all = 1;
 	i = -1;
 	while (strcmp(search_types[++i].name,"")) {
 	  if (!strncmp(optarg, search_types[i].name, search_types[i].length)) {
-	    search_string = search_types[i].string;
-	    search_len = search_types[i].length;
+	    opts->search_string = search_types[i].string;
+	    opts->search_len = search_types[i].length;
 	    break;
 	  }
 	}
-	if (!search_len) {
+	if (!opts->search_len) {
 	  warn("`%s' type not recognized.",optarg);
 	  i = -1;
 	  printf("Supported types include: ");
@@ -308,6 +316,18 @@ void main(int argc, char ** argv)
       printf ("\n");
       usage();
     }
+}
+
+void main(int argc, char ** argv)
+{
+  int i;
+  char search_string[10];
+  
+  struct _main_opts main_opts = { 0, 0, AUTODETECT, 0, 0, 0, 0, 0UL, 0UL, 0UL, search_string };
+
+  warn = tty_warn;
+
+  parse_cmdline(argc, argv, &main_opts);
 
   if (check_mount(device_name)&&!paranoid) warn("DEVICE: %s is mounted, be careful",device_name);
 
@@ -320,62 +340,49 @@ void main(int argc, char ** argv)
   
   if (CURR_DEVICE < 0)
     die("unable to open '%s'");
-  for (count=0 ; count<3 ; count++)
+  for (i=0 ; i<3 ; i++)
     sync();
 
   NOFS_init(NULL);
 
-  if (scrubxiafs) {
-    XIAFS_scrub(scrubxiafs);
+  if (main_opts.scrubxiafs) {
+    XIAFS_scrub(main_opts.scrubxiafs);
     exit(0);
   }
 
-  read_tables(fs_type);
+  read_tables(main_opts.fs_type);
 
-  if (ddump) {
-    if (ddump<sb->nzones) 
-      ddump_block(ddump);
+  if (main_opts.ddump) {
+    if (main_opts.ddump<sb->nzones) 
+      ddump_block(main_opts.ddump);
     exit(0);
-  }
-
-  if (bdump||bdump_all) {
+  } else if (main_opts.bdump||main_opts.bdump_all) {
     list=1;
-    if (bdump<sb->nzones) 
-      if (bdump_all)
-	for (i=bdump;i<sb->nzones;i++) dump_block(i);
+    if (main_opts.bdump<sb->nzones) 
+      if (main_opts.bdump_all)
+	for (i=main_opts.bdump;i<sb->nzones;i++) dump_block(i);
       else
-	dump_block(bdump);
+	dump_block(main_opts.bdump);
     else
-      warn("Zone %d out of range.",bdump);
+      warn("Zone %d out of range.",main_opts.bdump);
     exit(0);
-  }
-
-  if (idump||idump_all) {
+  } else if (main_opts.idump||main_opts.idump_all) {
     list=1;
-    if (idump==0) idump=1;
-    if (idump<sb->ninodes) 
-      if (idump_all)
-	for (i=idump;i<sb->ninodes;i++) dump_inode(i);
+    if (main_opts.idump==0) main_opts.idump=1;
+    if (main_opts.idump<sb->ninodes) 
+      if (main_opts.idump_all)
+	for (i=main_opts.idump;i<sb->ninodes;i++) dump_inode(i);
       else
-      	dump_inode(idump);
+      	dump_inode(main_opts.idump);
     else
-      warn("Inode %d out of range.",idump);
+      warn("Inode %d out of range.",main_opts.idump);
     exit(0);
-  }
-
-  if (grep_mode) {
+  } else if (main_opts.grep_mode) {
     parse_grep();
     exit(0);
-  }
-
-  if (search_all) {
-#ifdef ALPHA_CODE
-    search_fs(search_string, search_len);
+  } else if (main_opts.search_all) {
+    search_fs(main_opts.search_string, main_opts.search_len);
     exit(0);
-#else
-    warn("Search function not implemented, recompile source with -DEMERGENCY");
-    exit(1);
-#endif
   }
 
 #ifdef LDE_CURSES
@@ -385,5 +392,3 @@ void main(int argc, char ** argv)
 
   exit(0);
 }
-
-
