@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.39 2002/01/14 21:35:46 scottheavner Exp $
+ *  $Id: recover.c,v 1.40 2002/01/30 22:42:10 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -471,7 +471,9 @@ int recover_file(int fp,unsigned long zone_index[],unsigned long filesize)
 }
 
 /* Goes through and checks to see if the file can be recovered.  I.e. is another
- * file using blocks that were once used by this inode */
+ * file using blocks that were once used by this inode.
+ *   0 = recovery possible 
+ *   1 = not possible */
 int check_recover_file(unsigned long zone_index[],unsigned long filesize)
 {
   unsigned long nr, lookedup=0UL, checked=0UL;
