@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.20 1998/07/05 18:20:48 sdh Exp $
+ *  $Id: tty_lde.c,v 1.21 1998/08/11 04:21:13 sdh Exp $
  */
 
 #include <stdio.h>
@@ -14,6 +14,7 @@
 #include <time.h>
 #include <pwd.h>
 #include <grp.h>
+#include <errno.h>
 #include <sys/stat.h>
 
 #include <linux/fs.h>
