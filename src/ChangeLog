@@ -1,0 +1,998 @@
+Mon Dec  7 12:08:40 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here.net>
+
+	* main_lde.c: add a bunch of ifdef's to automatically support
+	installed filesystems - it seems linux 2.1 has finally done away
+	with the xiafs.  Also required changes to configure.in &
+	makefiles.  Thanks to Steve Thompson for pointing this out &
+	starting the repair.
+
+Mon Aug 10 21:19:06 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here.net>
+
+	* configure.in: check for typedef of loff_t and proto of llseek 
+	
+	* msdos_fs.c (DOS_test): Add more signatures to autoprobe.
+
+	* nc_lde.c (interactive_main): add refresh to properly display
+	error window on startup under ncurses 4.2
+	
+Mon Jul 13 01:01:55 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here.net>
+
+	* nc_block.c (cdump_block): indicate start of a block by reversing
+	color of offset label
+
+	* tty_lde.c: add <errno.h> include
+
+Mon Jul  6 11:02:47 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here.net>
+
+	* Release: 2.4.0Alpha14
+
+	* Curses test in configure/configure.in should read = not ==
+
+Sun Jul  5 11:07:47 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here.net>
+
+	* Release: 2.4.0Alpha13
+
+	* ext2fs.c (EXT2_is_system_block): was testing nr as if it were a
+	byte value instead of a block value, adjust tests by /sb->blocksize.
+
+Fri Jul  3 11:27:27 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here.net>
+
+	* tty_lde.c (nocache_read_block): Make all reads to the raw disk
+ 	device use no_cache read block so that there is only one call of
+ 	lseek within lde.  Add 'read_size' argument.  (Didn't change reads
+ 	for minix read_tables which don't need to seek and no_fs reads to
+	determine device size).
+	
+	* tty_lde.c (lde_seek_block): Define new seek function that will
+ 	use llseek() if it's available or use multiple calls to
+ 	lseek(*,*,SEEK_CUR) to move file pointer past 2G mark.  Function
+ 	will only seek to the start of a block!  -- I don't know what to do
+	about llseek, mine is proto'ed in unistd.h, but the man page says
+	I should call it with syscall5?
+
+
+Sat Jun 20 10:48:06 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here.net> 
+
+	* Release: 2.4.0Alpha12
+
+	* recover.c (hacked_map_block): remove adjustment of blknr by
+	skipped_blocks.  blknr is the block in the file which is
+	unaffected by the number of skipped blocks.  Tested by deleting
+	lde binary from a freshly defraged ext2 partition, full 369948
+	bytes recovered, passed cmp, and can execute.
+
+	* minix.c, xiafs.c: add MINIX_is_system_block function to minix
+ 	and xiafs routines
+
+FRI Jun 20 13:38:00 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here.net>
+
+	* Release: 2.4.0Alpha11d patch - rewrite configure test for
+	<asm/bitops.h>, now make sure we can link with the routines in
+	<asm/bitops.h>, without -O or better, inline functions will not be
+	defined.
+
+	* Release: 2.4.0Alpha11c patch - modified configure to test for
+	properly installed /usr/include/linux tree and test for
+	<asm/bitops.h> else automatically define -DNO_KERNEL_BITOPS
+
+	
+Sun Jun 14 14:21:02 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here.net>
+
+	* Release: 2.4.0Alpha11
+
+	* main_lde.c, ext2fs.c: cosmetic code changes.
+
+	* Release: 2.4.0Alpha10
+
+	* recover.c (recover_file): Add sleep(5) to display
+	blanked_indirect warnings a little longer.
+
+Thu Jun 11 18:09:28 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here.net>
+
+	* nc_block.c: Add hack to fix full screen ascii edit mode.  When
+	finished edit, would return to split hex/ascii command mode, now
+	stays in fullscreen ascii mode.  Should add another entry to block
+	mode flags struct to keep track of fullscreen mode.
+
+Tue Jun  9 11:01:31 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here.net>
+
+	* nc_block.c, nc_inode.c: Fix trailer info - was displaying F1/H
+ 	for help, but H is a cursor key (changed display to ?, but should
+ 	make it dynamic - look it up in keymaps).
+	
+	* msdos_fs.c: rename cvt_c2() to align_ushort()
+	
+	* lde.man: add -D entry, update -N
+
+	* Upgrade libraries to gpm-1.13: fixes lingering bug on restoring
+ 	normal gpm function after lde quits.
+
+	* Upgrade libraries to ncurses-4.2: leaves screen in messy state
+ 	on exit.  Track to call of newterm() followed by initscr() and
+ 	only one endwin()?  Fixed for ncurses 4.2, I hope this doesn't
+ 	introduce problems in older versions, but 4.2 allows compilation
+ 	of fallback terminfo files into executable.  Remove terminfo stuff
+ 	(docs, dir, make install.terminfo, run_lde_here) from lde
+ 	distribution.  I seem to have lost color support in
+ 	xterm/rxvt/eterm.
+
+	* nc_lde.c: move gpm init down a few lines, remove call to initscr()
+	as newterm() does all this, add cleanup call delscreen() and more
+	verbose error messages when ncurses is misconfigured.
+
+
+Fri Jun  5 14:24:35 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here>
+
+	* Release: 2.4.0Alpha9
+
+	* More fixes from BALATON Zoltan
+	  * recover.c: Another if {}
+	  * msdos_fs.c, xiafs.c: #include <sys/types.h>
+	  * rename CTRL macro to LDE_CTRL as CTRL is already defined in
+	    glibc, follow suit with META & MOUSE
+        * Add -w check to configure, move version def to inside configure.in
+
+Sat May 30 10:25:13 1998  Scott D. Heavner  <sdh@fishmonger.dont.mail.me.here>
+
+	* Release: 2.4.0Alpha8
+
+	* lde_main.c: changed void main() to int main() at egcs's
+	request.
+
+	* Add fixes by BALATON Zoltan
+	  * ext2fs.c: EXT2_read_inode() missing unsigned long in
+	    EXT2_last_inode declaration
+	  * nc_inode.c, nc_lde.c, tty_lde.c: Add {} around nested if's
+	  * msdos_fs.c: Add NWDOS as valid FS signature
+
+Sat Jan 24 16:42:35 1998  Scott D. Heavner  <sdh@fishmonger>
+
+	* nc_block.c: flush keyboard buffer after each non-edit command,
+	eliminates continued scrolling of blocks after release of key.
+
+	* ext2fs.c: free group_desc with inode/zone_map (still never
+	executed). 
+
+	* no_fs.c (NOFS_sb_init): make firsttime flag work correctly.
+	Won't use slow method to determine object's size on first call
+	(made by main).
+
+Fri Jan 23 20:35:47 1998  Scott D. Heavner  <sdh@fishmonger>
+
+	* Release: 2.4.0Alpha7
+
+	* ext2fs.c (EXT2_is_system_block): add is superblock copy check to
+	is_system_block.  Skimming mke2fs.c, they're spaced every
+	"blocks_per_group" blocks. 
+
+	* recover.c (recover_file): check for uname.release=2.0 and warn
+	about blanked_indirects if left undefined.  Just an lde_warn, but
+	you should get two beeps recovering a file.  Might be nice to make
+	it stop and beat you over the head with it.
+
+	Also put checks for is_system_block and zone_in_use into
+	hacked_map_block.  I successfully recovered a 1.2M file from a
+	fragmented temp drive, with no indirect inodes.	 Knock it up
+	to BETA status.
+
+Thu Jan 22 23:03:04 1998  Scott D. Heavner  <sdh@fishmonger>
+
+	* ext2fs.c (EXT2_is_system_block): function created.  Still
+	doesn't know about super block copies (are they always at n*8192+1?,
+	or is it a function of blocks_per_group or are they always the
+	same).  Need to integrate this into recover's hacked_map_block().
+
+	* lde.h: Add is_system_block to FS_cmd struct.
+
+	* no_fs.c:  Stopped exporting null/one functions.  Created
+	functions that have the proper argument size for each function
+	we wish to replace (i.e. NOFS_one_i__ul - takes one ul argument
+	and returns an int).  Fill in default entries for 
+	FS_cmd.is_system_block / FS_cmd.bad_block
+ 
+	* msdos_fs.c: give dos it's own zero/null functions - no longer
+	exported from nofs.c
+
+Sat Jan 17 17:51:02 1998  Scott D. Heavner  <sdh@fishmonger>
+
+	* Release: 2.4.0Alpha
+
+	* nc_block.c - scrolling cleaned up.  Paging is much nicer and
+ 	buffers are allocated based on the size of your screen.  Remapped
+ 	PGUP/DN keys to prev/next screen instead of next block (And +/- to
+ 	next/prev block).  Maybe it would be nice to scroll one line at a
+ 	time with the arrows, now when we hit the edge of the screen, wrap
+ 	the cursor to the top of the next page.
+
+	* nc_block.c - hitting N or M (next indexed block) now locks you
+	into indexed mode.  If the current block is indexed by the current
+	inode, you can page sequentially through the file even if it is
+	fragmented on the disk (assuming the inode is intact).  If not, it
+	prints a warning and nothing changes.  To clear the indexed mode,
+	view an inode or the superblock, or jump to a block using '#'.
+
+	* nc_block.c - add mouse support to select byte (-DBETA_CODE)
+
+	* main_lde.c - display size of deleted inodes with --recoverable
+
+	* For Linux 2.0 users and as a general aid, it might be nice to
+ 	implement a recover feature to recover a file w/o indirect blocks.
+  	Just plow through and hope it's not fragmented and see what we
+ 	get.  I've tried it with small files and it works ok, files
+ 	fragment easily (I thought ext2 was supposed to have some sort of
+ 	bultin fragmentation control, I can't copy a 1M file w/o getting 3
+ 	fragments).  Requires -DALPHA_CODE when compiling.
+	
+        Activate it via the flags menu or if running w/o ncurses as
+ 	--blanked-indirects on the command line.
+
+  	To make it a little more robust it should skip over system areas
+ 	(like the ext2 block descriptors), but I haven't implemented that
+ 	yet.
+	
+	* Added file size parameter to all recover operations.  Without
+ 	it, the above hack would copy until we hit the end of the disk.
+
+	* Compiled with -Wall and removed unused variables.
+
+Fri Jan 16 01:08:49 1998  Scott D. Heavner  <sdh@brain>
+
+	* nofs.c - if operating on file that is a multiple
+	of sb->blocksize, we can never access the last block.
+	Check for fssize%blocksize==0 and fssize!=0 and set
+	lastblocksize=blocksize.
+
+	* nc_block.c - adding nicer scrolling.  Buffering 3 blocks
+	(prev,this,next) seems to work OK, except when displaying 
+	all ASCII (need to buffer more because more fits on screen).
+  	Added compile time option to change number of cached 
+	blocks -- Should calculate this on the fly to adjust for
+ 	large displays?
+
+	* fixed slow advance_zone_pointer() -- was searching all zero'ed
+ 	indirect blocks.
+
+Sun Jan 11 23:21:29 1998  Scott D. Heavner  <sdh@fishmonger>
+
+	* Fixes to ext2fs.c:
+	
+	    - Added some comments.
+	    - Try to fix error where some ext2fs's refuse to load.
+  	      Modified alloc's in EXT2_read_tables to use the same
+ 	      "size equations" as EXT2_read_block_bitmap and 
+	      EXT2_read_inode_bitmap.
+	    - Changed some of the group descriptor size calcs to be
+	      a little more elegant (as per e2fsprogs-1.10 -- I had 
+	      originally swiped EXT2_read_tables from Remy's code
+ 	      anyways).
+
+Sun Oct 26 17:02:40 1997  Scott D. Heavner  <sdh@fishmonger>
+
+	* Release 2.4.0Alpha4
+	
+	* Small fixes.
+	    - Make tty inode dump match curses dump.
+	    - "-N 1" option fixed (would dump entire disk).
+	    - moved printing of error/info messages to stderr.
+
+Tue Oct  7 23:50:31 1997  Scott D. Heavner  <sdh@fishmonger>
+
+	* Worked on crash_recovery/find_ext2_fs some.  Made it a little
+ 	faster (it's still not too smart) and now it works on all my
+ 	drives.  There was a problem and it would get off by one byte, but
+ 	only on one of my 3 drives.
+
+	* Fixed a makefile problem.  Needed to change INSTALL_PROG to
+	INSTALL_PROGRAM in Makefile.in.   Only affects make install.
+
+Fri Jul  4 13:27:00 1997  Scott D. Heavner  <sdh@fishmonger>
+
+	* Release 2.4.0Alpha3
+	
+	* Added autoconfigure script.  It feels like a real distribution
+	now. Still don't make use of most of configure's flags.
+
+	* Add basic gpm mouse support.  If gpm is found by configure, the
+	mouse can be used to drive the menus.  left-click in the header to
+	activate a pull-down menu, then left click to select the menu
+	option.  Also works for the flag menu, click on the line
+	containing a flag to toggle it.  Need to merge with editing.
+
+	* Made kernel fix for 2.0.29 to correct mis-feature that blanks
+ 	all the indirect blocks when deleting files.  Nobody seems to want
+	to bother with it, the 2.1 kernel must be vastly different.
+
+Wed Apr  2 22:30:44 1997  Scott D. Heavner  <sdh@fishmonger>
+
+	* Add all ASCII view/edit mode for blocks.
+
+	* Fix cursor movement off end of valid data in block mode.
+
+	* Start to look at kernel for mis-feature that blanks
+	all the indirect blocks when deleting files.  I've seen it for
+	ext2fs, xiafs, and minixfs on hds and floppies, but not if I mount
+	a loop device.
+
+Tue Apr  1 23:21:22 1997  Scott D. Heavner  <sdh@fishmonger>
+
+	* Make nocache_read_block() for improved directory mode.
+
+	* Directory mode now allows scrolling through entire directory.
+  	The stupid next block commands have been done away with.  You must
+ 	still call it from inode mode to use this feature, if called from
+ 	block mode, it will only format data in the current block.
+  	However, even if it is called from block mode, new directories are
+ 	expanded as if they were called from inode mode, so if you find an
+ 	entry for './' or any other directory (so you can use its '../'
+ 	entry), you can have access to the rest of the directory.
+
+	* Add PG UP/DOWN support to directory mode.
+
+	* Added lde_buffer structure to lde.h.  It currently contains a
+ 	pointer to the buffer's data and an entry for its size.  They are
+ 	only used for directory mode. Still could use some
+ 	creator/destructor routines.
+
+	* Added command line option to recover files.   --file can be used
+	to specify a filename to recover data to.  May someday be useful
+	for scripting.
+
+Mon Nov 18 12:03:35 1996  Scott D. Heavner  <sdh@fishmonger>
+
+	* Release lde-2.3.4
+
+	* 2.3.3 never made it to sunsite.  Noticed a bug in grep-inode, so
+	fixed that for new release.
+
+Mon Oct 28 20:25:53 1996  Scott D. Heavner  <sdh@fishmonger>
+
+	* Release lde-2.3.3
+	
+	* Tried to download lde-2.3.2, but it is corrupted on
+	sunsite, up the number to prevent confusion.
+
+Fri Oct 18 08:17:31 1996  Scott D. Heavner  <sdh@fishmonger>
+
+	* Release lde-2.3.2 (mainly for log_error() fix).
+	
+	* Surround triple indirect support with -DBETA_CODE (it probably
+	isn't necessary, but this wasn't a pretty piece of code).  For the
+	2.3.2 release, it shouldn't be there yet.
+
+Sun Oct 13 13:00:29 1996  Scott D. Heavner  <sdh@fishmonger>
+
+	* log_error() was not allocating a large enough string to hold
+	each error.  Increased by 1 char (strlen() does not count the
+	trailing 0).
+
+	* Triple indirect block indexing added!!  I hope it's a while
+	before someone starts using a fs with a 4x indirect.
+
+	* Fix cursor movement over blank zone entries in inode mode,
+	wasn't printing enough spaces, so last digit would remain on
+	the screen if the entry was zero'ed.
+
+	* Allow ERRORS_SAVED to be specified from the makefile.
+
+Sat Oct 12 17:04:04 1996  Scott D. Heavner  <sdh@fishmonger>
+
+	* Modify directory mode to support next block.  View something
+	from directory mode and hit 'n' to see the next block, or 'm' to
+	see the previous block in the directory chain.
+
+	* Support added for next block in chain for block mode (as above
+	for directory mode).
+
+	* Fixed grep-inode script so that it works like it says it does.
+	
+     	* Added NOFS_get_device_size() and valid_offset() which will
+ 	determine the size of a partition with no filesystem.  Tried to
+	steal these from e2fsprogs-1.02 and put in the swiped tree, but it
+	was too much work to get them to compile intact, so I hacked out
+	the interesting parts and put them in no_fs.c.
+
+	* lde will now try to open a file/device read only if the open
+	read/write fails.
+
+	* Created swiped.a and swiped.h which contain all the code that I
+ 	was able to rip off without altering it.
+
+	* Removed the old help format definitions.
+	
+Thu Oct 10 20:26:10 1996  Scott D. Heavner  <sdh@fishmonger>
+
+     Release lde 2.3.1.  Mainly for warn() fix below and ext2 buffer
+     overflow. 
+	
+     Changed all occurances of warn() to lde_warn(), the new libc has a
+     builtin warn() of some sort.
+
+     Put all stolen code in src/swiped.  filemode.c and getdate.y are both
+     freely useable functions from fileutils-3.12 and cnews respectively.
+
+     Fixed date reading in inode mode.  Getdate() won't parse a date
+     that's in the format ctime puts on the screen, but it does pretty
+     well with most others.
+
+     Fixed reading of inode and block map under ext2.  Buffer
+     overflow for filesystems with less than 1024*8 inodes or blocks.
+
+     Add display of : B A D : down center of screen for blocks that have
+     been marked bad (bad block checking has not been implemented for any
+     filesystem yet, so you should never see this).
+	
+Fri Oct  4 00:50:02 1996  Scott D. Heavner  <sdh@fishmonger>
+
+     Release lde 2.3.  Not a single response came in from the Beta8
+     release, so I'll have to assume that it works perfectly.
+
+Mon Sep 23 00:26:55 1996  Scott D. Heavner  <sdh@fishmonger>
+
+    Make --recoverable print out deletion times.
+
+Sun Sep 15 17:27:00 1996  Scott D. Heavner  <sdh@fishmonger>
+
+    2.3Beta8 release -- really just about ready for 2.3 final release.
+    Big things like triple indirect, get past edit one block limit,
+    recover file to original location will wait until version 2.4.
+
+    Documentation cleaned up.  UNERASE and man page have heavy revisions
+    and additions.  INSTALL and README updated with common problems,
+    necessity of properly installed terminfo files should be beaten into
+    the user's head.
+
+Sun Sep 15 15:22:57 1996  Scott D. Heavner  <sdh@fishmonger>
+
+    Changed default script search to "#!/".
+
+    Add new flags:
+	--append       Always append to an existing recovery file
+	--recoverable  Check to see if inode is recoverable
+	-N             now also specifies start block for searches (if 1
+	               or omitted, defaults to first data zone
+
+    Search for inode that references this block from command line while
+    searching.  Search now prints failure to find block so that I know
+    it at least tried.
+
+    Redefined --ilookup and --recoverable outside of search mode.
+    --ilookup can be used with the command line -b or -B option to look
+    for inodes which reference a given block (--recoverable will not work
+    here).  --recoverable will work with -i or -I to check if an inode's
+    blocks are in use by another file.
+
+Sun Sep 15 01:07:31 1996  Scott D. Heavner  <sdh@fishmonger>
+
+    Added some curses bounds checking so that we won't get a SEGV for
+    small windows.  If the window is < (17+HEADER+TRAILER) lines, parts of
+    the inode will be inaccessable.  Even smaller windows may omit
+    some of the superblock information.  And probably if you go smaller
+    than (4+HEADER+TRAILER) all sorts of things will start crashing.  I
+    have hardcoded (4+HEADER+TRAILER) as the minimum size to start the
+    ncurses interface.
+
+Sat Sep 14 18:57:27 1996  Scott D. Heavner  <sdh@fishmonger>
+
+    Update help windows to show some keys that are defined for this
+    keymap.  Might make them a little uglier (arrow keys and the recover
+    mode inode list come to mind), but at least they should be accurate.
+    Added leaveok() curses calls while in help mode, these hide the cursor
+    while scrolling help and reveal it again before leaving the mode.
+
+    When recovering a file or block, if file exists, user was asked
+    "Append [Y/N/Q]" which was somewhat misleading.  Changed to "Append
+    [Yes/Overwrite/Quit]" which is a bit more informative.  Still there is
+    no abort if you type a legal filename.
+
+Sat Sep 14 14:23:10 1996  Scott D. Heavner  <sdh@fishmonger>
+
+    Added ctrl-c handler.  When ctrl-c is pressed, lde_flags.quit_now is
+    set. Functions can now check this flag in their idle loop.
+
+    Added some support for triple indirect inodes.  They are no longer
+    just treated as an error condition.  If the triple indirect block is
+    zero, it is handled correctly.  If it is non-zero, a warning is
+    printed the firstm time the program encounters a non-zero block.
+    Thereafter, they are silently ignored.
+
+??? ??? ?? ??:??:?? 1996  Scott D. Heavner  <sdh@fishmonger>
+
+    2.3Alpha6 and 2.3Alpha7 released somewhere in here.
+
+    Made a lot of changes here that didn't get documented at the time.
+    This is going to be one ugly incomplete list.
+
+    Added FS_cmd.map_inode() to all filesystems.  Make sure all file
+    systems know where the first data block is (FIRST_MAP_BLOCK).
+
+    Lousy keymapping scheme implemented.  User still does not have access
+    to keymap at runtime, but things can be modified from source easier.
+    It also reduces the number of case statements I have to write (big
+    deal).  The most useful feature of the current keymaps is the global
+    keymap where arrow keys and keys which are valid in any mode are
+    defined.  I don't have to keep including multiple definitions for the
+    UP key because they are handled by the global keymap.
+
+    A few format changes in the curses inteface were introduced and all
+    known display bugs have been fixed.
+
+    Searching from the command line has more options:
+	
+	-i ##:       Dump inode number # to stdout (-I all inodes after #)
+	-b ##:       Dump block number # to stdout (-B all blocks after #)
+	-N ##:       Number of blocks to dump (using -I or -B option)
+	-d ##:       Dump block's data to stdout (binary format)\n");
+	-S string:   Search disk for data (you're probably better off with grep)
+	-T type:     Search disk for data. type = {gz, tgz, script, or use filename}
+	-L ##:       Search length (when using specified filename)
+	-O ##:       Search offset (when using specified filename)
+	--indirects: Search filesystem for things that look like indirect blocks.
+	--ilookup:   Lookup inodes for all matches when searching.
+	
+
+    tty_lde.c:
+
+	read_num() now returns unsigned long.
+
+	no_warn() - added, dummy routine
+
+	tty_mgetch() - added, dummy routine (always returns 13)
+
+	Added reading and writing of odd sized blocks (last block in file
+	may not always have the full 1024 (or whatever the current
+	blocksize is) bytes of data.
+
+	Output format for tty dump_block() changed slightly.
+
+    recover.c:
+
+	find_inode() - has second arg, inode number to start search
+
+	Search code changes.
+
+
+Sat Nov 18 19:07:45 1995  Scott D. Heavner  <sdh@fishmonger>
+
+    Menu code fixed, displays first match in keymap along with the
+    command.  Also changed the menus to recognize keys (i.e. when the menu
+    is up, the key commands still work -- 'b' takes you to block mode,
+    etc.)
+
+Sun Nov 12 11:57:30 1995  Scott D. Heavner  <sdh@fishmonger>
+
+    New option when searching by type.  Allows user to specify a filename
+    to extract string data from.  This will allow users to search for data
+    which cannot be easily entered on the command line.  It will also
+    allow searching for arbitrary file types.  I.e. to look for gzip
+    files, point it to a gzip file and enter the offset and length
+    specified in /etc/magic (len=2, offset=0).
+
+    Changed default search options.  Won't automatically search for
+    indirect inodes on the disk (use --indirects) or lookup the inodes for
+    any matches that it finds when searching (use --ilookup).  Also
+    deacticate the search all flag which was previously turned on any time
+    the user requested a search (use --all) to search the entire disk,
+    otherwise just searches unused space.
+
+    Started to work in changes so that the menus would automatically
+    display the keys associated with each command.  Still needs some work,
+    but I'm out of time today.
+
+Thu Nov  9 00:46:55 1995  Scott D. Heavner  <sdh@fishmonger>
+
+    Removed zero flag toggle that was added for last alpha release.  Now
+    we always operate on all inode entries, skipping over zeroes rather
+    than terminating operations.  map_block() now returns an error flag.
+
+    Added a check block in use function.  This is to evaluate your chances
+    of success when recovering a file.  If you choose 'c' from the
+    recovery menu, it will check to see if any of the deleted file's
+    blocks are in use by a file.
+
+Wed Nov  1 07:50:28 1995  Scott D. Heavner  <sdh@fishmonger>
+
+    2.3Alpha5 release.
+
+    Some bug fixes.  Minix and Xiafs would not work in the last release as
+    they were reading their tables from within the datazone.  Ext2's
+    first_datazone indicates where the tables start whereas the
+    first_datazone in minix and xiafs indicate where the file/directory
+    data starts (after the tables).  Added a new variable to the
+    fs_constants structure FIRST_MAP_BLOCK which is used by minix and
+    xiafs to indicate where the tables start.  It is ignored by the other
+    filesystem types.
+
+    In recovery mode, added a quick hack to help someone restore a file.
+    You can now set a flag to ignore zeroes in the recovery inode.  This
+    will allow you to recover some ext2 files which were not recoverable
+    before, but will take a while.  Recover as normal (after toggling the
+    zero flag) and let it run until it complains about not being able to
+    handle triple indirect blocks.  Then you will have to exit with
+    Ctrl-C.  I will work on this more soon.  I will also remove the option
+    to recover block 0, or bury it deeper so that normally zeroes will be
+    ignored.
+
+Sun Jun  4 23:46:54 1995  Scott D. Heavner  <sdh@fishmonger>
+
+    2.3Alpha4 release.
+	
+    Under inode mode M-b will let you view the raw inode as a block 
+    (it reads in the block from the disk containing the inode table with
+    the desired inode).  Once you're in block mode, you are on your own,
+    somewhere in this block is the inode you want, find it.
+
+    As per Ira's suggestion, put in a way to limit the number of blocks
+    dumped to the screen when using tty mode.  You can now use -n ## to
+    limit the number of blocks dumped from the -I, -B, or -D commands.
+    The use of -n will also cause the -i, -b, and -d commands to dump more
+    than one block.  If -n is absent, -I, -B, -D will dump until the end
+    of the filesystem.
+
+    Cleaned up tty dumps.  I have turned off all warnings and messages,
+    terminal errors should still be displayed, but there should be no
+    extra junk if you redirect the output to a file (lde -D now performs
+    like dd).
+
+    Working on size of last block.  For no_fs, the size of the last block
+    could be less than the blocksize.  To prevent writing a bunch of
+    zeroes to the end of the file, keep track of this size.  This change
+    forces binary editing, you cannot add bytes to the end of the file. In
+    block mode, the very last line will fill with zeroes when you move the
+    cursor over it, but it will not affect the length of the file.
+
+    Now you can dump block 0 to the recovery file.  If there is a zero in
+    the first entry of the block map, it will be interpreted as block 0,
+    in any other position, it will be interpreted as the map termination
+    marker.  (I have to check to see if this is the correct interpretation
+    for ext2, I have a staggered inode on my disk and e2fsck thinks it is
+    ok, as does debugfs).
+
+    M-r in block mode will search for the inode which contains this block
+    and view it.  C-r still just searches for it.
+
+    Throwing out code from the scrollable help and trailer window.  Cut
+    the trailer down to 1 line and changed the help banner to a single
+    line.
+
+    No more flashing the superblock as we switch from block to inode mode.
+
+    What do you know, the error log scrolling was my fault.  NCurses
+    1.9.1b works fine (as well as 1.8.1 ever did) -- get it.
+
+Sat Jun  3 01:11:30 1995  Scott D. Heavner  <sdh@fishmonger>
+
+    2.3Alpha3 release.
+
+    Recovered file now has a real mode value (600) not the random junk it
+    has been assigned.
+
+    Paste and Edit block now works again.  Tested on 100k minix and ext2
+    partitions, modified one char of inode and one char of last block on
+    file system.  Modifications were completed correctly.  Paste also
+    successful.
+
+    Added key for flag popup in inode mode.
+
+Fri Jun  2 10:14:23 1995  Scott D. Heavner  <sdh@fishmonger>
+
+    2.3Alpha2 release.
+
+    Fixed ext2 block in use error (lde never knew whether highest blocks
+    in the FS were in use).  Also pulled all the macros out of ext2fs.c.
+
+    I am now using NCurses 1.9.1b,  I'd like to know what versions other
+    people are using and how well they work -- 1.9.0c had some real
+    scrolling problems.  I've noticed that the error log popup doesn't
+    show the most recent error (which should be the top line, there is an
+    extra blank line included at the end).  The Help window doesn't scroll
+    the last character on a line, so there are always two blue characters
+    at the top of the window.
+
+    Fixed clearing and initial display of some windows.
+
+    Changed key for recover blocks, got rid of '#' since it is used as
+    CMD_NUMERIC_REF elsewhere.
+
+Thu Jun  1 19:00:20 1995  Scott D. Heavner  <sdh@fishmonger>
+
+    MAX_BLOCK_SIZE to 4096, so I don't have to include <linux/ext2_fs.h>
+    everywhere.  Need to keep track of the max block size used by all
+    filesystems somewhere.
+
+    Bug in inode_mode, CMD_NUMERIC_REF, was not changing the current
+    inode.  Recover file keys aren't working very well in other modes,
+    fixed block mode and recover mode.
+
+    Change cread_num() to expect an unsigned long.
+
+Thu Jun  1 02:34:41 1995  Scott D. Heavner  <sdh@fishmonger>
+
+    2.3 Alpha 1 release.
+
+    <asm/bitmap.h> functions have to be prototyped as
+    extern __inline__ int or they are discarded in compilation.
+    (Fixes the test_bit() undefined error).
+
+    Changed MAX_BLOCK_SIZE in lde.h to EXT2_MAX_BLOCK_SIZE (currently
+    4096), will it ever need to be larger?  Should we add some dynamic
+    comparison macros?  (Fixes segment violation crashes).
+
+    Fixed directory popup to highlight entire line.  Doesn't do the last
+    character on the line (NCurses 1.9 makes a mess of things when I tried
+    this, perhaps this is also why the scrolling of the help popups is
+    messed up).
+
+    Fixed some random warnings tossed in by GCC 2.6.2.  Array/Structure
+    initializations should have {} around each element with multiple
+    members.
+
+Sun Dec 11 00:33:42 1994  Scott D. Heavner  (sdh@fishmonger)
+
+    Started to implement mappable key bindings.  At the moment, they
+    aren't mappable, but defined at the start of each C file.
+
+    Wrote separate program to search for ext2 partitions in a device.
+    Useful if a partition table accidentally gets destroyed.
+
+    Broke display of only used inode labels.
+
+    Added support for triple indirect block -- untested, probably broke
+    double indirect parser in the process.
+
+Sun Nov 20 16:01:42 1994  Scott D. Heavner  (sdh@fishmonger)
+
+    Changed a lot of char* pointers to void*.  Should probably get the
+    rest one of these days.
+
+    Added beginnings of msdos file system parser.  Will probably take a
+    lot more thought.
+
+    Fixed possible destructive bug in scrub xiafs, pretty stupid really
+    it's a worthless function.
+
+    Rewrote fs_test code to probe for filesystems.  Now returns one on
+    success, zero if it is not of the desired type.  Also bumped up the
+    blocksize on the test probe to 2048, this way we can read in the first
+    two blocks, msdos+xiafs need block 0, ext2fs and minix need block 1.
+
+    Cleaned up trailing garbage in curses display of the directory.
+
+    For some strange reason EXT2_read_block_bitmap() was copying it's
+    bitmap into inode_map instead of zone_map??
+
+    Put up error log upon entering curses.  Otherwise, first few messages
+    are lost when curses clears the screen.
+
+    Fixed mount detection call, warns user if device is mounted and lde
+    was not started with the --paranoid option.  Added --read-only synonym
+    to paranoid.
+
+Mon Sep  5 20:14:27 1994  Scott D. Heavner  (sdh@fishmonger)
+
+    Update for Linux 1.0 and better.  Hopefully it's still backward
+    compatible.  There's some weird stuff going on in the ext2fs code
+    in porting it to other operating systems which resulted in a lot
+    of strange compiler errors.  Also a few constant definitions were
+    removed from the xiafs file which broke that as well.
+
+    While I was cleaning for Linux v1.0, I also gave each C file it's
+    own header, then decided to make most of the routines static,
+    so there are some header files with just one or two exported
+    functions.  This is no problem for me, but if anyone wants to use the
+    code for some other application, you will have to go through and
+    de-staticize them.
+
+    Went through with -Wstrict-prototype and -Wmissing-prototypes and
+    fixed any reported errors.
+
+    Changed bitops.c to use the kernel bitops if available.  If not Ted's
+    C bitops will be substituted (with some user intervention).
+
+    Fixed the bug where the time fields would overwrite other fields
+    (on the screen).
+
+Sun Apr 24 16:43:43 1994  system admin  (root@fishmonger)
+
+    lde-2.2alpha3 released.
+
+    Some space optimization, deletion of unused vars, dynamic allocation
+    of some larger vars.
+
+Sat Apr 23 22:05:50 1994  Scott D. Heavner  (sdh@fishmonger)
+
+    Now copy the block after we read it in block mode.  This way any edits
+    will be on the copy, just in case the one cache block gets used for
+    something else.
+
+    Some key redefines (sorry), hjkl now move the cursor.  h = help, can
+    be accessed as ?, ^H, M-h, or F1.  l = locate inode reference => ^R.
+    Meta hjkl for cursor motion removed.
+
+    Can now scroll error log (using do_scroll_help()).  Should probably do
+    away with fixed length errors and malloc() them as they arise, within
+    limits.  Then free and realloc to overwrite.  (DONE - 4/24).
+
+    General bug fixing and code splitting.  Welcome nc_dir.c and *help.h.
+
+Sat Apr 16 23:40:20 1994  Scott D. Heavner  (sdh@fishmonger)
+
+    Added META() definition for meta key sequences.  One day maybe ncurses
+    will do this for us.  Currently the used meta keys include HJKL (vi
+    cursor motion) and V (emacs pg-dn).
+
+    Pulled bitops.c out of the ext2v0.5 lib.  To increase portability once
+    the 68* people get going.
+
+Fri Apr  8 00:33:48 1994  Scott D. Heavner  (sdh@fishmonger)
+
+    Added basic popup menu function, hopefully to help out when keyboard
+    mnemonics get out of hand.  Results in some noticeable screen flash as
+    we whip through screens, maybe some of this can be cut back.  Access
+    through ^O or F2.
+
+    Help windows now scrollable.
+
+Wed Apr  6 11:01:58 1994  Scott D. Heavner  (sdh@fishmonger)
+
+    lde-2.2alpha2 released.  Includes binary, lde-2.2alpha2.patch includes
+    missing header file from lde-2.2alpha (nc_lde.h).
+
+Sun Apr  3 23:27:08 1994  Scott D. Heavner  (sdh@fishmonger)
+
+    lde-2.2alpha1.patch released -- fixes display problem in
+    directory_popup().  (No binary released).
+    
+    lde-2.2alpha released.
+
+    Added error/warning save feature, can go back and view the last
+    ERROR_SAVE (=24) errors.  Changed the warn() functions to support a
+    variable number of arguments.  Use 'v' to view the error log, it is
+    not scrollable (yet?) so it is limited to ERROR_SAVE or the size of
+    the workspace window.
+
+    Inode copy and paste added.
+
+    Now checks to see if device is mounted by searching /etc/mtab.
+
+Fri Apr  1 04:18:02 1994  Scott D. Heavner  (sdh@fishmonger)
+
+    Tons and tons of changes.  Fixed makefile to include the curses header
+    path as was intended (David Sibley - sibley@math.psu.edu), but the
+    next release will begin with INCLUDE_DIR undef and NC_HEADER defined
+    as this seems to be the new standard in ncurses 1.8.5.  I'll leave the
+    actual lines in, but configure it for my setup, until I see the fsstd
+    or whatever its called.
+
+    Cleaned up inode mode and directory mode.  Trashed the dynamic inode
+    and replaced it with a generic inode.  Inodes are now read/writable,
+    but I have not tested this much at all, you must define ALPHA_CODE to
+    test this.  Added more fields to the inode display/edit, only fields
+    which are relevant for a specific fs show up on the screen -- i.e.
+    there is only one time field for Minix.
+    
+    Pulled a ton of #ifdefs from the curses routines and added some more
+    since there seem to be a few broken/missing ncurses functions, once
+    they are fixed, define NCURSES_IS_COOL and some of the I/O routines
+    will become 200% cooler.
+
+    Fixed MINIX_dir_entry() to return proper inode pointer.  If we try to
+    read an inode which is out of range, now return the NOFS_junk_inode
+    rather than inode 1.
+
+    Now recognizes leading 0 as octal numbers (unless it's followed by
+    'x').
+
+    Cleaned up a few typos in the docs.
+
+Sat Mar 26 14:17:55 1994  Scott D. Heavner  (sdh@fishmonger)
+
+    ext2, inode_in_use and zone_in_use flag were still screwed up 
+    if READ_FULL_TABLES defined, removed %inodes_per_group if undef.
+
+    Added 'w' write block option to block mode, writes the current block
+    to the recovery file.
+
+    recover_file now writes as blocks rather than chars.  Changed fopen
+    calls to open.
+
+    Split nc_lde.c into nc_lde.c, nc_lde.h, nc_block.c, and nc_inode.c.
+
+** 22 March 1994
+
+   lde-2.1 proper released.
+
+   Threw in some docs for the ext2fs.  Just pulled some stuff out of
+   <linux/ext2fs> and formatted as tables to make it easier to edit inodes
+   and such from the block edit mode.
+
+   Fixes from Alan Eldridge (alane@wozzle.linet.org) to clean up
+   display of u/long varaibles.
+
+   Some source code beautification.  Formatted ext2fs.c in my standard
+   indent pattern.  Added CTRL() macro for control key checks.  Changed
+   all hex output to be upper case (why I don't really know).  
+
+   Added 'c' and 'p' options to block edit (copy a block to copy_buffer,
+   paste from copy_buffer).
+
+   Directory mode beginnings.  Still need to be able to move the cursor
+   around and do something in this mode, but it will dump a block as a
+   directory to the screen.  Seems to have pointed out a lack of inode
+   bounds checking in the DInode structure.  Compile in with -DALPHA_CODE.
+
+   Using "popups".  The old *_mode interface is fine for the major modes,
+   but makes for a large function.  Popups will have less overhead and you
+   won't leave the major mode you were in (major modes being inode edit,
+   block edit, recovery, and super block).  Quit won't leave the program
+   in a popup, but will drop you back to the previous mode.  Current
+   popups include set flags and directory dump.
+
+   Changed write of modified blocks to give user one last chance to change
+   the write flag on the disk rather than just silently tossing out the data.
+
+** 21 March 1994
+   
+   Can now edit blocks as ascii (Tab/^I) to switch between hex/ascii
+   editing.  Cleaned up a lot of the prompting to write to disk,
+   reset modify flag, ^A abort edit (re-read current block from disk).
+
+   Added a force read flag to cache_read_block.
+
+   Changed HIGHLIGHTS in nc_lde.c to be more descriptive, maybe?  Started
+   pulling out some unused/duplicate variables.  Fixed some of the code to
+   center windows on the screen.
+
+** 21 March 1994
+
+   lde-2.1beta4 released -- hopefully before anyone tries beta3.
+
+   Fixed bug in write code -- if you didn't use ^W, but PG_UP or PG_DOWN
+   to terminate an edit, the block number would be incremented, then the
+   block written so it would be written to the wrong location.  Changed
+   modify flag to pass as pointer to cwrite_block so that it can be reset.
+
+   Added no_fs.c for hex editing files and other things without inode
+   structures.
+
+   Fixed to properly display block 0 when requested (usually not part of
+   the filesystem, but the xiafs sb is on block 0) which was required to
+   edit a file.  Also added last_block_size to the sb structure to keep
+   track of the size of the last block so that we don't write past the
+   EOF.
+
+   modified flag set back to zero after write.
+  
+** 20 March 1994
+
+   lde-2.1beta3 released.
+
+   Tossed man page into distribution. Another oops.
+
+   Added edit/write block feature.  Including PARANOID Makefile define and
+   other flags in main.
+
+   Allow user to toggle some runtime flags (write_ok and search_all).
+   Added beeps and option to turn off beeps.
+   
+** 19 March 1993
+
+   lde-2.1beta2 released.
+
+   Added Makefile and lde.h to distribution.  Oops!
+
+   Renamed some source and object files.
+
+   Fixed ext2fs excessive memory usage.  Added READ_FULL_TABLES
+   compilation flag (a good reason to find the problem before you hunt
+   down the solution).  I had thought that the zone bitmaps were taking up
+   too much memory, so I added an option to read in the map one group at a
+   time, but even for a 1G drive, the zonemap is only 125k.  So the code
+   to read one group descriptor at a time is still there, but I fixed the
+   allocation error.  Thanks to J. Alan Eldridge (alane@wozzle.linet.org)
+   for pointing out the runaway malloc.
+
+
+*Local Variables:
+*backup-inhibited: t
+*End:
+
