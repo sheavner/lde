@@ -4,6 +4,8 @@ dnl Autoconf requires the name of a unique file in the source tree
 AC_INIT(../src/main_lde.c)
 dnl AC_CONFIG_HEADER(lde_autoconf.h)
 
+AC_PREREQ(2.57)
+
 LDEVERSION=2.6.0CVS
 AC_SUBST(LDEVERSION)
 
@@ -237,8 +239,10 @@ dnl I haven't bothered to do anything with these yet, so why check for them?
 dnl ************************************************************************
 
 dnl Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_STAT
 AC_C_CONST
 AC_C_INLINE
+AC_C_VOLATILE 
 dnl AC_C_VOLATILE (not in 2.13)
 
 AC_TYPE_OFF_T
@@ -247,11 +251,13 @@ AC_STRUCT_TM
 
 
 dnl Checks for library functions.
-dnl AC_CHECK_FUNCS(memset strchr strstr strtol)
+dnl AC_CHECK_FUNCS([ftime memset strchr strstr])
 
 dnl ************************************************************************
 
 AC_FUNC_VPRINTF
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
 AC_CHECK_FUNCS(uname memmem bzero)
 
 

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.38 2002/02/01 03:35:19 scottheavner Exp $
+ *  $Id: lde.h,v 1.39 2003/12/03 18:07:20 scottheavner Exp $
  */
 
 #ifndef LDE_H
@@ -32,7 +32,7 @@ extern int check_root(void);
 extern void (*lde_warn)(char *fmt, ...);
 extern int  (*mgetch)(void);
 
-#define MAX_BLOCK_SIZE    4096  /* must be at least EXT2_MAX_BLOCK_SIZE or whatever the biggest FS we are using */
+#define MAX_BLOCK_SIZE    8224  /* must be at least EXT2_MAX_BLOCK_SIZE or whatever the biggest FS we are using */
 
 #define INODE_BLKS 15 /* EXT2_N_BLOCKS or higher -- can't use EXT2 references after
 		       * mulitiple architecture support was added to ext2.
@@ -234,7 +234,7 @@ struct {
 } FS_cmd;
 
 /* Flags */
-volatile struct _lde_flags {
+struct _lde_flags {
   int search_all;
   int quiet;
   int write_ok;
@@ -250,8 +250,9 @@ volatile struct _lde_flags {
   int nosymbolic_guid;
   int byteswap;
   int displaydeleted;
-} lde_flags;
+};
 
+extern volatile struct _lde_flags lde_flags;
 extern struct sbinfo *sb;
 extern struct fs_constants *fsc;
 

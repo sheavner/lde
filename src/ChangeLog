@@ -1,8 +1,14 @@
+2003-12-03    Scott Heavner
+	- cleanup some warnings that show with -pendantic
+ 	- update autoconf to handle VOLITILE definition, #ifdef volatile
+	  wasn't really working, broke on redhat 8+	
+
 2002-05-28    Scott Heavner
 	- Fix segfault when specifying file type on command line,
 	  spotted & fixed by Tomas Jura.  Add tests to test script.
 	  (allfs.h, main_lde.c, recover.c)
 	- msdos_fs.c: Trap for division by zero in DOS_sb_init().
+	- nc_dir.c: move variable declaration outside ifdef
 
 2002-02-14    Scott Heavner
 	- Add 20 block cache to nocache_read_block instead of its cache of

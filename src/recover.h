@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.h,v 1.10 2001/11/26 00:07:23 scottheavner Exp $
+ *  $Id: recover.h,v 1.11 2003/12/03 18:07:21 scottheavner Exp $
  */
 
 unsigned long block_pointer(unsigned char *ind, unsigned long blknr, int zone_entry_size);
@@ -56,7 +56,7 @@ enum map_block_errors { EMB_NO_ERROR=0,
 			EMB_3IND_LOOKED_RANGE,  /* Block is zero, move to next entry */
 
 			AZP_BAD_START,          /* Block is not indexed by current inode */
-			AZP_UNCHANGED,          /* Can't find next/prev block, current pointer unchanged */
+			AZP_UNCHANGED          /* Can't find next/prev block, current pointer unchanged */
 };
 
 

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.33 2002/02/11 22:17:03 scottheavner Exp $
+ *  $Id: nc_block.c,v 1.34 2003/12/03 18:07:20 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -399,9 +399,12 @@ int block_mode(void) {
   char *HEX_PTR, *HEX_NOS = "0123456789ABCDEF", *s;
   unsigned long a, temp_ptr, search_iptr=0UL, inode_ptr[2] = { 0UL, 0UL };
   bm_flags flags = { 0, 0, 0, 0, 0, 1 };
-  bm_cursor curs = { 0, 0, 0, 0, 0, 0, 16, VERT };
+  bm_cursor curs = { 0, 0, 0, 0, 0, 0, 16, 24 };
   bm_irecord irecord = { 0 }, *irecptr=NULL;
   cached_block *this_block, *cb_buffer, *tmp_block; 
+
+  /* Need to init separately as VERT is not a compile time constant */
+  curs.wl = VERT;
 
   /* Want to allocate enough room for two screenfuls of data, 
    * compute the size of one screen full here */

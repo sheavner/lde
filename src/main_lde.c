@@ -3,9 +3,13 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.49 2002/05/29 05:38:32 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.50 2003/12/03 18:07:20 scottheavner Exp $
  */
 
+#include <signal.h>
+#if HAVE_GETOPT_H
+#include <getopt.h>
+#endif
 #if HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
@@ -15,10 +19,6 @@
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#if HAVE_GETOPT_H
-#include <getopt.h>
-#endif
-#include <signal.h>
 #include <time.h>
 
 #include <sys/stat.h>
@@ -33,8 +33,8 @@
 #  include "nc_lde.h"
 #endif
 
-#ifndef volatile
-#define volatile
+#ifndef __sighandler_t
+#define __sighandler_t void *
 #endif
 
 /* Some internal structures */
@@ -58,7 +58,7 @@ struct _main_opts {
 
 struct _search_types {
   char *name;
-  char *string;
+  unsigned char *string;
   int length; 
   int offset;
 };
@@ -219,8 +219,8 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 {
   int option_index = 0, i;
   int c;
-  static char gzip_tar_type[] = { 31, 138, 8, 0 };
-  static char gzip_type[] = { 31, 139 };
+  static unsigned char gzip_tar_type[4] = { 31, 138, 8, 0 };
+  static unsigned char gzip_type[] = { 31, 139 };
   struct _search_types search_types[] = {
       { "tgz", gzip_tar_type, 4, 0 },
       { "gz", gzip_type, 2, 0},
@@ -466,7 +466,7 @@ int main(int argc, char ** argv)
 
   /* Set things up to handle control-c:  just sets lde_flags.quit_now to 1 */
   sigemptyset(&sa_mask);
-  intaction.sa_handler = (void *)handle_sigint;
+  intaction.sa_handler = (__sighandler_t) handle_sigint;
   intaction.sa_mask = sa_mask;
   intaction.sa_flags = SA_RESTART;
   sigaction(SIGINT,&intaction,NULL);
@@ -582,7 +582,7 @@ int main(int argc, char ** argv)
 	    if ((hasdata)&&(check_recover_file(GInode->i_zone, GInode->i_size))) {
 		printf("Inode 0x%lX recovery possible",nr);
 		if (fsc->inode->i_dtime) {
-                  thispointer = ctime(&(GInode->i_dtime));
+                  thispointer = ctime((time_t *)&(GInode->i_dtime));
                   thispointer[24] = 0;
 		  printf(" (deleted %24s)",thispointer);
                 }
@@ -643,7 +643,7 @@ int main(int argc, char ** argv)
     parse_grep();
     exit(0);
   } else if (main_opts.search_string!=NULL) {
-    search_fs(main_opts.search_string, main_opts.search_len, main_opts.search_off,main_opts.dump_end);
+    search_fs( (unsigned char *)main_opts.search_string, main_opts.search_len, main_opts.search_off,main_opts.dump_end);
     exit(0);
   } else if (main_opts.superscan) {
     search_for_superblocks(main_opts.fs_type);
