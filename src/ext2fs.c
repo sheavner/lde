@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.28 2002/01/14 17:27:15 scottheavner Exp $
+ *  $Id: ext2fs.c,v 1.29 2002/01/14 18:14:11 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -178,6 +178,11 @@ static int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode)
 {
   char * inode_buffer;
   unsigned long blknr;
+
+  if (lde_flags.byteswap) {
+	lde_warn("INODE WRITES NOT WORKING ON BIG_ENDIAN SYSTEMS!");
+	return -1;
+  }
 
   blknr = EXT2_map_inode(ino);
   inode_buffer = cache_read_block(blknr,NULL,CACHEABLE);

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.37 2002/01/13 04:48:30 scottheavner Exp $
+ *  $Id: recover.c,v 1.38 2002/01/14 18:14:12 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -33,10 +33,10 @@ unsigned long block_pointer(unsigned char *ind,
 
   if (zone_entry_size == 2) {
     sind = (unsigned short *) ind;
-    return sind[blknr];
+    return ldeswab16(sind[blknr]);
   } else {
     lind = (unsigned long *) ind;
-    return lind[blknr];
+    return ldeswab32(lind[blknr]);
   }
 }
 

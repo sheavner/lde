@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.34 2002/01/14 17:27:15 scottheavner Exp $
+ *  $Id: lde.h,v 1.35 2002/01/14 18:14:11 scottheavner Exp $
  */
 
 #ifndef LDE_H
@@ -275,6 +275,9 @@ extern int current_error;
 
 
 /* Byte swapping routines, taken from linux kernel v2.2.19 */
+#if HAVE_ASM_TYPES_H
+#include <asm/types.h>
+#endif
 #define ___ldeswab16(x) \
         ((__u16)( \
                 (((__u16)(x) & (__u16)0x00ffU) << 8) | \
