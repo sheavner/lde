@@ -1,3 +1,9 @@
+Sun Feb 25 2001 Scott Heavner
+
+	* remove msdos_boot_sector/fat_boot_sector checks, it's named
+	  fat_boot_sector in all the files we reference now.
+
+
 Fri Feb 23 2001 Scott Heavner
 
 	* add block search function (ncblock.c / recover.c)

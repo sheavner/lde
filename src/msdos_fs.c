@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.16 2001/02/22 19:48:20 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.17 2001/02/25 19:55:04 scottheavner Exp $
  */
 
 /* 
@@ -259,7 +259,7 @@ static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode
 
 static void DOS_sb_init(void *sb_buffer)
 {
-  struct msdos_boot_sector *Boot;
+  struct fat_boot_sector *Boot;
   Boot = sb_buffer;
 
   sb->blocksize = (unsigned long) align_ushort(Boot->sector_size);
@@ -316,7 +316,7 @@ void DOS_init(void *sb_buffer)
 
 int DOS_test(void *sb_buffer)
 {
-  struct msdos_boot_sector *Boot;
+  struct fat_boot_sector *Boot;
   Boot = sb_buffer;
 
   if ( !(strncmp(Boot->system_id,"MSDOS",5)) ||
