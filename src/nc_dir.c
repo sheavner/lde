@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.6 1995/06/02 14:24:16 sdh Exp $
+ *  $Id: nc_dir.c,v 1.7 1995/06/02 15:09:30 sdh Exp $
  */
 
 #include <strings.h>
@@ -188,7 +188,7 @@ int directory_popup(unsigned long bnr)
 	  update_header();
 	  if (c==CMD_SET_CURRENT_INODE_MC) {
 	    clobber_window(win);
-	    return CMD_SET_CURRENT_INODE;
+	    return CMD_SET_CURRENT_INODE_MC;
 	  }
 	}
 	break;
