@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.32 2002/01/14 20:58:20 scottheavner Exp $
+ *  $Id: ext2fs.c,v 1.33 2002/01/27 20:49:40 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -318,7 +318,7 @@ static char* EXT2_dir_entry(int i, lde_buffer *block_buffer,
 
   /* Directories are variable length, we have to examine all the previous ones to get to the current one */
   for (j=0; j<i; j++) {
-    dir = (void *)dir + dir->rec_len;
+    dir = (void *)dir + ldeswab16(dir->rec_len);
     if ( (void *)dir >= end ) {
       return (cname);
     }
@@ -326,11 +326,11 @@ static char* EXT2_dir_entry(int i, lde_buffer *block_buffer,
 
   /* Test for overflow, could be spanning multiple blocks */
   if ( (void *)dir + sizeof(dir->inode) <= end ) { 
-    *inode_nr = dir->inode;
+    *inode_nr = ldeswab32(dir->inode);
   }
 
   /* Chance this could overflow ? */
-  name_len = (int)dir->name_len;
+  name_len = (int)ldeswab16(dir->name_len);
   if ( (void *)dir->name + name_len > end ) {
     name_len = end - (void *)dir->name;
   }
