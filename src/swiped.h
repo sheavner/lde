@@ -1,9 +1,9 @@
 /*
- *  lde/swiped/swiped.h -- The Linux Disk Editor
+ *  lde/swiped.h -- The Linux Disk Editor
  *
  *  Copyright (C) 1996  Scott D. Heavner
  *
- *  $Id: swiped.h,v 1.1 1996/10/12 21:11:34 sdh Exp $
+ *  $Id: swiped.h,v 1.2 1996/10/12 21:12:12 sdh Exp $
  */
 
 #include <sys/timeb.h>        /* Include this here for getdate() prototype below */
