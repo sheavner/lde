@@ -42,7 +42,7 @@ ACLDE_SETVARSIZES
 dnl Check that <asm/bitops.h> exists and works, if not will test for cli/sti
 AC_CHECK_KERNEL_BITOPS
 
-# See if we can find an lseek64
+dnl See if we can find an lseek64
 AC_CHECK_FUNCS(lseek64,
 	[
 		AC_EGREP_CPP(lseek64,[#include <unistd.h>],,AC_DEFINE(NEED_LSEEK64_PROTO))
@@ -53,22 +53,30 @@ AC_CHECK_FUNCS(lseek64,
 	]
 	)
 
-# Also look for llseek, only used if no lseek64
+dnl Also look for llseek, only used if no lseek64
 if test x$ac_cv_func_lseek64 = xno ; then
-	AC_EGREP_HEADER(llseek,unistd.h,[
-			AC_DEFINE(UNISTD_LLSEEK_PROTO)
-			AC_DEFINE(HAVE_LLSEEK) ],
-		AC_CHECK_FUNCS(llseek)
+        AC_CACHE_CHECK(for llseek in unistd.h, 
+                       ac_cv_has_llseek_in_unistd,
+			AC_EGREP_HEADER(llseek,unistd.h,
+				ac_cv_has_llseek_in_unistd="yes",
+				ac_cv_has_llseek_in_unistd="no"
+			)
 	)
+	if test x$ac_cv_has_llseek_in_unistd = xyes ; then
+		AC_DEFINE(UNISTD_LLSEEK_PROTO)
+		AC_DEFINE(HAVE_LLSEEK)
+	else
+		AC_CHECK_FUNCS(llseek)
+	fi
 fi
 dnl KLUDGE - support both autoconf 2.13 and 2.50.
 dnl This is necessary because `__s64' is not a recognized C type,
 dnl so 2.50 guesses wrong about the interface.  (See info page.)
 ifdef([AC_COPYRIGHT],
-  [AC_CHECK_TYPE(loff_t,
+   [AC_CHECK_TYPE(loff_t,
                  [AC_DEFINE(loff_t,__s64,
                    [Define `loff_t' if <sys/types> does not define.])])],
-  [AC_CHECK_TYPE(loff_t,__s64)])
+   [AC_CHECK_TYPE(loff_t,__s64)])
 
 dnl Has long getopt?
 AC_CHECK_FUNCS(getopt_long)
