@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.26 2002/01/14 18:14:12 scottheavner Exp $
+ *  $Id: xiafs.c,v 1.27 2002/01/14 21:01:31 scottheavner Exp $
  */
 
 #include <string.h>
@@ -248,6 +248,8 @@ int XIAFS_test(void *sb_buffer, int use_offset)
     else
        return 0;
   }
+
+  return 0;
 
   if (Super->s_magic == ldeswab32(_XIAFS_SUPER_MAGIC)) {
     if (use_offset) lde_warn("Found xia_fs on device");
