@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.36 2002/01/12 05:42:53 scottheavner Exp $
+ *  $Id: recover.c,v 1.37 2002/01/13 04:48:30 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -756,7 +756,8 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 
 }
 
-/* Do a regular expression search across the filesystem */
+/* Do a exact pattern search across the filesystem, 
+ *  only used in curses interface */
 int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, int *moffset) {
   int     retval=0;
 
@@ -816,8 +817,8 @@ int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, i
   
   free(buffer);
 #else
-#warning No memmem() found, block search disabled.
-  lde_warn("Block search needs memmem, try recompiling.");
+#warning No memmem() found, UI/Curses block search disabled.
+  lde_warn("UI/Curses block search needs memmem, try recompiling.");
 #endif
 
   if (retval==0)
