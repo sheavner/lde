@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.24 1998/06/05 21:22:48 sdh Exp $
+ *  $Id: recover.c,v 1.25 1998/06/14 21:20:53 sdh Exp $
  */
 
 #include <stdio.h>
@@ -405,6 +405,7 @@ int recover_file(int fp,unsigned long zone_index[],unsigned long filesize)
     if ( (nm.release[0]=='2')&&(nm.release[2]=='0') ) {
       lde_warn("Linux 2.0.* users should activate the blanked_indirects"
 	       " flag for proper recovery!  See the manual!");
+      sleep(5);
     }
   }
 #endif
