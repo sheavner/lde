@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.10 1996/09/14 02:38:04 sdh Exp $
+ *  $Id: recover.c,v 1.11 1996/09/15 18:53:56 sdh Exp $
  */
 
 #include <stdio.h>
@@ -325,17 +325,26 @@ void parse_grep(void)
  * not too exciting now, but it works.  Of course grepping the
  * partition is probably faster.
  */
-void search_fs(unsigned char *search_string, int search_len, int search_off)
+void search_fs(unsigned char *search_string, int search_len, int search_off, unsigned long start_nr)
 {
   unsigned long nr, inode_nr;
   int i, j, no_match_flag, largest_match, match_count[5];
   int match_total = 0, matched;
   unsigned char *dind;
   unsigned char match[5];
+  struct Generic_Inode *GInode;
 
   lde_flags.quit_now = 0;
 
-  for (nr=sb->first_data_zone;nr<sb->nzones;nr++) {
+  /* Where should we start the search? */
+  if (start_nr!=1UL) {
+    warn("Resuming search from block 0x%lX",start_nr);
+    nr = start_nr;
+  } else {
+    nr=sb->first_data_zone;
+  }
+
+  for (/*nr set above*/;nr<sb->nzones;nr++) {
 
     if (lde_flags.quit_now) {
       warn("Search aborted at block 0x%lX",nr);
@@ -364,9 +373,19 @@ void search_fs(unsigned char *search_string, int search_len, int search_off)
 	} while (++i<search_len);
 	
 	if (matched) {
-	  printf("Pattern match at start of block 0x%lX",nr);
-	  if ( (lde_flags.inode_lookup)&&(inode_nr = find_inode(nr, 0UL)) )
-	    printf(" check inode 0x%lX",inode_nr);
+	  printf("Match at block 0x%lX",nr);
+	  if (lde_flags.inode_lookup)
+	    if ( (inode_nr = find_inode(nr, 0UL)) ) {
+	      printf(", check inode 0x%lX",inode_nr);
+	      if (lde_flags.check_recover) {
+		warn = no_warn;  /* Suppress output */
+		GInode = FS_cmd.read_inode(nr);
+		printf(", recovery %spossible",(check_recover_file(GInode->i_zone)?"":"NOT ") );
+		warn = tty_warn; /* Reinstate output */
+	      }
+	    } else {
+	      printf(", no %sinode found",((lde_flags.search_all)?"":"unused ") );
+	    }
 	  printf(".\n");
 	}
       }
