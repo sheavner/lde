@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.28 2002/01/14 21:09:16 scottheavner Exp $
+ *  $Id: xiafs.c,v 1.29 2002/01/14 21:19:08 scottheavner Exp $
  */
 
 #include <string.h>
@@ -110,9 +110,9 @@ static struct Generic_Inode* XIAFS_read_inode(unsigned long nr)
   GInode.i_links_count = (unsigned short) ldeswab16(Inode->i_nlinks);
   
   for (i=0; i<XIAFS_constants.N_DIRECT; i++)
-    GInode.i_zone[i] = (unsigned short) ldeswab32(Inode->i_zone[i]);
-  GInode.i_zone[XIAFS_constants.INDIRECT] = (unsigned short) ldeswab32(Inode->i_ind_zone);
-  GInode.i_zone[XIAFS_constants.X2_INDIRECT] = (unsigned short) ldeswab32(Inode->i_dind_zone);
+    GInode.i_zone[i] = (unsigned long) ldeswab32(Inode->i_zone[i]);
+  GInode.i_zone[XIAFS_constants.INDIRECT] = (unsigned long) ldeswab32(Inode->i_ind_zone);
+  GInode.i_zone[XIAFS_constants.X2_INDIRECT] = (unsigned long) ldeswab32(Inode->i_dind_zone);
   for (i=XIAFS_constants.N_BLOCKS; i<INODE_BLKS; i++)
     GInode.i_zone[i] = 0UL;
 
