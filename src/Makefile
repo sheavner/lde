@@ -21,7 +21,7 @@ all:	$(program_name)
 $(program_name):	../$(program_name)
 
 ../$(program_name):	.depend $(OBJS)
-	$(CC) $(LDFLAGS) -o ../$(program_name) $(OBJS) $(LIBS)
+	$(CC) $(LDFLAGS) $(STATIC_LDFLAGS) -o ../$(program_name) $(OBJS) $(LIBS)
 
 swiped.a:
 	@(cd swiped; $(MAKE) -f Makefile all)

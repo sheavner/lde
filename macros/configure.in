@@ -7,6 +7,8 @@ dnl AC_CONFIG_HEADER(lde_autoconf.h)
 LDEVERSION=2.6.0
 AC_SUBST(LDEVERSION)
 
+AC_SUBST(STATIC_LDFLAGS)
+
 AC_DEFINE(_GNU_SOURCE)
 
 dnl Must use builtin() as it is overridden by some AC_ macros
@@ -135,7 +137,8 @@ AC_ARG_ENABLE(debug,
 AC_ARG_ENABLE(dist,
         [  --enable-dist           Make for distribution],
 	CFLAGS="-O2 -Wall -Wstrict-prototypes -Wmissing-prototypes"
-	LDFLAGS="$LDFLAGS --static -s"
+	LDFLAGS="$LDFLAGS -s"
+	STATIC_LDFLAGS="--static"
 )
 
 AC_ARG_ENABLE(root-sbin,
@@ -225,7 +228,7 @@ Configuration:
   Compiler:                ${CC}
   Compiler flags:          ${CFLAGS} ${CURSES_INCLUDEDIR}
   Defines:                 ${DEFS}
-  Linker flags:            ${LDFLAGS} ${CURSES_LIBS}
+  Linker flags:            ${LDFLAGS} ${LDE_LDFLAGS} ${CURSES_LIBS}
 
   Install path:            ${SBIN_LOCATION}, ${mandir}"
 echo ""

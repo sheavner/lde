@@ -54,6 +54,7 @@ QUIET_CFLAGS=@shutup@
 CPPFLAGS=@CPPFLAGS@ @DEFS@ @CURSES_INCLUDEDIR@
 CFLAGS=-DLDE_VERSION=\"$(LDE_VERSION)\" $(CPPFLAGS) @CFLAGS@
 LDFLAGS=@LDFLAGS@
+STATIC_LDFLAGS=@STATIC_LDFLAGS@
 LIBS=@LIBS@ @CURSES_LIBS@
 
 ###############################################################################
@@ -72,16 +73,23 @@ INSTALL_DATA = @INSTALL_DATA@
 #                          STOP EDITING HERE
 ###############################################################################
 
-$(program_name):	all
+all:	dummy.cr dummy.src
 
-all:
+$(program_name):	dummy.src
+
+dummy.src:
 	( cd src ; $(MAKE) -f Makefile all )
+
+dummy.cr:
+	( cd crash_recovery ; $(MAKE) -f Makefile all )
 
 clean:
 	( cd src ; $(MAKE) -f Makefile clean )
+	( cd crash_recovery ; $(MAKE) -f Makefile clean )
 
 clear:
 	( cd src ; $(MAKE) -f Makefile clear )
+	( cd crash_recovery ; $(MAKE) -f Makefile clear )
 	$(RM) macros/config.*
 	$(RM) lde
 
@@ -89,6 +97,7 @@ dep:	depend
 
 depend:
 	( cd src ; $(MAKE) -f Makefile depend )
+	( cd crash_recovery ; $(MAKE) -f Makefile depend )
 
 install:	$(program_name)
 	${INSTALL_PROGRAM} $(program_name) $(sbindir)/$(program_name)
