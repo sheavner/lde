@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.16 1996/10/13 17:30:17 sdh Exp $
+ *  $Id: tty_lde.c,v 1.17 1998/01/17 17:45:39 sdh Exp $
  */
 
 #include <stdio.h>
@@ -34,21 +34,21 @@ void log_error(char *echo_string)
   strcpy(error_save[current_error], echo_string);
 }
 
-/* Immediate printing of warnings and errors to standard out */
+/* Immediate printing of warnings and errors to standard err */
 void tty_warn(char *fmt, ...)
 {
   va_list argp;
-  char echo_string[132];
+  char echo_string[256];
 
   va_start(argp, fmt);
   vsprintf(echo_string, fmt, argp);
   va_end(argp);
 
   log_error(echo_string);
-  printf("%s\n",echo_string);
+  fprintf(stderr,"%s\n",echo_string);
 }
 
-/* Immediate printing of warnings and errors to standard out */
+/* Crippled warning function */
 void no_warn(char *fmt, ...)
 {
 }
@@ -98,26 +98,66 @@ unsigned long read_num(char *cinput)
  return 0; /* This should be a safe number to return if something went wrong */
 }
 
-char * cache_read_block (unsigned long block_nr, int force)
+/* Reads a block w/o caching results */
+int nocache_read_block (unsigned long block_nr, char *dest)
 {
-  static char cache[MAX_BLOCK_SIZE];
-  static unsigned long cache_block_nr = -1L; /* set to an outrageous number */
-  size_t read_size;
+  size_t read_size, act_size=0;
   
-  if ((force==FORCE_READ)||(block_nr != cache_block_nr))
-    {
-      cache_block_nr = block_nr;
-      memset(cache,0,sb->blocksize);
-      
-      read_size = (size_t) lookup_blocksize(block_nr);
+  /* Lookup size of block (if it's the last block in a file,
+   * it may be less than the blocksize of the device */
+  read_size = (size_t) lookup_blocksize(block_nr);
 
-      if (lseek (CURR_DEVICE, cache_block_nr * sb->blocksize, SEEK_SET) !=
-	  cache_block_nr * sb->blocksize)                          
-	lde_warn("Read error: unable to seek to block  in cache_read_block", block_nr);
-      else if ( read (CURR_DEVICE, cache, read_size) != read_size)
-	  lde_warn("Unable to read full block (%lu) in cache_read_block",block_nr);
+  /* Try to read it in, on error we return 0 for act_size, buffer
+   * contents are not changed */
+  if (lseek (CURR_DEVICE, block_nr * sb->blocksize, SEEK_SET) !=
+      block_nr * sb->blocksize)                          
+    lde_warn("Read error: unable to seek to block in nocache_read_block",
+	     block_nr);
+  else if ( (act_size=read (CURR_DEVICE, dest, read_size)) != read_size)
+    lde_warn("Unable to read full block (%lu) in nocache_read_block",block_nr);
+
+  return (int)act_size;
+}
+
+/* Whopping cache of one block returns pointer to a cache_block structure
+ *  The start of this struct is a buffer so it is possible to access the
+ *  data buffer contents by referring to the structs address. */
+void * cache_read_block (unsigned long block_nr, void *dest, int force)
+{
+  static cached_block cache;
+  static unsigned long cache_block_nr = -1L; /* set to an outrageous number */
+
+  cached_block *bp = &cache;
+  
+  /* User has specified another buffer */
+  if (force&NEVER_CACHE) {
+    if (!dest) {
+      lde_warn("PROGRAM ERROR: dest undefined in cache_read_block"
+	       "using NEVER_CACHE");
+      return NULL;
     }
-  return cache;
+    bp = dest;
+  }
+    
+  if ((force&FORCE_READ)||(block_nr != cache_block_nr)) {
+    cache_block_nr = block_nr;
+    memset(bp->data,0,sb->blocksize);
+    bp->size = nocache_read_block(cache_block_nr, bp->data);
+    if (bp->size)
+      bp->bnr = block_nr;
+    else
+      bp->bnr = 0UL;
+  }
+ 
+  /* Need to copy data to dest? */
+  if ((dest)&&(bp!=dest)) {
+    bp = dest;
+    memcpy(bp,&cache,cache.size);
+    bp->bnr = cache.bnr;
+    bp->size = cache.size;
+  }
+
+  return bp;
 }
 
 int write_block(unsigned long block_nr, void *data_buffer)
@@ -144,24 +184,25 @@ int write_block(unsigned long block_nr, void *data_buffer)
   return 0;
 }
 
-
+/* Dumps a blocks data to stdout, similar to cat or dd */
 void ddump_block(unsigned long nr)
 {
   int i;
   unsigned char *dind;
 
-  dind = cache_read_block(nr,CACHEABLE);
-  for (i=0;i<(int)lookup_blocksize(nr);i++) printf("%c",dind[i]);
+  dind = cache_read_block(nr,NULL,CACHEABLE);
+  /* for (i=0;i<(int)lookup_blocksize(nr);i++) printf("%c",dind[i]); */
+  fwrite(dind, lookup_blocksize(nr), 1, stdout);
 }
 
-/* Dumps a full block to STDOUT -- could merge with curses version someday */
+/* Dumps a block to STDOUT, formatted as hex and ascii -- could merge with curses version someday? */
 void dump_block(unsigned long nr)
 {
   int i,j=0;
   unsigned char *dind,	 c;
   size_t blocksize;
 
-  dind = cache_read_block(nr,CACHEABLE);
+  dind = cache_read_block(nr,NULL,CACHEABLE);
   blocksize = lookup_blocksize(nr);
 
   while (j*16<blocksize) {
@@ -187,11 +228,11 @@ void dump_block(unsigned long nr)
     j++;
   }
 
-  printf("\n");
+  /* printf("\n"); /* This will leave a space between successive blocks */
 }
 
   
-/* Dump inode contents to STDOUT -- could also merge with the curses one someday */
+/* Dump inode contents to STDOUT -- could also merge with the curses one someday? */
 void dump_inode(unsigned long nr)
 {
   int j;
@@ -203,45 +244,111 @@ void dump_inode(unsigned long nr)
   GInode = FS_cmd.read_inode(nr);
 
   /* Print inode number and file type */
-  printf("\nINODE: %-6lu (0x%8.8lX) TYPE: ",nr,nr);
-  printf("%14s",entry_type(GInode->i_mode));
+  printf("-------------------------------------------------------------------------------\n");
+  printf("INODE: %-6lu (0x%8.8lX) ",nr,nr);
 
   if (FS_cmd.inode_in_use(nr)) 
     printf("\n");
   else
     printf("(NOT USED)\n");
   
-  /* Print it like a directory entry */
+  /*--- Print second line like a directory entry ---*/
+  /* drwxr-xr-x field */
   mode_string((unsigned short)GInode->i_mode,f_mode);
   f_mode[10] = 0; /* Junk from canned mode_string */
   printf("%10.10s	 ",f_mode);
-  /* printf("%2d ",inode->i_nlinks); */
-  if ((NC_PASS = getpwuid(GInode->i_uid))!=NULL)
-    printf("%-8s ",NC_PASS->pw_name);
+  /* UID field */
+  if (fsc->inode->i_uid) {
+    if ((NC_PASS = getpwuid(GInode->i_uid))!=NULL)
+      printf("%-8s ",NC_PASS->pw_name);
+    else
+      printf("%-8d ",GInode->i_uid);
+  } else {
+    printf("         ");
+  }
+  /* GID field */
+  if (fsc->inode->i_gid) {
+    if ((NC_GROUP = getgrgid(GInode->i_gid))!=NULL)
+      printf("%-8s ",NC_GROUP->gr_name);
+    else
+      printf("%-8d ",GInode->i_gid);
+  } else {
+    printf("         ");
+  }
+  if (fsc->inode->i_size)
+    printf("%9ld ",GInode->i_size);
   else
-    printf("%-8d ",GInode->i_uid);
-  if ((NC_GROUP = getgrgid(GInode->i_gid))!=NULL)
-    printf("%-8s ",NC_GROUP->gr_name);
+    printf("%10s","");
+  if (fsc->inode->i_mtime)
+    printf("%24s",ctime(&GInode->i_mtime));
   else
-    printf("%-8d ",GInode->i_gid);
-  printf("%9ld ",GInode->i_size);
-  printf("%24s",ctime(&GInode->i_atime));
+    printf("%24s","");
 
-  /* Display used blocks */
+  /*--- TYPE on a line ---*/
+  if (fsc->inode->i_mode)
+    printf("TYPE:                  %14s\n",entry_type(GInode->i_mode));
+
+  /*--- LINKS on a line ---*/
+  if (fsc->inode->i_links_count)
+    printf("LINKS:                 %d\n");
+
+  /*--- MODE on a line ---*/
+  if ( (fsc->inode->i_mode) || (fsc->inode->i_mode_flags) ) {
+    printf("MODEFLAGS.MODE:        %03o.%04o\n",
+	   (GInode->i_mode&0x1ff000)>>12,
+	   GInode->i_mode&0xfff);
+  }
+
+  /*--- SIZE on a line ---*/
+  if (fsc->inode->i_size)
+    printf("SIZE:                  %-8ld\n",GInode->i_size);
+  if (fsc->inode->i_blocks)
+    printf("BLOCK COUNT:           %-8ld\n",GInode->i_blocks);
+
+  /*--- OWNER ---*/
+  if (fsc->inode->i_uid) {
+    printf("UID:                   ");
+    printf("%05d",GInode->i_uid);
+    if (NC_PASS != NULL)
+      printf(" (%s)",NC_PASS->pw_name);
+    printf("\n");
+  }
+
+  /*--- GROUP ---*/
+  if (fsc->inode->i_gid) {
+    printf("GID:                   ");
+    printf("%05d",GInode->i_gid);
+    if (NC_GROUP != NULL)
+      printf(" (%s)",NC_GROUP->gr_name);
+    printf("\n");
+  }
+
+  /*--- Display times ---*/
+  if (fsc->inode->i_atime)
+    printf("ACCESS TIME:           %24s",ctime(&GInode->i_atime));
+  if (fsc->inode->i_ctime)
+    printf("CREATION TIME:         %24s",ctime(&GInode->i_ctime));
+  if (fsc->inode->i_mtime)
+    printf("MODIFICATION TIME:     %24s",ctime(&GInode->i_mtime));
+  if (fsc->inode->i_dtime)
+    printf("DELETION TIME:         %24s",ctime(&GInode->i_dtime));
+
+  /*--- Display blocks ---*/
   j=-1;
-  if (GInode->i_zone[0]) {
-    printf("BLOCKS= ");
-    while ((++j<9)&&(GInode->i_zone[j])) {
-      if ((j < fsc->N_DIRECT)&&(j==7)) {
-	printf("\n        ");
+  if (fsc->inode->i_zone[0]) {
+    printf("DIRECT BLOCKS:         ");
+    while (++j<INODE_BLKS) {
+      if ((j < fsc->N_DIRECT)&&(j)&&(j%4==0)) {
+	printf("\n                       ");
       } else if ((fsc->INDIRECT)&&(j == fsc->INDIRECT)) {
-	printf("\nINDIRECT BLOCK: ");
+	printf("\nINDIRECT BLOCK:        ");
       } else if ((fsc->X2_INDIRECT)&&(j == fsc->X2_INDIRECT )) {
 	printf("\nDOUBLE INDIRECT BLOCK: ");
       } else if ((fsc->X3_INDIRECT)&&(j == fsc->X3_INDIRECT )) {
 	printf("\nTRIPLE INDIRECT BLOCK: ");
       }
-      printf("0x%8.8lX ",GInode->i_zone[j]);
+      if (GInode->i_zone[j])
+	printf("0x%8.8lX ",GInode->i_zone[j]);
     }
   }
   

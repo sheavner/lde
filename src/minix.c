@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.10 1996/10/11 00:32:42 sdh Exp $
+ *  $Id: minix.c,v 1.11 1998/01/17 17:45:14 sdh Exp $
  */
 
 /* 
@@ -27,7 +27,7 @@
 
 static struct Generic_Inode* MINIX_read_inode(unsigned long inode_nr);
 static int MINIX_write_inode(unsigned long inode_nr, struct Generic_Inode *GInode);
-static char *MINIX_dir_entry(int i, void *block_buffer, unsigned long *inode_nr);
+static char *MINIX_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
 static void MINIX_sb_init(void *sb_buffer);
 
 struct inode_fields MINIX_inode_fields = {
@@ -158,16 +158,16 @@ int MINIX_zone_in_use(unsigned long inode_nr)
   return test_bit((inode_nr-sb->first_data_zone+1),zone_map);
 }
 
-static char *MINIX_dir_entry(int i, void *block_buffer, unsigned long *inode_nr)
+static char *MINIX_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr)
 {
   static char cname[32];
   
-  if (i*sb->dirsize+fsc->INODE_ENTRY_SIZE >= sb->blocksize) {
+  if (i*sb->dirsize+fsc->INODE_ENTRY_SIZE >= block_buffer->size) {
     cname[0] = 0;
   } else {
     memset(cname,65,32);
-    strncpy(cname, block_buffer+(i*sb->dirsize+fsc->INODE_ENTRY_SIZE), sb->namelen);
-    *inode_nr = block_pointer(block_buffer,(i*sb->dirsize)/fsc->INODE_ENTRY_SIZE,fsc->INODE_ENTRY_SIZE);
+    strncpy(cname, block_buffer->start+(i*sb->dirsize+fsc->INODE_ENTRY_SIZE), sb->namelen);
+    *inode_nr = block_pointer(block_buffer->start,(i*sb->dirsize)/fsc->INODE_ENTRY_SIZE,fsc->INODE_ENTRY_SIZE);
   }
   return (cname);
 }

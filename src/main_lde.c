@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.19 1996/10/12 21:10:34 sdh Exp $
+ *  $Id: main_lde.c,v 1.20 1998/01/17 17:45:08 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -16,6 +16,8 @@
 #include <time.h>
 
 #include <sys/stat.h>
+
+#include <gpm.h>
 
 #include "lde.h"
 #include "ext2fs.h"
@@ -48,6 +50,7 @@ struct _main_opts {
   unsigned dump_end;
   void (*dumper)(unsigned long nr);
   char *search_string;
+  char *recover_file_name;
 };
 
 struct _search_types {
@@ -87,21 +90,23 @@ static int check_mount(char *device_name)
   fstat(fd, &statbuf);
 
   mtab = malloc(statbuf.st_size+1);
-  if (mtab==NULL)
+  if (mtab==NULL) {
     lde_warn("Out of memory reading /etc/mtab");
+    close(fd);
+    exit(-1);
+  }
   read(fd, mtab, statbuf.st_size);
   close(fd);
 
+  /* Set last character to 0 (we've allocated a space for the 0) */
   mtab[statbuf.st_size] = 0;
-  if (strstr(mtab, device_name)) {
-    free(mtab);
+  if (strstr(mtab, device_name))
     lde_flags.mounted = 1;
-    return 1;
-  } else {
-    free(mtab);
+  else
     lde_flags.mounted = 0;
-    return 0;
-  }
+  free(mtab);
+
+  return lde_flags.mounted;
 }
 
 /* Define a handler for Interrupt signals: Ctrl-C */
@@ -125,7 +130,7 @@ int check_root(void)
   
 void read_tables(int fs_type)
 {
-  char *super_block_buffer;
+  char super_block_buffer[2048];
   sb->blocksize = 2048; /* Want to read in two blocks */
 
   /* Pull in first two blocks from the file system.  Xiafs info is
@@ -133,7 +138,7 @@ void read_tables(int fs_type)
    * room for LILO.
    */
  
-  super_block_buffer = cache_read_block(0UL, FORCE_READ);
+  nocache_read_block(0UL,super_block_buffer);
   lde_warn("User requested %s filesystem. Checking device . . .",text_names[fs_type]);
   if ( ((fs_type==AUTODETECT)&&(MINIX_test(super_block_buffer))) || (fs_type==MINIX) ) {
     MINIX_init(super_block_buffer);
@@ -155,7 +160,7 @@ void die(char *msg)
   exit(1);
 }
 
-#define USAGE_STRING "[-VvIibBdcCStTLOhH?] /dev/name"
+#define USAGE_STRING "[-VvIibBdfcCStTLOhH?] /dev/name"
 static void usage(void)
 {
   fprintf(stderr,"Usage: %s %s\n",program_name,USAGE_STRING);
@@ -164,26 +169,28 @@ static void usage(void)
 
 static void long_usage(void)
 {
-  printf("This is %s (version %s), Usage %s %s\n",program_name,VERSION,program_name,USAGE_STRING);
-  printf("   -i ##:       Dump inode number # to stdout (-I all inodes after #) \n");
-  printf("   -b ##:       Dump block number # to stdout (-B all blocks after #)\n");
-  printf("   -N ##:       Number of blocks to dump (using -I or -B option)\n");
-  printf("   -d ##:       Dump block's data to stdout (binary format)\n");
-  printf("   -S string:   Search disk for data (questionable)\n");
-  printf("   -T type:     Search disk for data. type = {gz, tgz, script, or use filename}\n");
-  printf("   -L ##:             Search length (when using specified filename)\n");
-  printf("   -O ##:             Search offset (when using specified filename)\n");
-  printf("   -N ##:             Starting search block (defaults to first data zone)\n");
-  printf("   --indirects:       Search filesystem for things that look like indirect blocks.\n");
-  printf("   --ilookup:         Lookup inodes for all matches when searching (also use with -b).\n");
-  printf("   --recoverable:     Check to see if inode is recoverable (requires --ilookup or -i/-I).\n");
-  printf("   -t fstype:   Overide the autodetect. fstype = {no, minix, xiafs, ext2fs, msdos}\n");
-  printf("   --help:      Output this screen\n");
-  printf("   --paranoid:  Open the device read only.\n");
-  printf("   --append:    Always append to recovery file (if file exists).\n");
-  printf("   --quiet:     Turn off warning beeps.\n");
-  printf("   --version:   Print version information\n");
-  printf("   --write:     Allow writes to the device.\n");
+  fprintf(stderr,"This is %s (version %s), Usage %s %s\n",program_name,VERSION,program_name,USAGE_STRING);
+  fprintf(stderr,"   -i ##:       Dump inode number # to stdout (-I all inodes after #) \n");
+  fprintf(stderr,"   -b ##:       Dump block number # to stdout (-B all blocks after #)\n");
+  fprintf(stderr,"   -N ##:       Number of blocks to dump (using -I or -B option)\n");
+  fprintf(stderr,"   -d ##:       Dump block's data to stdout (binary format)\n");
+  fprintf(stderr,"   -S string:   Search disk for data (questionable)\n");
+  fprintf(stderr,"   -T type:     Search disk for data. type = {gz, tgz, script, or use filename}\n");
+  fprintf(stderr,"   -L ##:             Search length (when using specified filename)\n");
+  fprintf(stderr,"   -O ##:             Search offset (when using specified filename)\n");
+  fprintf(stderr,"   -N ##:             Starting search block (defaults to first data zone)\n");
+  fprintf(stderr,"   --indirects:       Search filesystem for things that look like indirect blocks.\n");
+  fprintf(stderr,"   --ilookup:         Lookup inodes for all matches when searching (also use with -b).\n");
+  fprintf(stderr,"   --recoverable:     Check to see if inode is recoverable (requires --ilookup or -i/-I).\n");
+  fprintf(stderr,"   -t fstype:   Overide the autodetect. fstype = {no, minix, xiafs, ext2fs, msdos}\n");
+  fprintf(stderr,"   --help:      Output this screen\n");
+  fprintf(stderr,"   --paranoid:  Open the device read only.\n");
+  fprintf(stderr,"   --append:    Always append to recovery file (if file exists).\n");
+  fprintf(stderr,"   --quiet:     Turn off warning beeps.\n");
+  fprintf(stderr,"   --version:   Print version information\n");
+  fprintf(stderr,"   --write:     Allow writes to the device.\n");
+  fprintf(stderr,"   --file name: Specify filename to save recovered inodes to.\n");
+  exit(0);
 }
 
 static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
@@ -220,6 +227,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       {"ilookup",0,0,'@'},
       {"recoverable",0,0,'#'},
       {"append",0,0,'%'},
+      {"file",1,0,'f'},
       {0, 0, 0, 0}
     };
 
@@ -230,7 +238,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
   while (1) {
     option_index = 0;
 
-    c = getopt_long (argc, argv, "avI:i:n:N:B:b:D:d:gpqS:t:T:whH?O:L:",
+    c = getopt_long (argc, argv, "avf:I:i:n:N:B:b:D:d:gpqS:t:T:whH?O:L:",
 		     long_options, &option_index);
 
     if (c == -1)
@@ -305,12 +313,12 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	if (opts->fs_type==AUTODETECT) {
 	  lde_warn("`%s' type not recognized.",optarg);
 	  i = NONE;
-	  printf("Supported file systems include: ");
+	  fprintf(stderr,"Supported file systems include: ");
 	  while (text_names[i]) {
-	    printf("\"%s\" ",text_names[i]);
+	    fprintf(stderr,"\"%s\" ",text_names[i]);
 	    i++;
 	  }
-	  printf("\n");
+	  fprintf(stderr,"\n");
 	  exit(0);
 	}
 	break;
@@ -363,11 +371,13 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       case '%': /* Always append data when recovery file exists */
 	lde_flags.always_append = 1;
 	break;
+      case 'f': /* Specify name of recovery file */
+	opts->recover_file_name = optarg;
+	break;
       case 'h': /* HELP */
       case 'H':
       case '?':
 	long_usage();
-	exit(0);
 	break;
       }
   }
@@ -387,9 +397,22 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
     }
 }
 
+#ifdef HAVE_LIBGPM
+/* stick this here for now */
+int lde_mouse_handler(Gpm_Event *event, void *clientdata)
+{
+  /* should only come in here on single click */
+
+  if ((event->modifiers)||(event->buttons&(GPM_B_MIDDLE|GPM_B_RIGHT)))
+    return 0;
+
+  return ( ((event->x)<<24) | ((event->y)<<16) | 2048 );
+}
+#endif
+
 void main(int argc, char ** argv)
 {
-  int i, hasdata;
+  int i, hasdata, fp;
   unsigned long nr, inode_nr;
   char *thispointer;
 
@@ -398,7 +421,11 @@ void main(int argc, char ** argv)
   sigset_t sa_mask;
   struct sigaction intaction = { (void *)handle_sigint, sa_mask, SA_RESTART, NULL };
 
-  struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0, 0UL, 1UL, NULL, NULL };
+  struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0, 0UL, 0UL, NULL, NULL, NULL };
+
+#ifdef HAVE_LIBGPM
+  Gpm_Connect gpmconn;
+#endif
 
   /* Set things up to handle control-c:  just sets lde_flags.quit_now to 1 */
   sigemptyset(&sa_mask);
@@ -409,8 +436,8 @@ void main(int argc, char ** argv)
 
   parse_cmdline(argc, argv, &main_opts);
 
-  if (main_opts.dumper) /* Supress warnings when dumping to stdio */
-    lde_warn = no_warn;
+  /* if (main_opts.dumper) /* Supress warnings when dumping to stdio */
+  /*  lde_warn = no_warn; */
 
   if (check_mount(device_name)&&!lde_flags.paranoid)
     lde_warn("Device \"%s\" is mounted, be careful",device_name);
@@ -447,8 +474,40 @@ void main(int argc, char ** argv)
 
   read_tables(main_opts.fs_type);
 
-  if (main_opts.dumper) {
+  /* Process requests handled by tty based lde */
+  if (main_opts.recover_file_name!=NULL) {
+    /* Check if file exists, if so, check if append flag is set and open accordingly */
+    if ( ( (fp = open(main_opts.recover_file_name,O_RDONLY)) > 0 ) && lde_flags.always_append ) {
+      close(fp);
+      fp = open(main_opts.recover_file_name,O_WRONLY|O_APPEND);
+    } else {  /* It's ok to create a new file */
+      fp = open(main_opts.recover_file_name,O_WRONLY|O_CREAT,0644);
+    }
+   
+    /* Make sure we got a valid file number, if so look up inode and recover it, else print warning */
+    if ( fp > 0 ) {
+      GInode = FS_cmd.read_inode(main_opts.dump_start);
+      recover_file(fp, GInode->i_zone);
+      close(fp);
+      lde_warn("Recovered data written to '%s'", main_opts.recover_file_name);
+      exit(0);
+    } else {
+      lde_warn("Cannot open file '%s'",main_opts.recover_file_name);
+      exit(-1);
+    }
+  } else if (main_opts.dumper) {
+
+    /* End comes in here as a count, convert it to an absolute end */
     main_opts.dump_end += main_opts.dump_start;
+
+    /* Check if dump_end was 0 or unspecified:
+     * - for -I, -B, -D set to end of device
+     * - for all others, set to 1 */
+    if (main_opts.dump_end==main_opts.dump_start)
+      if (main_opts.dump_all==0) /* For dump_all==1, must set end to max inode or max block */
+	main_opts.dump_end = main_opts.dump_start + 1UL;
+
+    /* Asked to dump an inode? */
     if (main_opts.dumper==dump_inode) {
       if ((main_opts.dump_start>sb->ninodes)||(main_opts.dump_end>sb->ninodes)||
 	  (!main_opts.dump_start)||(!main_opts.dump_end)) {
@@ -456,7 +515,7 @@ void main(int argc, char ** argv)
 		 main_opts.dump_start,main_opts.dump_start,
 		 main_opts.dump_end,main_opts.dump_end,sb->ninodes,sb->ninodes);
 	exit(-1);
-      } else if ((main_opts.dump_end==(main_opts.dump_start+1UL))&&(main_opts.dump_all)) {
+      } else if (main_opts.dump_end==main_opts.dump_start) /* must have specified dump_all */ {
 	main_opts.dump_end = sb->ninodes;
       }
 
@@ -465,7 +524,7 @@ void main(int argc, char ** argv)
 	lde_warn = no_warn;  /* Suppress output */
 	for (nr=main_opts.dump_start; nr<main_opts.dump_end; nr++) {
 	  if (lde_flags.quit_now) {
-	    printf("Search aborted at inode 0x%lX\n",nr);
+	    fprintf(stderr,"Search aborted at inode 0x%lX\n",nr);
 	    exit(0);
 	  }
 	  if ((!FS_cmd.inode_in_use(nr))||(lde_flags.search_all)) {
@@ -482,12 +541,20 @@ void main(int argc, char ** argv)
                   thispointer[24] = 0;
 		  printf(" (deleted %24s)",thispointer);
                 }
+		if (fsc->inode->i_size) {
+		  if (GInode->i_size>1024*1024)
+		    printf(" %5.0fM",(double)GInode->i_size/1024.0/1024.0);
+		  else if (GInode->i_size>1024)
+		    printf(" %5.0fK",(double)GInode->i_size/1024.0);
+		  else
+		    printf(" %5.0fb",(double)GInode->i_size);
+		}
 		printf("\n");
 	    }
 	  }
 	}
 	exit(0);
-      }
+      } /* if (lde_flags.check_recover) */
 
     } else {
       if ((main_opts.dump_start>sb->nzones)||(main_opts.dump_end>sb->nzones)) {
@@ -495,7 +562,7 @@ void main(int argc, char ** argv)
 		 main_opts.dump_start,main_opts.dump_start,main_opts.dump_end,
 		 main_opts.dump_end,sb->nzones,sb->nzones);
 	exit(-1);
-      } else if ((main_opts.dump_end==(main_opts.dump_start+1UL))&&(main_opts.dump_all)) {
+      } else if (main_opts.dump_end==main_opts.dump_start) /* Must have specified dump_all */ {
 	main_opts.dump_end = sb->nzones;
       }
 
@@ -503,7 +570,7 @@ void main(int argc, char ** argv)
       if (lde_flags.inode_lookup) {
 	for (nr=main_opts.dump_start; nr<main_opts.dump_end; nr++) {
 	  if (lde_flags.quit_now) {
-	    printf("Search aborted at block 0x%lX\n",nr);
+	    fprintf(stderr,"Search aborted at block 0x%lX\n",nr);
 	    exit(0);
 	  }
 	  printf("Block 0x%lX ",nr);
@@ -517,8 +584,14 @@ void main(int argc, char ** argv)
       }
 
     }
-    for (i=main_opts.dump_start; i<main_opts.dump_end; i++)
-      main_opts.dumper(i);
+    for (nr=main_opts.dump_start; nr<main_opts.dump_end; nr++) {
+      if (lde_flags.quit_now) {
+	fprintf(stderr,"\nDump aborted at 0x%lX\n",nr);
+	exit(0);
+      }
+      main_opts.dumper(nr);
+    }
+    printf("\n"); /* Even up the command line for exit */
     exit(0);
   } else if (main_opts.grep_mode) {
     parse_grep();
@@ -529,10 +602,26 @@ void main(int argc, char ** argv)
   }
 
 #ifdef LDE_CURSES
+
+# ifdef HAVE_LIBGPM  
+  /* retrieve everything */
+  gpmconn.eventMask=GPM_UP;
+  gpmconn.defaultMask=GPM_MOVE;
+  gpmconn.maxMod=0;
+  gpmconn.minMod=0;
+  Gpm_Open(&gpmconn,0);
+  gpm_handler = lde_mouse_handler;
+# endif
+
   lde_warn = nc_warn;
   mgetch = nc_mgetch;
   interactive_main();
+
+# ifdef HAVE_LIBGPM
+  Gpm_Close();
+# endif
 #endif
 
   exit(0);
 }
+

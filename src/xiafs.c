@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.11 1996/10/11 00:36:49 sdh Exp $
+ *  $Id: xiafs.c,v 1.12 1998/01/17 17:45:42 sdh Exp $
  */
 
 #include <ctype.h>
@@ -23,7 +23,7 @@
 
 static struct Generic_Inode* XIAFS_read_inode(unsigned long nr);
 static int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode);
-static char* XIAFS_dir_entry(int i, void *block_buffer, unsigned long *inode_nr);
+static char* XIAFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
 static void XIAFS_sb_init(void * sb_buffer);
 
 static struct inode_fields XIAFS_inode_fields = {
@@ -145,19 +145,19 @@ static int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode)
 }
 
 /* Could use some optimization maybe?? */
-static char* XIAFS_dir_entry(int i, void *block_buffer, unsigned long *inode_nr)
+static char* XIAFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr)
 {
   char *bp;
   int j;
   static char cname[_XIAFS_NAME_LEN+1];
 
-  bp = block_buffer;
+  bp = block_buffer->start;
 
   if (i)
     for (j = 0; j < i ; j++) {
       bp += block_pointer(bp,(unsigned long)(fsc->INODE_ENTRY_SIZE/2),2);
     }
-  if ( (bp+fsc->INODE_ENTRY_SIZE+sizeof(unsigned short)+sizeof(unsigned char)) >= (char *)(block_buffer+sb->blocksize)) {
+  if ( (bp+fsc->INODE_ENTRY_SIZE+sizeof(unsigned short)+sizeof(unsigned char)) >= (char *)(block_buffer->start+block_buffer->size)) {
     cname[0] = 0;
   } else {
     bzero(cname,_XIAFS_NAME_LEN+1);

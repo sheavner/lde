@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.25 1996/10/11 00:34:57 sdh Exp $
+ *  $Id: nc_lde.c,v 1.26 1998/01/17 17:45:26 sdh Exp $
  */
 
 #include <stdio.h>
@@ -23,7 +23,12 @@
 #include "nc_inode.h"
 #include "nc_block.h"
 #include "keymap.h"
-  
+
+#ifdef HAVE_LIBGPM
+  #include <gpm.h>  
+  #undef  getch           /* Supress warning about redefinition */
+  #define getch Gpm_Getch
+#endif
 
 /* This will recognize escapes keys as "META" strokes */
 int nc_mgetch(void)
@@ -139,8 +144,10 @@ void update_header(void)
 #if HEADER_SIZE>0
   int i,j;
 
-  mvwprintw(header,HEADER_SIZE-1,HOFF,"Inode: %10lu (0x%8.8lX) ",current_inode,current_inode);
-  mvwprintw(header,HEADER_SIZE-1,HOFF+32,"Block: %10lu (0x%8.8lX) ",current_block,current_block);
+  mvwprintw(header,HEADER_SIZE-1,HOFF,"Inode: %10lu (0x%8.8lX) ",
+	    current_inode,current_inode);
+  mvwprintw(header,HEADER_SIZE-1,HOFF+32,"Block: %10lu (0x%8.8lX) ",
+	    current_block,current_block);
   for (j=0;j<fsc->N_BLOCKS;j++) {
     if (fake_inode_zones[j]) { 
       mvwaddch(header,HEADER_SIZE-1,HOFF+64+j,'-');
@@ -177,13 +184,7 @@ void restore_header(void)
   int i,j;
   char echo_string[132];
 
-  wattron(header,WHITE_ON_BLUE);
-
-  /* A cute way to RVS video the header window, since erase and clear don't seem to
-   * do it for me. */
-  for (i=0;i<HEADER_SIZE;i++)
-    for (j=0;j<COLS;j++)
-      mvwaddch(header,i,j,' ');
+  werase(header);
 
   sprintf(echo_string,"%s v%s : %s : %s",
 	  program_name,VERSION,text_names[fsc->FS],device_name);
@@ -262,7 +263,7 @@ int error_popup(void)
 int do_popup_menu(lde_menu menu[], lde_keymap keys[])
 {
   WINDOW *win, *bigwin;
-  int    c, window_length, window_width, length, width, last_highlight = 0, highlight = 0;
+  int    c, result, window_length, window_width, length, width, last_highlight = 0, highlight = 0;
 
   /* Find size of longest descriptor entry */
   length = width = 0;
@@ -332,7 +333,20 @@ int do_popup_menu(lde_menu menu[], lde_keymap keys[])
 	refresh_all();
 	return menu[highlight].action_code;
       default:
-	if ( (c = lookup_key(c, keys)) != CMD_NO_ACTION ) {
+	if ( IS_MOUSE(c) ) {
+	  /* check x */
+	  result = 0;
+	  if ( MOUSE_X(c) < window_width ) {
+	    c = MOUSE_Y(c) - HEADER_SIZE - 2;
+	    if ((c>=0)&&(c<length)) {
+	      result = menu[c].action_code; 
+	    }
+	  }
+	  delwin(win);
+	  delwin(bigwin);
+	  refresh_all();
+	  return result;
+	} else if ( (c = lookup_key(c, keys)) != CMD_NO_ACTION ) {
 	  delwin(win);
 	  delwin(bigwin);
 	  refresh_all();
@@ -593,6 +607,7 @@ void flag_popup(void)
   WINDOW *win;
   int c, redraw, flag;
   int vstart,vsize=8;
+  char *choices = "afnw q";
 
   /* Do some bounds checking on our window */
   if (VERT>vsize) {
@@ -609,6 +624,16 @@ void flag_popup(void)
   while ((flag)||(c = mgetch())) {
     flag = 0;
     redraw = 0;
+
+    /* Allow mouse clicks */
+    if (IS_MOUSE(c)) {
+      if ( (MOUSE_X(c)>HOFF) && (MOUSE_Y(c)>vstart) && (MOUSE_X(c)<(HOFF+WIN_COL)) && (MOUSE_Y(c)<(vstart+vsize)) )  {
+	c=choices[MOUSE_Y(c)-vstart-2];
+      } else {
+	c = 'q';
+      }
+    }
+       
     switch (c) {
       case 'q':
       case 'Q':
@@ -849,6 +874,15 @@ int lookup_key(int c, lde_keymap *kmap)
 {
   int i;
 
+  /* A mouse click in the header window should popup a menu */
+  if (IS_MOUSE(c)) {
+    if (MOUSE_Y(c)<=HEADER_SIZE) {
+      return CMD_CALL_MENU;
+    } else {
+      return c&0xFFFFFF00;
+    }
+  }
+
   for (i=0;kmap[i].key_code;i++) {
     if (c==kmap[i].key_code) {
       return kmap[i].action_code;
@@ -974,10 +1008,12 @@ void interactive_main(void)
   /* Our three curses windows */
 #if HEADER_SIZE>0
   header = newwin(HEADER_SIZE,COLS,0,0);
+  wbkgdset(header,WHITE_ON_BLUE);
 #endif
   workspace = newwin(1,0,0,0); /* Gets clobbered before it gets used */
 #if TRAILER_SIZE>0
   trailer = newwin(TRAILER_SIZE,COLS,LINES-TRAILER_SIZE,0);
+  wbkgdset(trailer,WHITE_ON_BLUE);
 #endif
   
   restore_header();

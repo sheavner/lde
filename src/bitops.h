@@ -3,6 +3,8 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
+ *  $Id: bitops.h,v 1.7 1998/01/17 17:48:00 sdh Exp $
+ *
  */
 
 /* If you are using this on a computer that is not Linux, your best bet (and

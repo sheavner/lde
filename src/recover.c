@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.18 1997/10/25 16:13:56 sdh Exp $
+ *  $Id: recover.c,v 1.19 1998/01/17 17:45:37 sdh Exp $
  */
 
 #include <stdio.h>
@@ -17,10 +17,10 @@
 #include "recover.h"
 #include "tty_lde.h"
 
-/* This takes care of the mapping from a char pointer to unsigned long/short, depending
- * on the file system.
- */
-unsigned long block_pointer(unsigned char *ind, unsigned long blknr, int zone_entry_size)
+/* This takes care of the mapping from a char pointer to unsigned
+ * long/short, depending on the file system */
+unsigned long block_pointer(unsigned char *ind, 
+			    unsigned long blknr, int zone_entry_size)
 {
   unsigned long  *lind;
   unsigned short *sind;
@@ -35,9 +35,9 @@ unsigned long block_pointer(unsigned char *ind, unsigned long blknr, int zone_en
 }
 
 /* This is used to pull the correct block from the inode block table which
- * should have been copied into zone_index. 
- */
-int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *mapped_block)
+ * should have been copied into zone_index */
+int map_block(unsigned long zone_index[], unsigned long blknr,
+	      unsigned long *mapped_block)
 {
   unsigned char *ind = NULL;
   unsigned long block;
@@ -68,7 +68,7 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
 	return (EMB_IND_ZERO);
       } else if (block<sb->nzones) {
 	/* Indirect block is in fs range, now read it in */
-	ind = cache_read_block(block,CACHEABLE);
+	ind = cache_read_block(block,NULL,CACHEABLE);
 	*mapped_block = block_pointer(ind,blknr,fsc->ZONE_ENTRY_SIZE);
 	if (*mapped_block >= sb->nzones) {
 	  return (EMB_IND_LOOKED_RANGE);
@@ -91,16 +91,19 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
 	*mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(ZONES_PER_BLOCK+1);
 	return (EMB_2IND_ZERO);
       } else if (block<sb->nzones) {
-	ind = cache_read_block(block,CACHEABLE);
-	block = block_pointer(ind,(unsigned long)(blknr/ZONES_PER_BLOCK),fsc->ZONE_ENTRY_SIZE);
+	ind = cache_read_block(block,NULL,CACHEABLE);
+	block = block_pointer(ind,(unsigned long)(blknr/ZONES_PER_BLOCK),
+			      fsc->ZONE_ENTRY_SIZE);
 	if (block==0UL) {
                                                          /* 2 here, 1 for indirect block, 1 for current 2xindirect */
 	  *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(2+blknr/ZONES_PER_BLOCK); 
 	  /* *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*2 + blknr; */
 	  return (EMB_2IND_L1_ZERO);
 	} else if (block<sb->nzones) {
-	  ind = cache_read_block(block,CACHEABLE);
-	  *mapped_block = block_pointer(ind,(unsigned long)(blknr%ZONES_PER_BLOCK),fsc->ZONE_ENTRY_SIZE);
+	  ind = cache_read_block(block,NULL,CACHEABLE);
+	  *mapped_block = 
+	    block_pointer(ind,(unsigned long)
+			  (blknr%ZONES_PER_BLOCK),fsc->ZONE_ENTRY_SIZE);
 	  if (*mapped_block >= sb->nzones) {
 	    *mapped_block = 0UL;
 	    return (EMB_2IND_LOOKED_RANGE);
@@ -108,7 +111,8 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
 	    return (EMB_NO_ERROR);
 	  }
 	} else {
-	  *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(2+blknr/ZONES_PER_BLOCK);
+	  *mapped_block = fsc->N_DIRECT +
+	    ZONES_PER_BLOCK*(2+blknr/ZONES_PER_BLOCK);
 	  /* *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*2 + blknr; */
 	  return (EMB_2IND_L1_RANGE);
 	}
@@ -120,8 +124,8 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
     blknr -= (ZONES_PER_BLOCK*ZONES_PER_BLOCK);
   }
 
-  /* Shouldn't we be able to do this recursively??  It can do indirect and 2x indirects, whats another
-   * level of indirection? easy.
+  /* Shouldn't we be able to do this recursively??  It can do indirect 
+   * and 2x indirects, whats another level of indirection? easy.
    */
   if (fsc->X3_INDIRECT) {
     if (blknr<(ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK)) {
@@ -133,18 +137,20 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
 #ifdef BETA_CODE
       } else if (block<sb->nzones) {
 	/* Read in the triple indirect block */
-	ind = cache_read_block(block,CACHEABLE);
-	block = block_pointer(ind,(unsigned long)(blknr/(ZONES_PER_BLOCK*ZONES_PER_BLOCK)),
+	ind = cache_read_block(block,NULL,CACHEABLE);
+	block = block_pointer(ind,(unsigned long)
+			      (blknr/(ZONES_PER_BLOCK*ZONES_PER_BLOCK)),
 			      fsc->ZONE_ENTRY_SIZE);
 	/* Block is now a pointer to a 2x indirect */
 	if (block==0UL) {
 	  /* Add extra 2x indirect block to *mapped block */
 	  *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK +  
-	    ZONES_PER_BLOCK*ZONES_PER_BLOCK*(2 + blknr/(ZONES_PER_BLOCK*ZONES_PER_BLOCK));
+	    ZONES_PER_BLOCK*
+	    ZONES_PER_BLOCK*(2 + blknr/(ZONES_PER_BLOCK*ZONES_PER_BLOCK));
 	  return (EMB_3IND_L1_ZERO);
 	} else if (block<sb->nzones) {
 	  /* Read in a 2x indirect */
-	  ind = cache_read_block(block,CACHEABLE);
+	  ind = cache_read_block(block,NULL,CACHEABLE);
 	  block = block_pointer(ind,  (unsigned long)
 				((blknr%(ZONES_PER_BLOCK*ZONES_PER_BLOCK))/ZONES_PER_BLOCK),
 				fsc->ZONE_ENTRY_SIZE);
@@ -156,7 +162,7 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
 	    return (EMB_3IND_L2_ZERO);
 	  } else if (block<sb->nzones) {
 	    /* Read in 1x indirect */
-	    ind = cache_read_block(block,CACHEABLE);
+	    ind = cache_read_block(block,NULL,CACHEABLE);
 	    *mapped_block = block_pointer(ind,(unsigned long)
 					  ((blknr%(ZONES_PER_BLOCK*ZONES_PER_BLOCK))%ZONES_PER_BLOCK),
 					  fsc->ZONE_ENTRY_SIZE);
@@ -205,21 +211,46 @@ int advance_zone_pointer(unsigned long zone_index[], unsigned long *currblk,
 		     unsigned long *ipointer, long increment)
 {
   int result;
-  unsigned long blknr = 0UL, local_ipointer;
+  unsigned long blknr = 0UL, local_ipointer=0UL;
+  long sincrement,i;
 
   /* Check that we are at a block that is indexed by this inode */
-  if ((map_block(zone_index, *ipointer, &blknr))||(blknr!=(*currblk)))
-    return AZP_BAD_START;
+  if ((map_block(zone_index, *ipointer, &blknr))||(blknr!=(*currblk))) {
+    /* We aren't: look it up using brute force */
+    for (;;) {
+      result = map_block(zone_index, local_ipointer, &blknr);
+      if (result < EMB_HALT) {
+	return AZP_BAD_START;
+      } else if (result < EMB_SKIP) {
+	local_ipointer = blknr;
+      } else if ((result==EMB_NO_ERROR) && (blknr==(*currblk))) {
+	break;
+      } else {
+	local_ipointer++;
+      }
+    }
+  } else {
+    local_ipointer = *ipointer;
+  }
 
-  local_ipointer = *ipointer;
+  sincrement = (increment < 0)?-1:1;
+  increment *= sincrement;
 
   /* Now adjust the pointer and find us a block */
-  do {
-    local_ipointer += increment;
-    result = map_block(zone_index, local_ipointer, &blknr);
-    if (result < EMB_HALT)
-      return result;
-  } while(result!=EMB_NO_ERROR);
+  for (i=0; i<increment; i++) {
+    for (;;) {
+      local_ipointer += sincrement;
+      result = map_block(zone_index, local_ipointer, &blknr);
+      if (result < EMB_HALT) {
+	return result;
+      } else if (result < EMB_SKIP) {
+	local_ipointer = blknr - sincrement;
+	continue;
+      } else if (result==EMB_NO_ERROR) {
+	break;
+      }
+    }
+  }
 
   if (blknr) {
     *ipointer = local_ipointer;
@@ -263,7 +294,7 @@ void recover_file(int fp,unsigned long zone_index[])
       }
     }
 
-    dind = cache_read_block(nr,CACHEABLE);
+    dind = cache_read_block(nr,NULL,CACHEABLE);
     if (nr) {
       write_count = (size_t) lookup_blocksize(nr);
       /* lde_warn("Setting write count block size %d",write_count); */
@@ -443,7 +474,7 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 
     /* Do all the searches in the unused data space */
     if ((!FS_cmd.zone_in_use(nr))||(lde_flags.search_all)) {
-      dind = cache_read_block(nr,CACHEABLE);
+      dind = cache_read_block(nr,NULL,CACHEABLE);
 
       /* Search codes --
        * see /etc/magic or make a similar file 

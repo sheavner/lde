@@ -3,8 +3,11 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.21 1996/10/13 17:34:16 sdh Exp $
+ *  $Id: lde.h,v 1.22 1998/01/17 17:45:02 sdh Exp $
  */
+
+#ifndef LDE_H
+#define LDE_H
 
 #ifndef VERSION
 #define VERSION "2.4"
@@ -31,6 +34,14 @@ int  (*mgetch)(void);
 
 enum lde_fstypes { AUTODETECT, NONE, MINIX, XIAFS, EXT2, DOS };
 extern char *text_names[]; /* defined in main.c */
+
+struct _lde_buffer {
+  unsigned long size;
+  void *start;
+};
+typedef struct _lde_buffer lde_buffer;
+
+#define EMPTY_LDE_BUFFER { 0UL, NULL }
 
 /*
  * Structure of the super block (mostly from ext2, with name 
@@ -196,7 +207,7 @@ struct {
   /* Check if data zone/block is marked in bad -- not implemented in v2.2 yet */
   int (*zone_is_bad)(unsigned long n);
   /* Get dir name and inode number */
-  char* (*dir_entry)(int i, void *block_buffer, unsigned long *inode_nr);
+  char* (*dir_entry)(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
   /* Copies the FS specific inode into a generic inode structure */
   struct Generic_Inode* (*read_inode)(unsigned long inode_nr);
   /* Copies the generic inode to a FS specific one, then write it to disk */
@@ -249,3 +260,5 @@ extern int current_error;
 /* #define unmark_inode(x) (clrbit(inode_map,(x)),changed=1) */
 /* #define mark_zone(x) (setbit(zone_map,(x)-sb->first_dat_zone+1),changed=1) */
 /* #define unmark_zone(x) (clrbit(zone_map,(x)-sb->first_data_zone+1),changed=1) */
+
+#endif /* LDE_H */

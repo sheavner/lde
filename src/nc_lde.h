@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.h,v 1.8 1996/09/15 04:17:49 sdh Exp $
+ *  $Id: nc_lde.h,v 1.9 1998/01/17 17:45:33 sdh Exp $
  */
 #ifndef LDE_NC_LDE_H
 #define LDE_NC_LDE_H
@@ -11,12 +11,16 @@
 #include "keymap.h"		/* For lde_keymap struct definition */
 
 #define ESC 27
-#define CTRL(x) (x-'A'+1)
-#define META(x) (x|1024)
-#define IS_CTRL(x) ( (x<32)?1:0 )
-#define IS_META(x) ( (META(x)==x)?1:0 )
-#define INV_CTRL(x) ( x+'A'-1 )
-#define INV_META(x) ( x&255 )
+#define CTRL(x) ((x)-'A'+1)
+#define META(x) ((x)|1024)
+#define IS_CTRL(x) ( ((x)<32)?1:0 )
+#define IS_META(x) ( (META(x)==(x))?1:0 )
+#define INV_CTRL(x) ( (x)+'A'-1 )
+#define INV_META(x) ( (x)&255 )
+
+#define IS_MOUSE(x) ((x)&2048)
+#define MOUSE_X(x)  (((x)&0xFF000000)>>24)
+#define MOUSE_Y(x)  (((x)&0xFF0000)>>16)
 
 #define HELP_NO_BANNER 1
 #define HELP_BOXED 2

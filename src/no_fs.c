@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.10 1996/10/12 21:08:20 sdh Exp $
+ *  $Id: no_fs.c,v 1.11 1998/01/17 17:45:34 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -21,7 +21,7 @@
 #include "no_fs.h"
 
 static struct Generic_Inode *NOFS_read_inode(unsigned long nr);
-static char* NOFS_dir_entry(int i, void *block_buffer, unsigned long *inode_nr);
+static char* NOFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
 static void NOFS_sb_init(char * sb_buffer);
 
 static struct inode_fields NOFS_inode_fields = {
@@ -116,7 +116,7 @@ int NOFS_one(unsigned long nr)
   return 1;
 }
 
-static char* NOFS_dir_entry(int i, void *block_buffer, unsigned long *inode_nr)
+static char* NOFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr)
 {
   *inode_nr = 1UL;
   return ( (char *) "" );
@@ -137,10 +137,13 @@ static void NOFS_sb_init(char * sb_buffer)
 
   /* If we are operating on a file, figure the size of the last block */
   sb->last_block_size = (unsigned long)statbuf.st_size % sb->blocksize;
+  if ((sb->last_block_size==0)&&(statbuf.st_size!=0))
+    sb->last_block_size = sb->blocksize;
 
-  /* If it is a partition, look it up with the slow NOFS_get_device_size().  Don't want
-   * to do this the first time through because the partition will most likely have a
-   * file system on it and we won't have to resort to this */
+  /* If it is a partition, look it up with the slow NOFS_get_device_size().
+   * Don't want to do this the first time through because the partition
+   * will most likely have a file system on it and we won't have to 
+   * resort to this */
   if ((!sb->nzones)||(firsttime))
     sb->nzones = NOFS_get_device_size(CURR_DEVICE, sb->blocksize);
 

@@ -3,6 +3,7 @@
  *
  *  Copyright (C) 1994,1995  Scott D. Heavner
  *
+ *  $Id: nc_block_help.h,v 1.6 1998/01/17 17:45:21 sdh Exp $
  */
 #ifndef LDE_NC_BLOCK_HELP_H
 #define LDE_NC_BLOCK_HELP_H
@@ -42,6 +43,7 @@ static lde_menu block_help[] = {
   { CMD_ABORT_EDIT, "Abort edit.  Reread original block from disk"},
   { CMD_REFRESH, "Refresh screen"},
   { CMD_TOGGLE_ASCII, "Toggle hex/ascii edit. (in edit mode)"},
+  { CMD_ALL_ASCII, "Supress hex output."},
   { CMD_FIND_INODE,"Find an inode which references this block"},
   { CMD_FIND_INODE_MC,"Find an inode which references this block and view it"},
   { CMD_WRITE_CHANGES, "Write changes to disk"},
@@ -57,6 +59,7 @@ static lde_menu block_menu[] = {
   { CMD_FIND_INODE, "Find inode which references this block" },
   { CMD_INODE_MODE, "Inode mode" },
   { CMD_INODE_MODE_MC, "Inode mode, viewing inode under cursor" },
+  { CMD_ALL_ASCII, "Supress HEX output" },
   { CMD_HELP, "Help" },
   { CMD_EXIT, "Quit" },
   { CMD_RECOVERY_MODE, "Recovery mode" },
@@ -95,12 +98,12 @@ static lde_keymap blockmode_keymap[] = {
   { 'W', CMD_DO_RECOVER },
   { CTRL('W'), CMD_WRITE_CHANGES },
   { CTRL('A'), CMD_ABORT_EDIT },
-  { CTRL('V'), CMD_NEXT_BLOCK },
-  { CTRL('D'), CMD_NEXT_BLOCK },
-  { KEY_NPAGE, CMD_NEXT_BLOCK },
-  { CTRL('U'), CMD_PREV_BLOCK },
-  { META('v'), CMD_PREV_BLOCK },
-  { KEY_PPAGE, CMD_PREV_BLOCK },
+  { CTRL('V'), CMD_NEXT_SCREEN },
+  { CTRL('D'), CMD_NEXT_SCREEN },
+  { KEY_NPAGE, CMD_NEXT_SCREEN },
+  { CTRL('U'), CMD_PREV_SCREEN },
+  { META('v'), CMD_PREV_SCREEN },
+  { KEY_PPAGE, CMD_PREV_SCREEN },
   { 'h', CMD_PREV_FIELD },
   { 'H', CMD_PREV_FIELD },
   { CTRL('B'), CMD_PREV_FIELD },
@@ -111,13 +114,14 @@ static lde_keymap blockmode_keymap[] = {
   { 'L', CMD_NEXT_FIELD },
   { CTRL('F'), CMD_NEXT_FIELD },
   { KEY_RIGHT, CMD_NEXT_FIELD },
-  { '+', CMD_NEXT_SCREEN },
-  { KEY_SRIGHT, CMD_NEXT_SCREEN },
-  { '-', CMD_PREV_SCREEN },
-  { KEY_SLEFT, CMD_PREV_SCREEN },
+  { '+', CMD_NEXT_BLOCK },
+  { KEY_SRIGHT, CMD_NEXT_BLOCK },
+  { '-', CMD_PREV_BLOCK },
+  { KEY_SLEFT, CMD_PREV_BLOCK },
   { 'f',CMD_FLAG_ADJUST },
   { 'F',CMD_FLAG_ADJUST },
   { CTRL('I'),CMD_TOGGLE_ASCII },
+  { 'A',CMD_ALL_ASCII },
   { CTRL('R'),CMD_FIND_INODE },
   { META('r'),CMD_FIND_INODE_MC },
   { 0, 0 }

@@ -1,13 +1,17 @@
-/*
+ /*
  *  lde/msdos_fs.c -- The Linux Disk Editor
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.5 1996/10/11 03:14:53 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.6 1998/01/17 17:45:17 sdh Exp $
  */
 
 /* 
  *  This file contain all the msdos specific code.
+ *
+ *  There will be a few redefinitions for MSDOS:
+ *
+ *  Inode => FAT
  */
 
 #include <unistd.h>
@@ -17,10 +21,13 @@
 #include "lde.h"
 #include "no_fs.h"
 #include "msdos_fs.h"
+#include "tty_lde.h"
+#include "recover.h"
 
 static struct Generic_Inode *DOS_read_inode(unsigned long nr);
-static char* DOS_dir_entry(int i, void *block_buffer, unsigned long *inode_nr);
+static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
 static void DOS_sb_init(void * sb_buffer);
+static unsigned long DOS_map_inode(unsigned long ino);
 
 static struct inode_fields DOS_inode_fields = {
   0,   /*   unsigned short i_mode; */
@@ -36,8 +43,8 @@ static struct inode_fields DOS_inode_fields = {
   0,   /*   unsigned long  i_dtime; */
   0,   /*   unsigned long  i_flags; */
   0,   /*   unsigned long  i_reserved1; */
-  { 0, /*   unsigned long  i_zone[0]; */
-    0, /*   unsigned long  i_zone[1]; */
+  { 1, /*   unsigned long  i_zone[0]; */
+    1, /*   unsigned long  i_zone[1]; */
     0, /*   unsigned long  i_zone[2]; */
     0, /*   unsigned long  i_zone[3]; */
     0, /*   unsigned long  i_zone[4]; */
@@ -64,13 +71,13 @@ static struct inode_fields DOS_inode_fields = {
 
 static struct fs_constants DOS_constants = {
   DOS,                          /* int FS */
-  1,                            /* int ROOT_INODE */
-  4,                            /* int INODE_SIZE */
-  1,                            /* unsigned short N_DIRECT */
+  2,                            /* int ROOT_INODE */
+  2,                            /* int INODE_SIZE */
+  2,                            /* unsigned short N_DIRECT */
   0,                            /* unsigned short INDIRECT */
   0,                            /* unsigned short X2_INDIRECT */
   0,                            /* unsigned short X3_INDIRECT */
-  1,                            /* unsigned short N_BLOCKS */
+  2,                            /* unsigned short N_BLOCKS */
   1,                            /* unsigned long  FIRST_MAP_BLOCK */
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
@@ -78,6 +85,17 @@ static struct fs_constants DOS_constants = {
 };
 
 static struct Generic_Inode DOS_junk_inode;
+
+static unsigned long DOS_map_inode(unsigned long ino)
+{
+  unsigned long block;
+
+  /* Find disk block containing FAT entry */
+  block = (unsigned long) ino/sb->zonesize + 1UL;
+  if (block > sb->ninodes)
+    block = 0;
+  return block;
+}
 
 struct Generic_Inode *DOS_init_junk_inode(void)
 {
@@ -109,19 +127,34 @@ int cvt_c2(char cp[2])
 
 static struct Generic_Inode *DOS_read_inode(unsigned long nr)
 {
+  char * inode_buffer;
+
+  DOS_init_junk_inode();
+
+  if (nr>sb->ninodes) {
+    lde_warn("inode (%lu) out of range DOS_read_inode", nr);
+    nr = 0;
+  }
+
+  DOS_junk_inode.i_zone[0] = (nr-2UL) + sb->zmap_blocks + 1UL;
+
+  inode_buffer = cache_read_block(DOS_map_inode(nr),NULL,CACHEABLE);
+  nr = nr % (sb->blocksize/fsc->INODE_SIZE);
+  DOS_junk_inode.i_zone[1] = block_pointer(inode_buffer, nr, fsc->INODE_SIZE) + sb->zmap_blocks + 1UL;
+
   return &DOS_junk_inode;
 }
 
-static char* DOS_dir_entry(int i, void *block_buffer, unsigned long *inode_nr)
+static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr)
 {
   static char cname[MSDOS_NAME+2];
   struct msdos_dir_entry *dir;
 
-  if (i*sb->dirsize >= sb->blocksize) {
+  if (i*sb->dirsize >= block_buffer->size) {
     cname[0] = 0;
   } else {
     memset(cname,MSDOS_NAME+2,' ');
-    dir = block_buffer+(i*sb->dirsize);
+    dir = block_buffer->start+(i*sb->dirsize);
     strncpy(cname, dir->name, 8); /* File name */
     cname[8] = '.';
     strncpy(&cname[9], dir->ext, 3);  /* File extension */
@@ -144,7 +177,7 @@ static void DOS_sb_init(void *sb_buffer)
 
   sb->last_block_size = sb->blocksize;
 
-  fsc->ROOT_INODE = 1+2*Boot->fat_length;
+  fsc->ROOT_INODE = 2;
 
   /* In order to prevent division by zeroes, set junk entries to 1 */
   sb->ninodes = sb->nzones/Boot->cluster_size;
@@ -177,7 +210,7 @@ void DOS_init(void *sb_buffer)
   FS_cmd.dir_entry = DOS_dir_entry;
   FS_cmd.read_inode = DOS_read_inode;
   FS_cmd.write_inode = (int (*)(unsigned long inode_nr, struct Generic_Inode *GInode)) NOFS_null_call;
-  FS_cmd.map_inode = (unsigned long (*)(unsigned long n)) NOFS_one;
+  FS_cmd.map_inode = DOS_map_inode;
 }
 
 
