@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.11 1998/08/11 04:04:09 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.12 1998/08/11 04:52:10 sdh Exp $
  */
 
 /* 
@@ -25,7 +25,7 @@
 #include "recover.h"
 
 /* Hack for redefinition of msdos_boot_sector by some rogue patch? */
-#ifdef BS_NAMED_FAT
+#ifdef MSDOS_BS_NAMED_FAT
 #define msdos_boot_sector fat_boot_sector
 #endif
 
