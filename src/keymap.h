@@ -3,20 +3,20 @@
  *
  *  Copyright (C) 1995  Scott D. Heavner
  *
- *  $Id: keymap.h,v 1.3 1995/06/02 15:25:10 sdh Exp $
+ *  $Id: keymap.h,v 1.4 1996/06/01 04:56:39 sdh Exp $
  *
  */
 #ifndef KEYMAP_H
 #define KEYMAP_H
 
 /* The keymaps are of this type */
-typedef struct {
+typedef struct _lde_keymap {
     int   key_code;
     int   action_code;
 } lde_keymap;
 
 /* The keymaps are of this type */
-typedef struct {
+typedef struct _lde_menu {
     int   action_code;
     char  *description;
 } lde_menu;
@@ -56,6 +56,7 @@ enum lde_actions {
   CMD_RECOVERY_MODE,        /* Switch to recovery mode */
   CMD_RECOVERY_MODE_MC,     /* Switch to recovery mode, set to recover current inode */
   CMD_DO_RECOVER,           /* Recover file in fake inode to disk */
+  CMD_CHECK_RECOVER,        /* Check recoverability of fake inode */
   CMD_PREV_INODE,           /* Back up one inode */
   CMD_NEXT_INODE,           /* Forward one inode */
   CMD_PREV_BLOCK,           /* Back up one block */
@@ -64,6 +65,9 @@ enum lde_actions {
   CMD_NEXT_FIELD,           /* Forward one field */
   CMD_TOGGLE_ASCII,         /* Switch between ASCII and HEX editing */
   CMD_FIND_INODE,           /* Find an inode which references this block */
+  CMD_FIND_INODE_MC,        /* Find an inode which references this block and view it */
+  CMD_BIN_INODE,            /* View this inode with the block editor, i.e the 
+			     * raw block on the disk containing this inode */
 
   REC_FILE0,                /* First block in inode's recovery list */
   REC_FILE1,
@@ -79,7 +83,11 @@ enum lde_actions {
   REC_FILE11,
   REC_FILE12,
   REC_FILE13,
-  REC_FILE14                /* Last block in inode's recovery list */
+  REC_FILE14,                /* Last block in inode's recovery list */
+  REC_FILE_LAST=REC_FILE14+1
 };
 
+extern lde_keymap global_keymap[];
+
 #endif
+

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.9 1995/06/01 06:01:37 sdh Exp $
+ *  $Id: xiafs.c,v 1.10 1996/06/01 05:00:46 sdh Exp $
  */
 
 #include <ctype.h>
@@ -75,6 +75,7 @@ static struct fs_constants XIAFS_constants = {
   9,                            /* unsigned short N_2X_INDIRECT */
   0,                            /* unsigned short N_3X_INDIRECT */
   10,                           /* unsigned short N_BLOCKS */
+  1,                            /* unsigned long  FIRST_MAP_BLOCK */
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
   &XIAFS_inode_fields,
@@ -187,6 +188,8 @@ static void XIAFS_sb_init(void *sb_buffer)
   sb->INODES_PER_BLOCK = _XIAFS_INODES_PER_BLOCK;
   sb->namelen = _XIAFS_NAME_LEN;
   sb->norm_first_data_zone = (sb->imap_blocks+1+sb->zmap_blocks+INODE_BLOCKS);
+
+  sb->last_block_size = sb->blocksize;
 }
 
 int XIAFS_init(void *sb_buffer)
@@ -200,6 +203,7 @@ int XIAFS_init(void *sb_buffer)
   FS_cmd.dir_entry    = XIAFS_dir_entry;
   FS_cmd.read_inode   = XIAFS_read_inode;
   FS_cmd.write_inode  = XIAFS_write_inode;
+  FS_cmd.map_inode    = MINIX_map_inode;
 
   MINIX_read_tables();
 

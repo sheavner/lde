@@ -4,6 +4,8 @@
  *  Copyright (C) 1994,1995  Scott D. Heavner
  *
  */
+#ifndef LDE_NC_BLOCK_HELP_H
+#define LDE_NC_BLOCK_HELP_H
 
 #include "keymap.h"
 
@@ -32,6 +34,7 @@ static char *block_help[] = {
   "^A      : Abort changes, re-read original block from disk.",
   "TAB,^I  : Toggle hex/ascii edit. (in edit mode)",
   "^R      : Find an inode which references this block.",
+  "M-r     : Find an inode which references this block and view it.",
   "^W      : Write changes to disk.",
   NULL
 };
@@ -48,6 +51,7 @@ static lde_menu block_menu[] = {
   { CMD_HELP, "Help" },
   { CMD_EXIT, "Quit" },
   { CMD_RECOVERY_MODE, "Recovery mode" },
+  { CMD_DO_RECOVER, "Append block to recovery file" },
   { CMD_VIEW_SUPER, "View superblock" },
   { CMD_FLAG_ADJUST, "Toggle some flags" },
   { CMD_DISPLAY_LOG, "View error/warning log" },
@@ -63,3 +67,52 @@ static lde_menu edit_menu[] = {
   { CMD_WRITE_CHANGES, "Write changes to disk"},
   { 0, NULL }
 };
+
+/* default keymap for block mode */
+static lde_keymap blockmode_keymap[] = {
+  { '#', CMD_NUMERIC_REF },
+  { 'q', CMD_EXIT_PROG },
+  { 'I', CMD_INODE_MODE_MC },
+  { 'B', CMD_BLOCK_MODE_MC },
+  { 'd', CMD_VIEW_AS_DIR },
+  { 'D', CMD_VIEW_AS_DIR },
+  { 'e', CMD_EDIT },
+  { 'E', CMD_EDIT },
+  { 'c', CMD_COPY },
+  { 'C', CMD_COPY },
+  { 'p', CMD_PASTE },
+  { 'P', CMD_PASTE },
+  { 'w', CMD_DO_RECOVER },
+  { 'W', CMD_DO_RECOVER },
+  { CTRL('W'), CMD_WRITE_CHANGES },
+  { CTRL('A'), CMD_ABORT_EDIT },
+  { CTRL('V'), CMD_NEXT_BLOCK },
+  { CTRL('D'), CMD_NEXT_BLOCK },
+  { KEY_NPAGE, CMD_NEXT_BLOCK },
+  { CTRL('U'), CMD_PREV_BLOCK },
+  { META('v'), CMD_PREV_BLOCK },
+  { KEY_PPAGE, CMD_PREV_BLOCK },
+  { 'h', CMD_PREV_FIELD },
+  { 'H', CMD_PREV_FIELD },
+  { CTRL('B'), CMD_PREV_FIELD },
+  { KEY_BACKSPACE, CMD_PREV_FIELD },
+  { KEY_DC, CMD_PREV_FIELD },
+  { KEY_LEFT, CMD_PREV_FIELD },
+  { 'l', CMD_NEXT_FIELD },
+  { 'L', CMD_NEXT_FIELD },
+  { CTRL('F'), CMD_NEXT_FIELD },
+  { KEY_RIGHT, CMD_NEXT_FIELD },
+  { '+', CMD_NEXT_SCREEN },
+  { KEY_SRIGHT, CMD_NEXT_SCREEN },
+  { '-', CMD_PREV_SCREEN },
+  { KEY_SLEFT, CMD_PREV_SCREEN },
+  { 'f',CMD_FLAG_ADJUST },
+  { 'F',CMD_FLAG_ADJUST },
+  { CTRL('I'),CMD_TOGGLE_ASCII },
+  { CTRL('R'),CMD_FIND_INODE },
+  { META('r'),CMD_FIND_INODE_MC },
+  { 0, 0 }
+};
+
+#endif
+

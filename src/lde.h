@@ -3,11 +3,11 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.14 1995/06/01 22:37:12 sdh Exp $
+ *  $Id: lde.h,v 1.15 1996/06/01 04:56:54 sdh Exp $
  */
 
 #ifndef VERSION
-#define VERSION "2.2"
+#define VERSION "2.3"
 #endif
 
 extern char *program_name;
@@ -18,6 +18,7 @@ void die(char *msg);
 void read_tables(int fs_type);
 int check_root(void);
 void (*warn)(char *fmt, ...);
+int  (*mgetch)(void);
 
 /* filemode.c  */
 void mode_string(unsigned short mode, char *str);
@@ -183,6 +184,7 @@ struct fs_constants {
   unsigned short X2_INDIRECT;
   unsigned short X3_INDIRECT;
   unsigned short N_BLOCKS;
+  unsigned long  FIRST_MAP_BLOCK;
   int ZONE_ENTRY_SIZE;
   int INODE_ENTRY_SIZE;
   struct inode_fields * inode;
@@ -202,12 +204,19 @@ struct {
   struct Generic_Inode* (*read_inode)(unsigned long inode_nr);
   /* Copies the generic inode to a FS specific one, then write it to disk */
   int (*write_inode)(unsigned long inode_nr, struct Generic_Inode *GInode);
+  /* Map inode to block containing inode */
+  unsigned long (*map_inode)(unsigned long n);
 } FS_cmd;
 
-/* Flags which will control file recovery */
-struct _rec_flags {
-  int search_all;
-} rec_flags;
+/* Flags */
+struct _lde_flags {
+  unsigned search_all:      1;
+  unsigned quiet:           1;
+  unsigned write_ok:        1;
+  unsigned paranoid:        1;
+  unsigned inode_lookup:    1;
+  unsigned indirect_search: 1;
+} lde_flags;
 
 extern struct sbinfo *sb;
 extern struct fs_constants *fsc;
@@ -226,9 +235,6 @@ extern unsigned char *zone_count;
 
 /* The current device file descriptor */
 extern int CURR_DEVICE;
-
-/* Some flags */
-extern int paranoid, list, write_ok, quiet;  
 
 /* Error logging functionality */
 #define ERRORS_SAVED 30

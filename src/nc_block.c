@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.13 1995/06/03 05:08:57 sdh Exp $
+ *  $Id: nc_block.c,v 1.14 1996/06/01 04:58:02 sdh Exp $
  */
 
 #include <stdio.h>
@@ -21,90 +21,6 @@
 #include "nc_dir.h"
 #include "keymap.h"
 
-/* default keymap for block mode */
-static lde_keymap blockmode_keymap[] = {
-  { CTRL('L'), CMD_REFRESH },
-  { 'z', CMD_CALL_MENU },
-  { KEY_F(2), CMD_CALL_MENU },
-  { CTRL('O'), CMD_CALL_MENU },
-  { '?', CMD_HELP },
-  { KEY_F(1), CMD_HELP },
-  { CTRL('H'), CMD_HELP },
-  { META('H'), CMD_HELP },
-  { META('h'), CMD_HELP },
-  { '#', CMD_NUMERIC_REF },
-  { 'v', CMD_DISPLAY_LOG },
-  { 'V', CMD_DISPLAY_LOG },
-  { 'i', CMD_INODE_MODE },
-  { 's', CMD_VIEW_SUPER },
-  { 'S', CMD_VIEW_SUPER },
-  { 'r', CMD_RECOVERY_MODE },
-  { 'R', CMD_RECOVERY_MODE },
-  { 'Q', CMD_EXIT_PROG },
-  { 'q', CMD_EXIT_PROG },
-  { 'I', CMD_INODE_MODE_MC },
-  { 'B', CMD_BLOCK_MODE_MC },
-  { 'd', CMD_VIEW_AS_DIR },
-  { 'D', CMD_VIEW_AS_DIR },
-  { 'e', CMD_EDIT },
-  { 'E', CMD_EDIT },
-  { 'c', CMD_COPY },
-  { 'C', CMD_COPY },
-  { 'p', CMD_PASTE },
-  { 'P', CMD_PASTE },
-  { 'w', CMD_DO_RECOVER },
-  { 'W', CMD_DO_RECOVER },
-  { CTRL('W'), CMD_WRITE_CHANGES },
-  { CTRL('A'), CMD_ABORT_EDIT },
-  { CTRL('V'), CMD_NEXT_BLOCK },
-  { CTRL('D'), CMD_NEXT_BLOCK },
-  { KEY_NPAGE, CMD_NEXT_BLOCK },
-  { CTRL('U'), CMD_PREV_BLOCK },
-  { META('V'), CMD_PREV_BLOCK },
-  { KEY_PPAGE, CMD_PREV_BLOCK },
-  { 'h', CMD_PREV_FIELD },
-  { 'H', CMD_PREV_FIELD },
-  { CTRL('B'), CMD_PREV_FIELD },
-  { KEY_BACKSPACE, CMD_PREV_FIELD },
-  { KEY_DC, CMD_PREV_FIELD },
-  { KEY_LEFT, CMD_PREV_FIELD },
-  { 'l', CMD_NEXT_FIELD },
-  { 'L', CMD_NEXT_FIELD },
-  { CTRL('F'), CMD_NEXT_FIELD },
-  { KEY_RIGHT, CMD_NEXT_FIELD },
-  { CTRL('N'), CMD_NEXT_LINE },
-  { KEY_DOWN, CMD_NEXT_LINE },
-  { 'J', CMD_NEXT_LINE },
-  { 'j', CMD_NEXT_LINE },
-  { CTRL('P'), CMD_PREV_LINE },
-  { KEY_UP, CMD_PREV_LINE },
-  { 'K', CMD_PREV_LINE },
-  { 'k', CMD_PREV_LINE },
-  { '+', CMD_NEXT_SCREEN },
-  { KEY_SRIGHT, CMD_NEXT_SCREEN },
-  { '-', CMD_PREV_SCREEN },
-  { KEY_SLEFT, CMD_PREV_SCREEN },
-  { 'f',CMD_FLAG_ADJUST },
-  { 'F',CMD_FLAG_ADJUST },
-  { CTRL('I'),CMD_TOGGLE_ASCII },
-  { CTRL('R'),CMD_FIND_INODE },
-  { '0', REC_FILE0 },
-  { '1', REC_FILE1 },
-  { '2', REC_FILE2 },
-  { '3', REC_FILE3 },
-  { '4', REC_FILE4 },
-  { '5', REC_FILE5 },
-  { '6', REC_FILE6 },
-  { '7', REC_FILE7 },
-  { '8', REC_FILE8 },
-  { '9', REC_FILE9 },
-  { '!', REC_FILE10 },
-  { '@', REC_FILE11 },
-  { '$', REC_FILE12 },
-  { '%', REC_FILE13 },
-  { '^', REC_FILE14 },
-  { 0, 0 }
-};
 
 static void highlight_block(int cur_row,int cur_col,int win_start,unsigned char *block_buffer, int ascii_flag);
 static void full_highlight_block(int cur_row,int cur_col, int *prev_row, int *prev_col, 
@@ -116,7 +32,7 @@ static void update_block_help(void);
  * hex mode with ASCII printables off to the right. */
 void cdump_block(unsigned long nr, unsigned char *dind, int win_start, int win_size)
 {
-  int i,j;
+  int i,j,blocksize;
   unsigned char c;
   char *block_status, block_not_used[10]=":NOT:USED:"; 
   char block_is_used[10] = "::::::::::";
@@ -126,20 +42,21 @@ void cdump_block(unsigned long nr, unsigned char *dind, int win_start, int win_s
   werase(workspace);
   
   block_status = (FS_cmd.zone_in_use(nr)) ? block_is_used : block_not_used; 
+  blocksize = lookup_blocksize(nr);
   j = 0;
 
-  while ((j<win_size)&&(j*16+win_start<sb->blocksize)) {
-    mvwprintw(workspace,j,0,"0x%04X = ",j*16+win_start);
-    for (i=0;i<8;i++)
-      mvwprintw(workspace,j,9+i*3,"%2.2X",dind[j*16+i+win_start]);
-    mvwprintw(workspace,j,34,"%c",block_status[j%10]);
-    for (i=0;i<8;i++)
-      mvwprintw(workspace,j,37+i*3,"%2.2X",dind[j*16+i+8+win_start]);
+  while ((j<win_size)&&(j*16+win_start<blocksize)) {
+    mvwprintw(workspace,j,0,"%08X ",j*16+win_start+nr*sb->blocksize);
+    for (i=0;((i<8)&&((j*16+i+win_start)<blocksize));i++)
+	mvwprintw(workspace,j,10+i*3,"%2.2X",dind[j*16+i+win_start]);
+    mvwprintw(workspace,j,35,"%c",block_status[j%10]);
+    for (i=0;((i<8)&&((j*16+i+8+win_start)<blocksize));i++)
+      mvwprintw(workspace,j,38+i*3,"%2.2X",dind[j*16+i+8+win_start]);
     
-    for (i=0;i<16;i++) {
+    for (i=0; ((i<16)&&((j*16+i+win_start)<blocksize));i++) {
       c = dind[j*16+i+win_start];
       c = ((c>31)&&(c<127)) ? c : '.';
-      mvwaddch(workspace,j,63+i,c);
+      mvwaddch(workspace,j,64+i,c);
     }
     j++;
   }
@@ -158,14 +75,14 @@ void cwrite_block(unsigned long block_nr, void *data_buffer, char *modified)
   char *warning;
 
   if (*modified) {
-    if (!write_ok)
+    if (!lde_flags.write_ok)
       warning = "(NOTE: write permission not set on disk, use 'F' to set flags before 'Y') ";
     else
       warning = "";
     
     while ( (c = cquery("WRITE OUT BLOCK DATA TO DISK [Y/N]? ","ynfq",warning)) == 'f') {
       flag_popup();
-      if (write_ok) warning = "";
+      if (lde_flags.write_ok) warning = "";
     }
 
     refresh_all(); /* Have to refresh screen before write or error messages will be lost */
@@ -183,15 +100,15 @@ static void highlight_block(int cur_row,int cur_col,int win_start,unsigned char 
   int s_col;
 
   if (cur_col < 8)
-    s_col = 9 + cur_col*3;
+    s_col = 10 + cur_col*3;
   else
-    s_col = 13 + cur_col*3;
+    s_col = 14 + cur_col*3;
   mvwprintw(workspace,cur_row,s_col,"%2.2X",block_buffer[cur_row*16+cur_col+win_start]);
   c = block_buffer[cur_row*16+cur_col+win_start];
   c = ((c>31)&&(c<127)) ? c : '.';
-  mvwprintw(workspace,cur_row,cur_col+63,"%c",c);
+  mvwprintw(workspace,cur_row,cur_col+64,"%c",c);
   if (ascii_flag) 
-    wmove(workspace,cur_row,cur_col+63);
+    wmove(workspace,cur_row,cur_col+64);
   else
     wmove(workspace,cur_row,s_col);
 }
@@ -232,13 +149,13 @@ static void update_block_help(void)
  * on the screen, next/previous block, paging this block, etc., etc. */
 int block_mode(void) {
   int icount = 0, val, v1 = 0, c = CMD_REFRESH;
-  int win_start = 0;
+  int win_start = 0, blocksize = 0;
   int cur_row = 0, cur_col = 0;
   int prev_row = 0, prev_col = 0;
   static unsigned char *copy_buffer = NULL;
   unsigned char block_buffer[MAX_BLOCK_SIZE];
   char *HEX_PTR, *HEX_NOS = "0123456789ABCDEF";
-  unsigned long a, temp_ptr, inode_ptr[2] = { 0UL, 0UL };
+  unsigned long a, temp_ptr, temp_iptr=0UL, inode_ptr[2] = { 0UL, 0UL };
   struct bm_flags flags = { 0, 0, 0, 0, 0, 1 };
 
   if (current_block >= sb->nzones)
@@ -246,8 +163,7 @@ int block_mode(void) {
 
   update_block_help();
 
-  display_trailer("H/F1 for help.  F2/^O for menu.  Q to quit",
-		  "PG_UP/DOWN = previous/next block, or '#' to enter block number");
+  display_trailer("F1/H for help.  F2/^O for menu.  Q to quit");
 
   while (flags.dontwait||(c = mgetch())) {
     flags.redraw = flags.highlight = 0;
@@ -298,11 +214,11 @@ int block_mode(void) {
 	icount = 0;
 	if (++cur_col > 15) {
 	  cur_col = 0;
-	  if ((++cur_row)*16+win_start>=sb->blocksize) {
+	  if ((++cur_row)*16+win_start>=blocksize) {
 	    cur_col = 15;
 	    cur_row--;
 	  } else if (cur_row >= VERT) {
-	    if ( win_start + VERT*16 < sb->blocksize) win_start += VERT*16;
+	    if ( win_start + VERT*16 < blocksize) win_start += VERT*16;
 	    prev_row = prev_col = cur_row = 0;
 	    flags.redraw = 1;
 	  }
@@ -326,7 +242,7 @@ int block_mode(void) {
 	break;
 
       case CMD_NEXT_SCREEN:
-        if ( win_start + VERT*16 < sb->blocksize) win_start += VERT*16;
+        if ( win_start + VERT*16 < blocksize) win_start += VERT*16;
 	flags.redraw = 1;
 	icount = 0;
 	break;
@@ -341,7 +257,7 @@ int block_mode(void) {
 	flags.highlight = 1;
 	if (++cur_row >= VERT) {
 	  flags.redraw = 1;
-	  if ( win_start + VERT*16 < sb->blocksize) win_start += VERT*16;
+	  if ( win_start + VERT*16 < blocksize) win_start += VERT*16;
 	  prev_row = prev_col = cur_row = 0;
 	}
 	icount = 0;
@@ -388,15 +304,21 @@ int block_mode(void) {
 	flags.redraw = flags.highlight = 1;
 	break;
 
-      case CMD_FIND_INODE: /* Find an inode which references this block */
+      case CMD_FIND_INODE:
+      case CMD_FIND_INODE_MC: /* Find an inode which references this block */
         warn("Searching for inode containing block 0x%lX . . .",current_block);
-	if ( (temp_ptr = find_inode(current_block)) )
-	  warn("Block is indexed under inode 0x%lX.",temp_ptr);
-	else
-	  if (rec_flags.search_all)
+	if ( (temp_iptr = find_inode(current_block, temp_iptr)) ) {
+	  warn("Block is indexed under inode 0x%lX.  Repeat to search for more occurances.",temp_iptr);
+	  if (c==CMD_FIND_INODE_MC) {
+	    current_inode = temp_iptr;
+	    return CMD_INODE_MODE;
+	  }
+	} else {
+	  if (lde_flags.search_all)
 	    warn("Unable to find inode referenece.");
 	  else
 	    warn("Unable to find inode referenece try activating the --all option.");
+	}
 	break;
 
       case REC_FILE0: /* Add current block to recovery list at position 'n' */
@@ -429,7 +351,7 @@ int block_mode(void) {
 	if (copy_buffer) {
 	  flags.modified = flags.redraw = 1;
 	  memcpy(block_buffer, copy_buffer, sb->blocksize);
-	  if (!write_ok) 
+	  if (!lde_flags.write_ok) 
 	    warn("Turn on write permissions before saving this block");
 	}
 	break;
@@ -437,7 +359,7 @@ int block_mode(void) {
       case CMD_EDIT: /* Edit the current block */
 	flags.edit_block = 1;
 	icount = 0;
-	if (!write_ok)
+	if (!lde_flags.write_ok)
 	  warn("Disk not writeable, change status flags with (F)");
 	break;
 
@@ -511,9 +433,9 @@ int block_mode(void) {
 	break;
 
       case CMD_CALL_MENU: /* POPUP MENU */
-	c = do_popup_menu(block_menu);
+	c = do_popup_menu(block_menu, blockmode_keymap);
 	if (c==CMD_CALL_MENU)
-	  c = do_popup_menu(edit_menu);
+	  c = do_popup_menu(edit_menu, blockmode_keymap);
 	if (c!=CMD_NO_ACTION)
 	  flags.dontwait = 1;
 	break;
@@ -529,13 +451,15 @@ int block_mode(void) {
     }
 
     /* More room on screen, but have we gone past the end of the block? */
-    if (cur_row*16+win_start>=sb->blocksize)
-      cur_row = (sb->blocksize-win_start)/16 - 1;
+    if (cur_row*16+win_start>=blocksize)
+      cur_row = (blocksize-win_start-1)/16;
 
     if (flags.redraw) {
-      if ((!flags.edit_block)&&(!flags.modified))
+      if ((!flags.edit_block)&&(!flags.modified)) {
 	memcpy(block_buffer, cache_read_block(current_block,CACHEABLE),
 	       sb->blocksize);
+	blocksize = (int)lookup_blocksize(current_block);
+      }
       cdump_block(current_block,block_buffer,win_start,VERT);
       flags.highlight = 1;
     }

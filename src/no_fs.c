@@ -3,13 +3,13 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.7 1995/06/01 06:02:09 sdh Exp $
+ *  $Id: no_fs.c,v 1.8 1996/06/01 04:59:44 sdh Exp $
  */
 
 /* 
  *   No file system specified.  Block edits ok.
  */
-
+#include <sys/stat.h>
 #include <unistd.h>
  
 #include "lde.h"
@@ -68,6 +68,7 @@ static struct fs_constants NOFS_constants = {
   0,                            /* unsigned short X2_INDIRECT */
   0,                            /* unsigned short X3_INDIRECT */
   1,                            /* unsigned short N_BLOCKS */
+  1,                            /* unsigned long  FIRST_MAP_BLOCK */
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
   &NOFS_inode_fields,
@@ -118,27 +119,32 @@ static char* NOFS_dir_entry(int i, void *block_buffer, unsigned long *inode_nr)
 
 static void NOFS_sb_init(char * sb_buffer)
 {
-  sb->blocksize = 1024;
-  sb->last_block_size = lseek(CURR_DEVICE,0,SEEK_END);
-  sb->nzones = (sb->last_block_size / sb->blocksize);
-  sb->last_block_size = sb->last_block_size % sb->blocksize;
+  struct stat statbuf;
 
-  /* How do we find the size of a block device?? */
-  if (!sb->nzones) sb->nzones = -1L;
+  fstat(CURR_DEVICE, &statbuf);
+
+  sb->blocksize = 1024;
+
+  /* Try to look up the size of the file/device */
+  sb->nzones = ((unsigned long)statbuf.st_size+(sb->blocksize-1UL))/sb->blocksize;
+  if (!sb->nzones)
+    sb->nzones = -1UL;
+
+  sb->last_block_size = (unsigned long)statbuf.st_size % sb->blocksize;
 
   /* In order to prevent division by zeroes, set junk entries to 1 */
-  sb->ninodes = 1;
-  sb->imap_blocks = 1;
-  sb->zmap_blocks = 1;
-  sb->first_data_zone = 0;
-  sb->max_size = 1;
-  sb->zonesize = 1;
-  sb->magic = 0;
+  sb->ninodes = 1UL;
+  sb->imap_blocks = 1UL;
+  sb->zmap_blocks = 1UL;
+  sb->first_data_zone = 0UL;
+  sb->max_size = 1UL;
+  sb->zonesize = 1UL;
+  sb->magic = 0UL;
 
   sb->I_MAP_SLOTS = 1;
   sb->Z_MAP_SLOTS = 1;
   sb->INODES_PER_BLOCK = 1;
-  sb->norm_first_data_zone = 0;
+  sb->norm_first_data_zone = 0UL;
 }
 
 void NOFS_init(char * sb_buffer)
@@ -157,4 +163,5 @@ void NOFS_init(char * sb_buffer)
   FS_cmd.dir_entry = NOFS_dir_entry;
   FS_cmd.read_inode = NOFS_read_inode;
   FS_cmd.write_inode = (int (*)(unsigned long inode_nr, struct Generic_Inode *GInode)) NOFS_null_call;
+  FS_cmd.map_inode = (unsigned long (*)(unsigned long n)) NOFS_one;
 }

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.12 1995/06/02 14:53:43 sdh Exp $
+ *  $Id: tty_lde.c,v 1.13 1996/06/01 05:00:20 sdh Exp $
  */
 
 #include <stdio.h>
@@ -47,15 +47,34 @@ void tty_warn(char *fmt, ...)
   printf("%s\n",echo_string);
 }
 
+/* Immediate printing of warnings and errors to standard out */
+void no_warn(char *fmt, ...)
+{
+}
+
+/* No input  available in tty mode */
+int tty_mgetch()
+{
+  return 13;
+}
+
+/* This looks up the size of the block, the only block which might have
+ * an irregular size is the last block
+ */
+unsigned long lookup_blocksize(unsigned long nr)
+{
+  return (((sb->nzones-1)==nr) ? sb->last_block_size : sb->blocksize);
+}
+
 /* This reads a long int from the user.  It recognizes indicators as to the 
  * type of input for decimal, hex, or octal.  For example if we wanted to
  * input 15, we could enter as hex (0xf, xf, $f), decimal (15), or octal
  * (\017, 017).  sscanf is probably smart enough to recognize these, but 
  * what the hell.
  */
-long read_num(char *cinput)
+unsigned long read_num(char *cinput)
 {
-  long i;
+  unsigned long i;
 
   if  (strlen(cinput)>0) {
     if ((cinput[0]=='$')||(cinput[0]=='x')||(cinput[0]=='X'))
@@ -71,7 +90,7 @@ long read_num(char *cinput)
 	else
 	  i = 0;
     else
-      sscanf(cinput,"%ld", &i);
+      sscanf(cinput,"%lu", &i);
     return i;
   }
 
@@ -82,29 +101,29 @@ char * cache_read_block (unsigned long block_nr, int force)
 {
   static char cache[MAX_BLOCK_SIZE];
   static unsigned long cache_block_nr = -1L; /* set to an outrageous number */
-  int read_count;
+  size_t read_size;
   
   if ((force==FORCE_READ)||(block_nr != cache_block_nr))
     {
       cache_block_nr = block_nr;
       memset(cache,0,sb->blocksize);
       
+      read_size = (size_t) lookup_blocksize(block_nr);
+
       if (lseek (CURR_DEVICE, cache_block_nr * sb->blocksize, SEEK_SET) !=
 	  cache_block_nr * sb->blocksize)                          
 	warn("Read error: unable to seek to block  in cache_read_block", block_nr);
-      else if ( (read_count = read (CURR_DEVICE, cache, sb->blocksize)) != sb->blocksize) {
-	if ((sb->nzones != block_nr) && (read_count != sb->last_block_size)) 
+      else if ( read (CURR_DEVICE, cache, read_size) != read_size)
 	  warn("Unable to read full block (%lu) in cache_read_block",block_nr);
-      }
     }
   return cache;
 }
 
-int write_block (unsigned long block_nr, void *data_buffer)
+int write_block(unsigned long block_nr, void *data_buffer)
 {
-  int write_count;
+  size_t write_count;
 
-  if (!write_ok) {
+  if (!lde_flags.write_ok) {
     warn("Disk not writable, block (%lu) not written",block_nr);
     return -1;
   }
@@ -114,10 +133,7 @@ int write_block (unsigned long block_nr, void *data_buffer)
     warn("Write error: unable to seek to block (%lu) in write_block", block_nr);
     return -1;
   } else {
-    if (sb->nzones == block_nr) 
-      write_count = sb->last_block_size;
-    else
-      write_count = sb->blocksize;
+    write_count = (size_t) lookup_blocksize(block_nr);
     if (write (CURR_DEVICE, data_buffer, write_count) != write_count) {
       warn("Write error: unable to write block (%d) in write_block",block_nr);
       return -1;
@@ -134,32 +150,36 @@ void ddump_block(unsigned long nr)
   unsigned char *dind;
 
   dind = cache_read_block(nr,CACHEABLE);
-  for (i=0;i<BLOCK_SIZE;i++) printf("%c",dind[i]);
+  for (i=0;i<(int)lookup_blocksize(nr);i++) printf("%c",dind[i]);
 }
 
 /* Dumps a full block to STDOUT -- could merge with curses version someday */
 void dump_block(unsigned long nr)
 {
-  int i,j;
+  int i,j=0;
   unsigned char *dind,	 c;
+  size_t blocksize;
 
   dind = cache_read_block(nr,CACHEABLE);
+  blocksize = lookup_blocksize(nr);
 
-  printf("\nDATA FOR BLOCK %lu (%#lX):\n",nr,nr);
-
-  j = 0;
-
-  while (j*16<BLOCK_SIZE) {
-    printf("\n0x%04X = ",j*16);
-    for (i=0;i<8;i++)
-      printf("%2.2X ",dind[j*16+i]);
-    printf(" : ");
-    for (i=0;i<8;i++)
-      printf("%2.2X ",dind[j*16+i+8]);
+  while (j*16<blocksize) {
+    printf("\n0x%08lX  ",j*16+nr*sb->blocksize);
+    for (i=j*16;i<(j*16+8);i++)
+      if (i<blocksize)
+	printf("%2.2X ",dind[i]);
+      else
+	printf("   ");
+    printf(": ");
+    for (i=(j*16+8);i<(j*16+16);i++)
+      if (i<blocksize)
+	printf("%2.2X ",dind[i]);
+      else
+	printf("   ");
     
-    printf("   ");
-    for (i=0;i<16;i++) {
-      c = dind[j*16+i];
+    printf(" ");
+    for (i=(j*16);((i<(j*16+16))&&(i<blocksize));i++) {
+      c = dind[i];
       c = ((c>31)&&(c<127)) ? c : '.';
       printf("%c",c);
     }

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.2 1995/06/01 06:02:48 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.3 1996/06/01 04:57:53 sdh Exp $
  */
 
 /* 
@@ -71,6 +71,7 @@ static struct fs_constants DOS_constants = {
   0,                            /* unsigned short X2_INDIRECT */
   0,                            /* unsigned short X3_INDIRECT */
   1,                            /* unsigned short N_BLOCKS */
+  1,                            /* unsigned long  FIRST_MAP_BLOCK */
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
   &DOS_inode_fields,
@@ -141,6 +142,8 @@ static void DOS_sb_init(void *sb_buffer)
   else
     sb->nzones = Boot->total_sect;
 
+  sb->last_block_size = sb->blocksize;
+
   fsc->ROOT_INODE = 1+2*Boot->fat_length;
 
   /* In order to prevent division by zeroes, set junk entries to 1 */
@@ -174,6 +177,7 @@ void DOS_init(void *sb_buffer)
   FS_cmd.dir_entry = DOS_dir_entry;
   FS_cmd.read_inode = DOS_read_inode;
   FS_cmd.write_inode = (int (*)(unsigned long inode_nr, struct Generic_Inode *GInode)) NOFS_null_call;
+  FS_cmd.map_inode = (unsigned long (*)(unsigned long n)) NOFS_one;
 }
 
 

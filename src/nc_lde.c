@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.15 1995/06/03 05:09:24 sdh Exp $
+ *  $Id: nc_lde.c,v 1.16 1996/06/01 04:59:09 sdh Exp $
  */
 
 #include <stdio.h>
@@ -23,75 +23,10 @@
 #include "nc_inode.h"
 #include "nc_block.h"
 #include "keymap.h"
-
-static lde_keymap recover_keymap[] = {
-  { 'Q', CMD_EXIT_PROG },
-  { 'q', CMD_EXIT },
-  { CTRL('L'), CMD_REFRESH },
-  { '?', CMD_HELP },
-  { KEY_F(1), CMD_HELP },
-  { CTRL('H'), CMD_HELP },
-  { META('H'), CMD_HELP },
-  { META('h'), CMD_HELP },
-  { 'z', CMD_CALL_MENU },
-  { KEY_F(2), CMD_CALL_MENU },
-  { CTRL('O'), CMD_CALL_MENU },
-  { 'v', CMD_DISPLAY_LOG },
-  { 'V', CMD_DISPLAY_LOG },
-  { 'b', CMD_BLOCK_MODE },
-  { 'B', CMD_BLOCK_MODE },
-  { 'i', CMD_INODE_MODE },
-  { 'I', CMD_INODE_MODE },
-  { 's', CMD_VIEW_SUPER },
-  { 'S', CMD_VIEW_SUPER },
-  { 'r', CMD_DO_RECOVER },
-  { 'R', CMD_DO_RECOVER },
-  { '0', REC_FILE0 },
-  { '1', REC_FILE1 },
-  { '2', REC_FILE2 },
-  { '3', REC_FILE3 },
-  { '4', REC_FILE4 },
-  { '5', REC_FILE5 },
-  { '6', REC_FILE6 },
-  { '7', REC_FILE7 },
-  { '8', REC_FILE8 },
-  { '9', REC_FILE9 },
-  { '!', REC_FILE10 },
-  { '@', REC_FILE11 },
-  { '$', REC_FILE12 },
-  { '%', REC_FILE13 },
-  { '^', REC_FILE14 },
-  { 0, 0 }
-};
-
-static lde_keymap main_keymap[] = {
-  { 'Q', CMD_EXIT_PROG },
-  { 'q', CMD_EXIT_PROG },
-  { CTRL('L'), CMD_REFRESH },
-  { '?', CMD_HELP },
-  { KEY_F(1), CMD_HELP },
-  { CTRL('H'), CMD_HELP },
-  { META('H'), CMD_HELP },
-  { META('h'), CMD_HELP },
-  { 'z', CMD_CALL_MENU },
-  { KEY_F(2), CMD_CALL_MENU },
-  { CTRL('O'), CMD_CALL_MENU },
-  { 'v', CMD_DISPLAY_LOG },
-  { 'V', CMD_DISPLAY_LOG },
-  { 'b', CMD_BLOCK_MODE },
-  { 'B', CMD_BLOCK_MODE },
-  { 'i', CMD_INODE_MODE },
-  { 'I', CMD_INODE_MODE },
-  { 's', CMD_VIEW_SUPER },
-  { 'S', CMD_VIEW_SUPER },
-  { 'r', CMD_RECOVERY_MODE },
-  { 'R', CMD_RECOVERY_MODE },
-  { 0, 0 }
-};
-
+  
 
 /* This will recognize escapes keys as "META" strokes */
-int mgetch(void)
+int nc_mgetch(void)
 {
   int c;
 
@@ -122,7 +57,7 @@ int cquery(char *data_string, char *data_options, char *warn_string)
   werase(win);
   box(win,0,0);
   if (strlen(warn_string)) {
-    if (!quiet) beep();
+    if (!lde_flags.quiet) beep();
     mvwprintw(win,3,(WIN_COL-strlen(warn_string))/2-1,"%s",warn_string);
   }
   mvwprintw(win,2,(WIN_COL-strlen(data_string))/2-1,"%s",data_string);
@@ -185,15 +120,13 @@ int cread_num(char *coutput, unsigned long *a)
   return 0;
 }
 
-/* Displays up to two lines in the trailer window */
-void display_trailer(char *line1, char *line2)
+/* Displays one line in the trailer window */
+void display_trailer(char *line1)
 {
 #if TRAILER_SIZE>0
   werase(trailer);
   if (line1 != NULL)
     mvwaddstr(trailer,0,(COLS-strlen(line1))/2-1,line1);
-  if (line2 != NULL)
-    mvwaddstr(trailer,1,(COLS-strlen(line2))/2-1,line2);
   wrefresh(trailer);
 #endif
 }
@@ -212,13 +145,13 @@ void update_header(void)
     if (fake_inode_zones[j]) { 
       mvwaddch(header,HEADER_SIZE-1,HOFF+64+j,'-');
     } else {
-      for (i=0;recover_keymap[i].action_code;i++)
-        if ((j+REC_FILE0)==recover_keymap[i].action_code) {
-          mvwaddch(header,HEADER_SIZE-1,HOFF+64+j,recover_keymap[i].key_code);
+      for (i=0;global_keymap[i].action_code;i++)
+        if ((j+REC_FILE0)==global_keymap[i].action_code) {
+          mvwaddch(header,HEADER_SIZE-1,HOFF+64+j,global_keymap[i].key_code);
           break;
         }
       
-      if (!recover_keymap[i].key_code) {
+      if (!global_keymap[i].key_code) {
         mvwaddch(header,HEADER_SIZE-1,HOFF+64+j,'?');
         continue;
       }
@@ -289,7 +222,7 @@ void nc_warn(char *fmt, ...)
 
   log_error(echo_string);
  
-  if (!quiet) beep();
+  if (!lde_flags.quiet) beep();
 #if TRAILER_SIZE>0
   wmove(trailer,TRAILER_SIZE-1,0);
   wclrtoeol(trailer);
@@ -326,7 +259,7 @@ int error_popup(void)
 }
 
 /* Popup menu */
-int do_popup_menu(lde_menu menu[])
+int do_popup_menu(lde_menu menu[], lde_keymap keys[])
 {
   WINDOW *win, *bigwin;
   int    c, window_length, window_width, length, width, last_highlight = 0, highlight = 0;
@@ -339,7 +272,7 @@ int do_popup_menu(lde_menu menu[])
   }
 
   window_length = ((length+2)<VERT) ? (length+2) : VERT;
-  window_width  = ((width+2)<WIN_COL) ? (width+2) : WIN_COL;
+  window_width  = ((width+2+4)<WIN_COL) ? (width+2+4) : WIN_COL;
 
   bigwin = newwin(window_length,window_width,HEADER_SIZE,0);
 
@@ -352,11 +285,14 @@ int do_popup_menu(lde_menu menu[])
   werase(bigwin);
   box(bigwin,0,0);
 
-  wattron(win,WHITE_ON_RED);
-  mvwprintw(win,0,0,menu[0].description);
-  wattroff(win,WHITE_ON_RED);
-  for (c=1; c < window_length; c++) 
-      mvwprintw(win,c,0,menu[c].description);
+  for (c=0; c < window_length; c++) {
+    if (c==highlight)
+      wattron(win,WHITE_ON_RED);
+    mvwprintw(win,c,0,menu[c].description);
+    if (c==highlight)
+      wattroff(win,WHITE_ON_RED);
+    mvwprintw(win,c,width,text_key(menu[c].action_code,keys));
+  }
   wmove(bigwin,1,1);
   wrefresh(bigwin);
 
@@ -374,8 +310,7 @@ int do_popup_menu(lde_menu menu[])
       case 'J':
 	if (highlight<(window_length-1)) highlight++;
 	break;
-      case 'q':
-      case 'Q':
+      case CTRL('A'):
       case ESC:
 	delwin(win);
 	delwin(bigwin);
@@ -388,6 +323,13 @@ int do_popup_menu(lde_menu menu[])
 	delwin(bigwin);
 	refresh_all();
 	return menu[highlight].action_code;
+      default:
+	if ( (c = lookup_key(c, keys)) != CMD_NO_ACTION ) {
+	  delwin(win);
+	  delwin(bigwin);
+	  refresh_all();
+	  return c;
+	}
     }
 
     if (highlight != last_highlight) { 
@@ -405,58 +347,16 @@ int do_popup_menu(lde_menu menu[])
   return 0;
 }
 
-/* Dumps a line of text to the scrollable help window */
-void dump_scroll(WINDOW *win, int i, int window_offset, int win_col, int banner_size, 
-		 char **banner, char **help_text, int fancy) 
-{
-  int j;
-
-  if (i+window_offset < banner_size ) {
-    if (banner[i+window_offset] != NULL) {
-      wattron(win,WHITE_ON_BLUE);
-      for (j=0;j<win_col;j++)
-	mvwaddch(win,i,j,' ');
-      mvwprintw(win,i,(win_col-strlen(banner[i+window_offset]))/2-1,banner[i+window_offset]);
-      wattroff(win,WHITE_ON_BLUE);
-    }
-  } else
-    mvwprintw(win,i,fancy,help_text[i+window_offset-banner_size]);
-
-  wmove(win,i,fancy);
-}
-
-
 /* Display some help in a separate scrollable window */
 void do_scroll_help(char **help_text, int fancy)
 {
   WINDOW *win, *bigwin;
-  int c, i, length, banner_size, win_col, window_size, window_offset = 0;
+  int c=CMD_NO_ACTION, i, length, banner_size, win_col, window_size, window_offset = 0;
+  char *banner = " lde Help ";
 
-#define BANNER_SIZE 3
-#if (BANNER_SIZE > 0)
-  char *banner[BANNER_SIZE] = {
-    "Program name : Filesystem type : Device name",
-    "Inode: dec. (hex)     Block: dec. (hex)    0123456789!@#$",
-    NULL
-  };
-#else
-  char *banner[0] = { NULL };
-#endif
-
-  if (fancy&HELP_NO_BANNER)
-    banner_size = 0;
-  else
-    banner_size = BANNER_SIZE;
-
-  if (fancy&HELP_WIDE)
-    win_col = COLS;
-  else
-    win_col = WIN_COL;
-
-  if (fancy&HELP_BOXED)
-    fancy = 2;
-  else
-    fancy = 0;
+  banner_size = (fancy&HELP_NO_BANNER)?0:1;
+  win_col     = (fancy&HELP_WIDE)?COLS:WIN_COL;
+  fancy       = (fancy&HELP_BOXED)?2:0;
     
   length = -1;
   while (help_text[++length]!=NULL);
@@ -466,54 +366,57 @@ void do_scroll_help(char **help_text, int fancy)
   werase(bigwin);
 
   if (fancy) {
-    win = derwin(bigwin, window_size - 2 , win_col - 2, 1, 1);
+    win = derwin(bigwin, window_size - 2 - banner_size, win_col - 2, 1+banner_size, 1);
     box(bigwin,0,0);
-    mvwprintw(bigwin,(window_size-1),(win_col/2-20)," Arrows to scroll, any other key to continue. ");
+    mvwprintw(bigwin,(window_size-1),(win_col/2-20)," Arrows to scroll, any other key to continue.");
   } else {
     win = bigwin;
   }
-  
+
+  if (banner_size) {
+    wattron(bigwin,WHITE_ON_BLUE);
+    for (i=1;i<win_col-1;i++)
+      mvwaddch(bigwin,1,i,' ');
+    mvwprintw(bigwin,1,(win_col-strlen(banner))/2-1,banner);
+    wattroff(bigwin,WHITE_ON_BLUE);
+  }
+
   scrollok(win, TRUE);
 
-  for (i=0; i < (window_size - fancy) ; i++) 
-    dump_scroll(win, i, window_offset, win_col, banner_size, 
-		 banner, help_text, fancy);
+  /* Adjust the window size for borders and banners */
+  window_size -= fancy + banner_size;
+
+  for (i=0; i<window_size; i++)
+    mvwprintw(win,i,fancy,help_text[i+window_offset]);
+  wmove(win,i,fancy);
     
   wrefresh(bigwin);
 
-  c = ' ';
-  while (c != 'q') {
-    c = mgetch();
+  while ( (c!=CMD_EXIT)&&(c=lookup_key(mgetch(),help_keymap)) ) {
     i = -1;
     switch (c) {
-      case CTRL('P'):
-      case KEY_UP:
-      case 'K':
-      case 'k':
+      case CMD_PREV_LINE:
 	if (window_offset>0) {
 	  window_offset--;
 	  wscrl(win,-1);
 	  i = 0;
 	}
 	break;
-      case CTRL('N'):
-      case KEY_DOWN:
-      case 'J':
-      case 'j':
-	if ((window_offset+window_size-fancy)<(length+banner_size)) {
+      case CMD_NEXT_LINE:
+	if ((window_offset+window_size)<length) {
 	  window_offset++;
 	  wscrl(win,1);
-	  i = window_size - fancy - 1;
+	  i = window_size - 1;
 	}
 	break;
       default:
-	c = 'q';
-	break;
+	c = CMD_EXIT;
+	continue;
       }
 
     if (i>=0) {
-      dump_scroll(win, i, window_offset, win_col, banner_size, 
-		  banner, help_text, fancy);
+      mvwprintw(win,i,fancy,help_text[i+window_offset]);
+      wmove(win,i,fancy);
       wrefresh(win);
     }
   }
@@ -532,7 +435,7 @@ void flag_popup(void)
   WINDOW *win;
   int c, redraw, flag;
 
-  win = newwin(7,WIN_COL,((VERT-7)/2+HEADER_SIZE),HOFF);
+  win = newwin(7,WIN_COL,((VERT-8)/2+HEADER_SIZE),HOFF);
   werase(win);
 
   flag = 1; c = ' ';
@@ -548,20 +451,20 @@ void flag_popup(void)
 	break;
       case 'W':
       case 'w':
-        if (!paranoid)
-	  write_ok = 1 - write_ok;
+        if (!lde_flags.paranoid)
+	  lde_flags.write_ok = 1 - lde_flags.write_ok;
 	else
 	  warn("Device opened read only, do not specify '--paranoid' on the command line");
 	redraw = 1;
         break;
       case 'A':
       case 'a':
-        rec_flags.search_all = 1 - rec_flags.search_all;
+        lde_flags.search_all = 1 - lde_flags.search_all;
 	redraw = 1;
         break;
       case 'N':
       case 'n':
-        quiet = 1 - quiet;
+        lde_flags.quiet = 1 - lde_flags.quiet;
 	redraw = 1;
         break;
       case CTRL('L'):
@@ -576,9 +479,9 @@ void flag_popup(void)
     wattron(win,RED_ON_BLACK);
     box(win,0,0);
     wattroff(win,RED_ON_BLACK);
-    mvwprintw(win,1,15,"A: (%-3s) Search all blocks",rec_flags.search_all ? "YES" : "NO");
-    mvwprintw(win,2,15,"N: (%-3s) Noise is off -- i.e. quiet",quiet ? "YES" : "NO");
-    mvwprintw(win,3,15,"W: (%-3s) OK to write to file system",write_ok ? "YES" : "NO");
+    mvwprintw(win,1,15,"A: (%-3s) Search all blocks",lde_flags.search_all ? "YES" : "NO");
+    mvwprintw(win,2,15,"N: (%-3s) Noise is off -- i.e. quiet",lde_flags.quiet ? "YES" : "NO");
+    mvwprintw(win,3,15,"W: (%-3s) OK to write to file system",lde_flags.write_ok ? "YES" : "NO");
     mvwprintw(win,5,15,"Q: return to editing");
     wrefresh(win);
   }
@@ -613,7 +516,7 @@ void crecover_file(unsigned long inode_zones[])
 	break;
       }
   } else if ( (fp = open(recover_file_name,O_WRONLY|O_CREAT,0644)) < 0 )
-    warn("Cannot open file '%s'\n",recover_file_name);
+    warn("Cannot open file '%s'",recover_file_name);
 
   if (fp > 0) {
     recover_file(fp, inode_zones);
@@ -627,20 +530,17 @@ int recover_mode(void)
 {
   int j,c,next_cmd=CMD_REFRESH;
   unsigned long a;
-  char recover_labels[INODE_BLKS] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '@', '$', '%', '^' };
+  char recover_labels[INODE_BLKS][4];
 
-#if 0
-  /* Fill in keys used to change blocks in recover mode -- WHY DOESN'T THIS WORK????? */
-  for (j=0;recover_keymap[j].action_code;j++)
-    if ( (REC_FILE0>=recover_keymap[j].action_code)&&(REC_FILE14<=recover_keymap[j].action_code) )
-      recover_labels[j-REC_FILE0] = recover_keymap[j].key_code;
-#endif
+  /* Fill in keys used to change blocks in recover mode */
+  for (j=REC_FILE0; j<REC_FILE_LAST; j++)
+    strncpy(recover_labels[j-REC_FILE0], text_key(j,recover_keymap), 3);
 
   clobber_window(workspace); 
   workspace = newwin(fsc->N_BLOCKS+1,WIN_COL,((VERT-fsc->N_BLOCKS-1)/2+HEADER_SIZE),HOFF);
   werase(workspace);
   
-  display_trailer("Enter character corresponding to block to modify values.  Q to quit.  R to dump to file", "");
+  display_trailer("Change blocks with adjacent characters.  Q to quit.  R to dump to file");
 
   while ( (c=next_cmd)||(c=lookup_key(mgetch(),recover_keymap)) ) {
     next_cmd = 0;
@@ -675,7 +575,7 @@ int recover_mode(void)
 	flag_popup();
 	break;
       case CMD_CALL_MENU:
-	next_cmd = do_popup_menu(recover_menu);	
+	next_cmd = do_popup_menu(recover_menu,recover_keymap);	
 	break;
       case CMD_HELP:
 	do_scroll_help(recover_help, FANCY);
@@ -685,6 +585,9 @@ int recover_mode(void)
       case CMD_DO_RECOVER:
 	crecover_file(fake_inode_zones);
 	break;
+      case CMD_CHECK_RECOVER:
+	(void) check_recover_file(fake_inode_zones);
+	break;
       case CMD_DISPLAY_LOG:
 	error_popup();
 	break;
@@ -692,22 +595,22 @@ int recover_mode(void)
         continue;
     }
 
-    mvwprintw(workspace,0,0,"DIRECT BLOCKS:" );
+    mvwprintw(workspace,0,20,"DIRECT BLOCKS:" );
     for (j=0;j<fsc->N_DIRECT; j++)
-      mvwprintw(workspace,j,20," %1c : 0x%8.8lX",recover_labels[j],fake_inode_zones[j]);
+      mvwprintw(workspace,j,40," %1c : 0x%8.8lX",recover_labels[j],fake_inode_zones[j]);
     if (fsc->INDIRECT) {
-      mvwprintw(workspace,j,0,"INDIRECT BLOCK:" );
-      mvwprintw(workspace,j,20," %1c : 0x%8.8lX",recover_labels[j],fake_inode_zones[fsc->INDIRECT]);
+      mvwprintw(workspace,j,20,"INDIRECT BLOCK:" );
+      mvwprintw(workspace,j,40," %1c : 0x%8.8lX",recover_labels[j],fake_inode_zones[fsc->INDIRECT]);
       j++;
     }
     if (fsc->X2_INDIRECT) {
-      mvwprintw(workspace,j,0,"2x INDIRECT BLOCK:" );
-      mvwprintw(workspace,j,20," %1c : 0x%8.8lX",recover_labels[j],fake_inode_zones[fsc->X2_INDIRECT]);
+      mvwprintw(workspace,j,20,"2x INDIRECT BLOCK:" );
+      mvwprintw(workspace,j,40," %1c : 0x%8.8lX",recover_labels[j],fake_inode_zones[fsc->X2_INDIRECT]);
       j++;
     }
     if (fsc->X3_INDIRECT) {
-      mvwprintw(workspace,j,0,"3x INDIRECT BLOCK:" );
-      mvwprintw(workspace,j,20," %1c : 0x%8.8lX",recover_labels[j],fake_inode_zones[fsc->X3_INDIRECT]);
+      mvwprintw(workspace,j,20,"3x INDIRECT BLOCK:" );
+      mvwprintw(workspace,j,40," %1c : 0x%8.8lX",recover_labels[j],fake_inode_zones[fsc->X3_INDIRECT]);
       j++;
     }
     wrefresh(workspace);
@@ -738,6 +641,7 @@ void show_super(void)
   return;
 }
 
+/* Lookup action associated with keypressed */
 int lookup_key(int c, lde_keymap *kmap)
 {
   int i;
@@ -748,7 +652,69 @@ int lookup_key(int c, lde_keymap *kmap)
     }
   }
 
+  for (i=0;global_keymap[i].key_code;i++) {
+    if (c==global_keymap[i].key_code) {
+      return global_keymap[i].action_code;
+    }
+  }
+
   return CMD_NO_ACTION;
+}
+
+/* Check if we should display special keys 
+ * (i.e. Function keys and cursors, etc.) */
+char *check_special(int c) 
+{
+  static int i;
+  
+  for (i=0;special_keys[i].action_code;i++) {
+    if (c==special_keys[i].action_code)
+      return special_keys[i].description;
+  }
+  
+  return NULL;
+}
+
+/* Convert action code to key which would ellicit this action */
+char *text_key(int c, lde_keymap *kmap)
+{
+  int i;
+  static char stat_return_string[5], *return_string;
+  
+  for (i=0;kmap[i].action_code;i++) {
+    
+    if (c==kmap[i].action_code) {
+      c = kmap[i].key_code;
+
+      /* Look for special keys */
+      if ((return_string=check_special(c))!=NULL)
+	return return_string;
+      
+      return_string = stat_return_string;
+      memset(return_string,0,5);
+
+      /* Look for meta and ctrl keys */
+      if (IS_META(c)) {
+	strcpy(return_string,"M-");
+	c = INV_META(c);
+      } else if (IS_CTRL(c)) {
+	strcpy(return_string,"C-");
+	c = INV_CTRL(c);
+      } else {
+	strcpy(return_string," ");
+      }
+
+      return_string[strlen(return_string)] = c;
+      return return_string;
+    }
+  }
+
+  /* If we didn't find it in the requested keymap,
+   * search the global keymap */
+  if (kmap!=global_keymap)
+    return text_key(c, global_keymap);
+
+  return "   ";
 }
  
 
@@ -800,30 +766,32 @@ void interactive_main(void)
     switch (c) {
       case CMD_BLOCK_MODE:
         next_cmd = block_mode();
-        break;
+        continue;
       case CMD_FLAG_ADJUST:
 	flag_popup();
 	break;
       case CMD_INODE_MODE:
 	next_cmd = inode_mode();
-	break;
+	continue;
       case CMD_EXIT_PROG:
 	endwin();
 	return;
 	break;
       case CMD_RECOVERY_MODE:
 	next_cmd = recover_mode();
-	break;
+	continue;
       case CMD_DISPLAY_LOG:
 	error_popup();
 	break;
       case CMD_CALL_MENU:
-	next_cmd = do_popup_menu(ncmain_menu);	
+	next_cmd = do_popup_menu(ncmain_menu,main_keymap);	
 	break;
       case CMD_HELP:
 	do_scroll_help(ncmain_help,FANCY);
       case CMD_REFRESH:
 	refresh_all();
+	break;
+      case CMD_VIEW_SUPER:
 	break;
       default:
 	continue;
@@ -831,7 +799,7 @@ void interactive_main(void)
 
     show_super();
     update_header();
-    display_trailer("", "F)lags, I)node, B)locks, R)ecover File");
+    display_trailer("F)lags, I)node, B)locks, R)ecover File");
 
   }
   

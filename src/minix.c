@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.8 1995/06/01 06:02:54 sdh Exp $
+ *  $Id: minix.c,v 1.9 1996/06/01 04:57:20 sdh Exp $
  */
 
 /* 
@@ -79,6 +79,7 @@ struct fs_constants MINIX_constants = {
   8,                            /* unsigned short X2_INDIRECT */
   0,                            /* unsigned short X3_INDIRECT */
   9,                            /* unsigned short N_BLOCKS */
+  2,                            /* unsigned long  FIRST_MAP_BLOCK */
   2,                            /* int ZONE_ENTRY_SIZE */
   2,                            /* int INODE_ENTRY_SIZE */
   &MINIX_inode_fields,          /* struct * inode_fields */
@@ -171,6 +172,12 @@ static char *MINIX_dir_entry(int i, void *block_buffer, unsigned long *inode_nr)
   return (cname);
 }
 
+unsigned long MINIX_map_inode(unsigned long nr)
+{
+  return ((sb->imap_blocks + sb->zmap_blocks + sb->first_data_zone + 1UL) +
+	  nr / sb->INODES_PER_BLOCK);
+}
+
 static void MINIX_sb_init(void *sb_buffer)
 {
   struct minix_super_block *Super;
@@ -184,6 +191,7 @@ static void MINIX_sb_init(void *sb_buffer)
   sb->max_size        = Super->s_max_size;
   sb->zonesize        = Super->s_log_zone_size;
   sb->blocksize       = 1024;
+  sb->last_block_size = sb->blocksize;
   sb->magic           = Super->s_magic;
 
   sb->I_MAP_SLOTS = MINIX_I_MAP_SLOTS;
@@ -219,6 +227,16 @@ void MINIX_read_tables()
   if (sb->norm_first_data_zone != sb->first_data_zone)
     warn("Warning: Firstzone != Norm_firstzone");
 
+  /* Do seek to proper block */
+  #if WHY_THE_HELL_WAS_FIRST_ZONE_HERE
+  if (lseek(CURR_DEVICE, ((sb->first_data_zone+1UL)*sb->blocksize), SEEK_SET) != 
+      ((sb->first_data_zone+1UL)*sb->blocksize))
+    warn("Unable to seek block 0x%lX in minix_read_tables",sb->first_data_zone+1UL);
+  #endif
+  if (lseek(CURR_DEVICE, (fsc->FIRST_MAP_BLOCK*sb->blocksize), SEEK_SET) != 
+      (fsc->FIRST_MAP_BLOCK*sb->blocksize))
+    warn("Unable to seek block 0x%lX in minix_read_tables",fsc->FIRST_MAP_BLOCK);
+
   /* Now read in tables */
   if (sb->imap_blocks*sb->blocksize != read(CURR_DEVICE,inode_map,sb->imap_blocks*sb->blocksize)) {
     warn("Unable to read inode map");
@@ -250,10 +268,11 @@ void MINIX_init(void *sb_buffer)
   }
 
   FS_cmd.inode_in_use = MINIX_inode_in_use;
-  FS_cmd.zone_in_use = MINIX_zone_in_use;
-  FS_cmd.dir_entry = MINIX_dir_entry;
-  FS_cmd.read_inode = MINIX_read_inode;
-  FS_cmd.write_inode = MINIX_write_inode;
+  FS_cmd.zone_in_use  = MINIX_zone_in_use;
+  FS_cmd.dir_entry    = MINIX_dir_entry;
+  FS_cmd.read_inode   = MINIX_read_inode;
+  FS_cmd.write_inode  = MINIX_write_inode;
+  FS_cmd.map_inode    = MINIX_map_inode;
 
   MINIX_read_tables();
 

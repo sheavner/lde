@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.10 1995/06/03 05:10:15 sdh Exp $
+ *  $Id: nc_inode.c,v 1.11 1996/06/01 04:58:41 sdh Exp $
  */
 
 #include <ctype.h>
@@ -25,89 +25,6 @@
 
 #define LDE_DUMP_ILABELS 128
 
-/* default keymap for directory mode -- are all these really necessary ??? */
-static lde_keymap inodemode_keymap[] = {
-  { 'Q', CMD_EXIT_PROG },
-  { 'q', CMD_EXIT_PROG },
-  { 'D', CMD_EXPAND_SUBDIR_MC },
-  { CTRL('L'), CMD_REFRESH },
-  { '?', CMD_HELP },
-  { KEY_F(1), CMD_HELP },
-  { CTRL('H'), CMD_HELP },
-  { META('H'), CMD_HELP },
-  { META('h'), CMD_HELP },
-  { 'z', CMD_CALL_MENU },
-  { KEY_F(2), CMD_CALL_MENU },
-  { CTRL('O'), CMD_CALL_MENU },
-  { '#', CMD_NUMERIC_REF },
-  { CTRL('A'), CMD_ABORT_EDIT },
-  { CTRL('W'), CMD_WRITE_CHANGES },
-  { 'v', CMD_DISPLAY_LOG },
-  { 'V', CMD_DISPLAY_LOG },
-  { 'f', CMD_FLAG_ADJUST },
-  { 'p', CMD_PASTE },
-  { 'P', CMD_PASTE },
-  { 'c', CMD_COPY },
-  { 'C', CMD_COPY },
-  { 'd', CMD_VIEW_AS_DIR },
-  { 'D', CMD_VIEW_AS_DIR },
-  { 'e', CMD_EDIT },
-  { 'E', CMD_EDIT },
-  { CTRL('M'), CMD_EDIT },
-  { CTRL('J'), CMD_EDIT },
-  { 'b', CMD_BLOCK_MODE },
-  { 'B', CMD_BLOCK_MODE_MC },
-  { 's', CMD_VIEW_SUPER },
-  { 'S', CMD_VIEW_SUPER },
-  { 'r', CMD_RECOVERY_MODE },
-  { 'R', CMD_RECOVERY_MODE_MC },
-  { CTRL('U'), CMD_PREV_INODE },
-  { META('V'), CMD_PREV_INODE },
-  { KEY_PPAGE, CMD_PREV_INODE },
-  { KEY_NPAGE, CMD_NEXT_INODE },
-  { CTRL('V'), CMD_NEXT_INODE },
-  { CTRL('D'), CMD_NEXT_INODE },
-  { 'h', CMD_PREV_FIELD },
-  { 'H', CMD_PREV_FIELD },
-  { KEY_BTAB, CMD_PREV_FIELD },
-  { CTRL('B'), CMD_PREV_FIELD },
-  { KEY_BACKSPACE, CMD_PREV_FIELD },
-  { KEY_DC, CMD_PREV_FIELD },
-  { KEY_LEFT, CMD_PREV_FIELD },
-  { CTRL('U'), CMD_PREV_FIELD },
-  { CTRL('V'), CMD_PREV_FIELD },
-  { CTRL('P'), CMD_PREV_FIELD },
-  { KEY_UP, CMD_PREV_FIELD },
-  { 'K', CMD_PREV_FIELD },
-  { 'k', CMD_PREV_FIELD },
-  { 'l', CMD_NEXT_FIELD },
-  { 'L', CMD_NEXT_FIELD },
-  { CTRL('D'), CMD_NEXT_FIELD },
-  { CTRL('F'), CMD_NEXT_FIELD },
-  { META('V'), CMD_NEXT_FIELD },
-  { KEY_RIGHT, CMD_NEXT_FIELD },
-  { CTRL('I'), CMD_NEXT_FIELD },
-  { CTRL('N'), CMD_NEXT_FIELD },
-  { KEY_DOWN, CMD_NEXT_FIELD },
-  { 'J', CMD_NEXT_FIELD },
-  { 'j', CMD_NEXT_FIELD },
-  { '0', REC_FILE0 },
-  { '1', REC_FILE1 },
-  { '2', REC_FILE2 },
-  { '3', REC_FILE3 },
-  { '4', REC_FILE4 },
-  { '5', REC_FILE5 },
-  { '6', REC_FILE6 },
-  { '7', REC_FILE7 },
-  { '8', REC_FILE8 },
-  { '9', REC_FILE9 },
-  { '!', REC_FILE10 },
-  { '@', REC_FILE11 },
-  { '$', REC_FILE12 },
-  { '%', REC_FILE13 },
-  { '^', REC_FILE14 },
-  { 0, 0 }
-};
 
 static struct { /* Someday I'll clean up dump_inode() to use something like this */
   int sb_entry;
@@ -152,7 +69,7 @@ static void cwrite_inode(unsigned long inode_nr, struct Generic_Inode *GInode, i
 #ifndef NO_WRITE_INODE
   if (*mod_yes) {
     while ( (c = cquery("WRITE OUT INODE DATA TO DISK [Y/N]? ","ynfq",
-			write_ok?"":"(NOTE: write permission not set on disk, use 'F' to set flags before 'Y')")
+			lde_flags.write_ok?"":"(NOTE: write permission not set on disk, use 'F' to set flags before 'Y')")
 	     ) == 'f') {
       flag_popup();
     }
@@ -496,7 +413,7 @@ void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *G
     return;
   }
 #endif /* NC_FIXED_UNGETCH */
-  if (!write_ok) warn("Disk not writeable, change status flags with (F)");
+  if (!lde_flags.write_ok) warn("Disk not writeable, change status flags with (F)");
 }
 
 
@@ -507,8 +424,8 @@ int inode_mode() {
   unsigned long a;
   static unsigned char *copy_buffer = NULL;
 
-  display_trailer("F1/H for help.  F2/^O for menu.  Q to quit",
-		  "PG_UP/DOWN = previous/next inode, or '#' to enter inode number");
+  display_trailer("F1/H for help.  F2/^O for menu.  Q to quit");
+
   GInode = FS_cmd.read_inode(current_inode);
   cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
 
@@ -607,6 +524,12 @@ int inode_mode() {
 	  }
 	break;
 
+      case CMD_BIN_INODE: /* View raw inode in block mode */
+	current_block = FS_cmd.map_inode(current_inode);
+	cwrite_inode(current_inode, GInode, &modified);
+	return CMD_BLOCK_MODE;
+	break;
+
       case CMD_COPY: /* Copy inode to copy buffer */
 	if (!copy_buffer) copy_buffer = malloc(sizeof(struct Generic_Inode));
 	memcpy(copy_buffer,GInode,sizeof(struct Generic_Inode));
@@ -618,7 +541,7 @@ int inode_mode() {
 	  modified = 1;
 	  memcpy(GInode,copy_buffer,sizeof(struct Generic_Inode));
 	  cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
-	  if (!write_ok) warn("Turn on write permissions before saving this inode");
+	  if (!lde_flags.write_ok) warn("Turn on write permissions before saving this inode");
 	} else {
 	  warn("Nothing in copy buffer.");
 	}
@@ -647,9 +570,9 @@ int inode_mode() {
 	break;
 
       case CMD_CALL_MENU: /* Display popup menu, process submenus here */
-	next_cmd = do_popup_menu(inode_menu);	
+	next_cmd = do_popup_menu(inode_menu,inodemode_keymap);	
 	if (next_cmd == CMD_CALL_MENU) 
-	  next_cmd = do_popup_menu(edit_menu);
+	  next_cmd = do_popup_menu(edit_menu,inodemode_keymap);
 	break;
 
       case CMD_HELP: /* Display help */

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.11 1995/06/02 14:22:25 sdh Exp $
+ *  $Id: ext2fs.c,v 1.12 1996/06/01 04:56:20 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -100,6 +100,7 @@ static struct fs_constants EXT2_constants = {
   EXT2_DIND_BLOCK,              /* unsigned short X2_INDIRECT */
   EXT2_TIND_BLOCK,              /* unsigned short X3_INDIRECT */
   EXT2_N_BLOCKS,                /* unsigned short N_BLOCKS */
+  0,                            /* unsigned long  FIRST_MAP_BLOCK */
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
   &EXT2_inode_fields,
@@ -108,7 +109,7 @@ static struct fs_constants EXT2_constants = {
 static unsigned long group_desc_count;
 static struct ext2_group_desc * group_desc = NULL;
 
-static unsigned long EXT2_map_inode(unsigned long ino)
+unsigned long EXT2_map_inode(unsigned long ino)
 {
   unsigned long group;
   unsigned long block;
@@ -349,6 +350,8 @@ static void EXT2_sb_init(void *sb_buffer)
   temp = ((double) sb->blocksize) / fsc->ZONE_ENTRY_SIZE;
   sb->max_size = fsc->N_DIRECT + temp * ( 1 + temp + temp * temp);
   sb->norm_first_data_zone = 1UL;
+
+  sb->last_block_size = sb->blocksize;
 }
 
 void EXT2_init(void *sb_buffer)
@@ -362,6 +365,7 @@ void EXT2_init(void *sb_buffer)
   FS_cmd.dir_entry    = EXT2_dir_entry;
   FS_cmd.read_inode   = EXT2_read_inode;
   FS_cmd.write_inode  = EXT2_write_inode;
+  FS_cmd.map_inode    = EXT2_map_inode;
 
   EXT2_read_tables();
 

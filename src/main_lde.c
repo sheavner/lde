@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.10 1995/06/02 14:24:26 sdh Exp $
+ *  $Id: main_lde.c,v 1.11 1996/06/01 04:57:03 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -37,14 +37,14 @@
 struct _main_opts {
   int search_len;
   int search_all;
+  int search_off;
   int fs_type;
-  int idump_all;
-  int bdump_all;
   int grep_mode;
   int scrubxiafs;
-  unsigned long idump;
-  unsigned long bdump;
-  unsigned long ddump;
+  int dump_all;
+  unsigned dump_start;
+  unsigned dump_end;
+  void (*dumper)(unsigned long nr);
   char *search_string;
 };
 
@@ -52,6 +52,7 @@ struct _search_types {
   char *name;
   char *string;
   int length; 
+  int offset;
 };
 
 /* Initialize some global variables */
@@ -69,11 +70,8 @@ struct sbinfo sb2, *sb = &sb2;
 struct fs_constants *fsc = NULL;
 
 int CURR_DEVICE = 0;
-int paranoid = 0, list = 0;
-int write_ok = 0, quiet = 0;
-
-struct _rec_flags rec_flags = 
-  { 0 } ;
+struct _lde_flags lde_flags = 
+  { 0, 0, 0, 0, 0, 0 } ;
 
 
 /* Check if device is mounted, return 1 if is mounted else 0 */
@@ -126,7 +124,7 @@ void read_tables(int fs_type)
    */
  
   super_block_buffer = cache_read_block(0UL, FORCE_READ);
-  warn("User requested %s filesystem. Checking device . . .\n",text_names[fs_type]);
+  warn("User requested %s filesystem. Checking device . . .",text_names[fs_type]);
   if ( ((fs_type==AUTODETECT)&&(MINIX_test(super_block_buffer))) || (fs_type==MINIX) ) {
     MINIX_init(super_block_buffer);
   } else if ( ((fs_type==AUTODETECT)&&(EXT2_test(super_block_buffer))) || (fs_type==EXT2) ) {
@@ -147,7 +145,7 @@ void die(char *msg)
   exit(1);
 }
 
-#define USAGE_STRING "[-VvIibBdcCStThH?] /dev/name"
+#define USAGE_STRING "[-VvIibBdcCStTLOhH?] /dev/name"
 static void usage(void)
 {
   fprintf(stderr,"Usage: %s %s\n",program_name,USAGE_STRING);
@@ -157,17 +155,22 @@ static void usage(void)
 static void long_usage(void)
 {
   printf("This is %s (version %s), Usage %s %s\n",program_name,VERSION,program_name,USAGE_STRING);
-  printf("   -i ##:      dump inode number # to stdout (-I all inodes after #) \n");
-  printf("   -b ##:      dump block number # to stdout (-B all blocks after #)\n");
-  printf("   -d ##:      dump block's data to stdout (binary format)\n");
-  printf("   -S string:  search disk for data (questionable)\n");
-  printf("   -T type:    search disk for data. type = {gz, tgz, script}\n");
-  printf("   -t fstype:  Overide the autodetect. fstype = {no, minix, xiafs, ext2fs, msdos}\n");
-  printf("   --help:     output this screen\n");
-  printf("   --paranoid: Open the device read only.\n");
-  printf("   --quiet:    Turn off warning beeps.\n");
-  printf("   --version:  print version information\n");
-  printf("   --write:    Allow writes to the device.\n");
+  printf("   -i ##:       Dump inode number # to stdout (-I all inodes after #) \n");
+  printf("   -b ##:       Dump block number # to stdout (-B all blocks after #)\n");
+  printf("   -N ##:       Number of blocks to dump (using -I or -B option)\n");
+  printf("   -d ##:       Dump block's data to stdout (binary format)\n");
+  printf("   -S string:   Search disk for data (questionable)\n");
+  printf("   -T type:     Search disk for data. type = {gz, tgz, script, or use filename}\n");
+  printf("   -L ##:             Search length (when using specified filename)\n");
+  printf("   -O ##:             Search offset (when using specified filename)\n");
+  printf("   --indirects:       Search filesystem for things that look like indirect blocks.\n");
+  printf("   --ilookup:         Lookup inodes for all matches when searching.\n");
+  printf("   -t fstype:   Overide the autodetect. fstype = {no, minix, xiafs, ext2fs, msdos}\n");
+  printf("   --help:      Output this screen\n");
+  printf("   --paranoid:  Open the device read only.\n");
+  printf("   --quiet:     Turn off warning beeps.\n");
+  printf("   --version:   Print version information\n");
+  printf("   --write:     Allow writes to the device.\n");
 }
 
 static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
@@ -177,9 +180,10 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
   static char gzip_tar_type[] = { 31, 138, 8, 0 };
   static char gzip_type[] = { 31, 139 };
   struct _search_types search_types[] = {
-      { "tgz", gzip_tar_type, 4 },
-      { "gz", gzip_type, 2 },
-      { "script", "#!/b", 4 }
+      { "tgz", gzip_tar_type, 4, 0 },
+      { "gz", gzip_type, 2, 0},
+      { "script", "#!/b", 4, 0 },
+      { "", NULL, 0, 0 }
   };
   struct option long_options[] =
     {
@@ -189,6 +193,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       {"help", 0, 0, 'h'},
       {"inode", 1, 0, 'i'},
       {"block", 1, 0, 'b'},
+      {"limit", 1, 0, 'l'},
       {"all", 0, 0, 'a'},
       {"grep", 0, 0, 'g'},
       {"write", 0, 0, 'w'},
@@ -196,6 +201,10 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       {"read-only", 0, 0, 'p'},
       {"safe", 0, 0, 'p'},
       {"quiet", 0, 0, 'q'},
+      {"offset",1,0,'O'},
+      {"length",1,0,'L'},
+      {"indirects",0,0,'!'},
+      {"ilookup",0,0,'@'},
       {0, 0, 0, 0}
     };
 
@@ -206,7 +215,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
   while (1) {
     option_index = 0;
 
-    c = getopt_long (argc, argv, "avI:i:b:B:d:cCgpqS:t:T:whH?",
+    c = getopt_long (argc, argv, "avI:i:n:B:b:D:d:gpqS:t:T:whH?O:L:",
 		     long_options, &option_index);
 
     if (c == -1)
@@ -227,38 +236,46 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 
       case 'V': /* Display version */
       case 'v':
-	warn("This is %s (version %s).\n",program_name,VERSION);
+	warn("This is %s (version %s).",program_name,VERSION);
 	exit(0);
 	break;
       case 'a': /* Search disk space marked in use as well as unused */
-	rec_flags.search_all = 1;
+	lde_flags.search_all = 1;
 	break;
       case 'g': /* Search for an inode which contains the specified block */
 	opts->grep_mode = 1;
 	break;
       case 'I':
-	opts->idump_all=1;
+	opts->dump_all=1;
       case 'i': /* dump a formatted inode to stdout */
-	opts->idump = read_num(optarg);
+	opts->dump_start = read_num(optarg);
+	opts->dumper = dump_inode;
 	break;
       case 'B': 
-	opts->bdump_all=1;
+	opts->dump_all=1;
       case 'b': /* dump a block to stdout (Hex/ASCII) */
-	opts->bdump = read_num(optarg);
+	opts->dump_start = read_num(optarg);
+	opts->dumper = dump_block;
 	break;
+      case 'n': /* limit number of inodes/blocks dumped */
+	opts->dump_end = read_num(optarg);
+	break;
+      case 'D': 
+	opts->dump_all=1;
       case 'd': /* dump a block to stdout -- binary format -- why not use dd?? */
-	opts->ddump = read_num(optarg);
+	opts->dump_start = read_num(optarg);
+	opts->dumper = ddump_block;
 	break;
       case 'r':
       case 'p': /* open FS read only */
-	paranoid = 1;
+	lde_flags.paranoid = 1;
 	break;
       case 'q': /* no audio -- well nop beeps */
-	quiet = 1;
+	lde_flags.quiet = 1;
 	break;
-      case 'S': /* Seatch for a string of data */
-	opts->search_all = 1;
+      case 'S': /* Search for a string of data */
 	opts->search_string = optarg;
+	opts->search_len = strlen(opts->search_string);
 	break;
       case 't': /* Specify the FS on the disk */
 	i = NONE;
@@ -282,28 +299,50 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	}
 	break;
       case 'T': /* Search for a file by type */
-	opts->search_all = 1;
 	i = -1;
 	while (strcmp(search_types[++i].name,"")) {
 	  if (!strncmp(optarg, search_types[i].name, search_types[i].length)) {
-	    opts->search_string = search_types[i].string;
-	    opts->search_len = search_types[i].length;
-	    break;
+	    if (i) {
+	      opts->search_string = search_types[i].string;
+	      opts->search_len = search_types[i].length;
+	      opts->search_off = search_types[i].offset;
+	      break;
+	    }
 	  }
 	}
-	if (!opts->search_len) {
-	  warn("`%s' type not recognized.",optarg);
-	  i = -1;
-	  printf("Supported types include: ");
-	  while (strcmp(search_types[++i].name,"")) {
-	    printf("%s ",search_types[i].name);
+
+	if (opts->search_string==NULL) {
+	  i = open(optarg,O_RDONLY);
+	  if (i) {
+	    opts->search_string = malloc(MAX_BLOCK_SIZE);
+	    if (read(i,opts->search_string,MAX_BLOCK_SIZE)<=0) {
+	      free(opts->search_string);
+	      opts->search_string=NULL;
+	    }
+	    close(i);
+	  } else {
+	    warn("Can't open search file: %s",opts->search_string);
 	  }
-	  printf("\n");
-	  exit(0);
+	}
+	break;
+      case 'O': /* Set offset for search string */
+	opts->search_off = read_num(optarg);
+	break;
+      case 'L': /* Set length for search string */
+	opts->search_len = read_num(optarg);
+        if (opts->search_len>MAX_BLOCK_SIZE) {
+	  warn("Search length reset to %d blocks.",MAX_BLOCK_SIZE);
+	  opts->search_len = MAX_BLOCK_SIZE;
 	}
 	break;
       case 'w': /* Set FS writable */
-	write_ok = 1;
+	lde_flags.write_ok = 1;
+	break;
+      case '!': /* Search for indirect blocks. */
+	lde_flags.indirect_search = 1;
+	break;
+      case '@': /* Lookup inodes on search matches. */
+	lde_flags.inode_lookup = 1;
 	break;
       case 'h': /* HELP */
       case 'H':
@@ -332,25 +371,31 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 void main(int argc, char ** argv)
 {
   int i;
-  char search_string[10];
   
-  struct _main_opts main_opts = { 0, 0, AUTODETECT, 0, 0, 0, 0, 0UL, 0UL, 0UL, search_string };
+  struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0, 0UL, 1UL, NULL, NULL };
 
   warn = tty_warn;
+  mgetch = tty_mgetch;
 
   parse_cmdline(argc, argv, &main_opts);
 
-  if (check_mount(device_name)&&!paranoid) warn("DEVICE: %s is mounted, be careful",device_name);
+  if (main_opts.dumper) /* Supress warnings when dumping to stdio */
+    warn = no_warn;
+
+  if (check_mount(device_name)&&!lde_flags.paranoid) warn("DEVICE: %s is mounted, be careful",device_name);
 
 #ifndef PARANOID
-  if (!paranoid)
+  if (!lde_flags.paranoid)
     CURR_DEVICE = open(device_name,O_RDWR);
   else
 #endif
     CURR_DEVICE = open(device_name,O_RDONLY);
   
-  if (CURR_DEVICE < 0)
-    die("unable to open '%s'");
+  if (CURR_DEVICE < 0) {
+    warn("Unable to open '%s'",device_name);
+    exit(1);
+  }
+
   for (i=0 ; i<3 ; i++)
     sync();
 
@@ -363,41 +408,42 @@ void main(int argc, char ** argv)
 
   read_tables(main_opts.fs_type);
 
-  if (main_opts.ddump) {
-    if (main_opts.ddump<sb->nzones) 
-      ddump_block(main_opts.ddump);
-    exit(0);
-  } else if (main_opts.bdump||main_opts.bdump_all) {
-    list=1;
-    if (main_opts.bdump<sb->nzones) 
-      if (main_opts.bdump_all)
-	for (i=main_opts.bdump;i<sb->nzones;i++) dump_block(i);
-      else
-	dump_block(main_opts.bdump);
-    else
-      warn("Zone %d out of range.",main_opts.bdump);
-    exit(0);
-  } else if (main_opts.idump||main_opts.idump_all) {
-    list=1;
-    if (main_opts.idump==0) main_opts.idump=1;
-    if (main_opts.idump<sb->ninodes) 
-      if (main_opts.idump_all)
-	for (i=main_opts.idump;i<sb->ninodes;i++) dump_inode(i);
-      else
-      	dump_inode(main_opts.idump);
-    else
-      warn("Inode %d out of range.",main_opts.idump);
+  if (main_opts.dumper) {
+    main_opts.dump_end += main_opts.dump_start;
+    if (main_opts.dumper==dump_inode) {
+      if ((main_opts.dump_start>sb->ninodes)||(main_opts.dump_end>sb->ninodes)||
+	  (!main_opts.dump_start)||(!main_opts.dump_end)) {
+	tty_warn("Inode out of range:  Start = 0x%lX (%lu), \n\tEnd = 0x%lX (%lu), Min = 0x1, Max = 0x%lX (%lu)",
+		 main_opts.dump_start,main_opts.dump_start,
+		 main_opts.dump_end,main_opts.dump_end,sb->ninodes,sb->ninodes);
+	exit(-1);
+      } else if ((main_opts.dump_end==(main_opts.dump_start+1UL))&&(main_opts.dump_all)) {
+	main_opts.dump_end = sb->ninodes;
+      }
+    } else {
+      if ((main_opts.dump_start>sb->nzones)||(main_opts.dump_end>sb->nzones)) {
+	tty_warn("Block out of range:  Start = 0x%lX (%lu), \n\tEnd = 0x%lX (%lu), Max = 0x%lX (%lu)",
+		 main_opts.dump_start,main_opts.dump_start,main_opts.dump_end,
+		 main_opts.dump_end,sb->nzones,sb->nzones);
+	exit(-1);
+      } else if ((main_opts.dump_end==(main_opts.dump_start+1UL))&&(main_opts.dump_all)) {
+	main_opts.dump_end = sb->nzones;
+      }
+    }
+    for (i=main_opts.dump_start; i<main_opts.dump_end; i++)
+      main_opts.dumper(i);
     exit(0);
   } else if (main_opts.grep_mode) {
     parse_grep();
     exit(0);
-  } else if (main_opts.search_all) {
-    search_fs(main_opts.search_string, main_opts.search_len);
+  } else if (main_opts.search_string!=NULL) {
+    search_fs(main_opts.search_string, main_opts.search_len, main_opts.search_off);
     exit(0);
   }
 
 #ifdef LDE_CURSES
   warn = nc_warn;
+  mgetch = nc_mgetch;
   interactive_main();
 #endif
 
