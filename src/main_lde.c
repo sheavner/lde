@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.14 1996/09/15 19:21:30 sdh Exp $
+ *  $Id: main_lde.c,v 1.15 1996/09/15 21:24:01 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -174,8 +174,8 @@ static void long_usage(void)
   printf("   -O ##:             Search offset (when using specified filename)\n");
   printf("   -N ##:             Starting search block (defaults to first data zone)\n");
   printf("   --indirects:       Search filesystem for things that look like indirect blocks.\n");
-  printf("   --ilookup:         Lookup inodes for all matches when searching.\n");
-  printf("   --recoverable:     Check to see if inode is reoverable (requires --ilookup).\n");
+  printf("   --ilookup:         Lookup inodes for all matches when searching (also use with -b).\n");
+  printf("   --recoverable:     Check to see if inode is recoverable (requires --ilookup or -i/-I).\n");
   printf("   -t fstype:   Overide the autodetect. fstype = {no, minix, xiafs, ext2fs, msdos}\n");
   printf("   --help:      Output this screen\n");
   printf("   --paranoid:  Open the device read only.\n");
@@ -229,7 +229,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
   while (1) {
     option_index = 0;
 
-    c = getopt_long (argc, argv, "avI:i:n:B:b:D:d:gpqS:t:T:whH?O:L:",
+    c = getopt_long (argc, argv, "avI:i:n:N:B:b:D:d:gpqS:t:T:whH?O:L:",
 		     long_options, &option_index);
 
     if (c == -1)
@@ -314,15 +314,12 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	}
 	break;
       case 'T': /* Search for a file by type */
-	i = -1;
-	while (strcmp(search_types[++i].name,"")) {
+	for (i=0; strcmp(search_types[i].name,""); i++) {
 	  if (!strncmp(optarg, search_types[i].name, search_types[i].length)) {
-	    if (i) {
 	      opts->search_string = search_types[i].string;
 	      opts->search_len = search_types[i].length;
 	      opts->search_off = search_types[i].offset;
 	      break;
-	    }
 	  }
 	}
 
@@ -391,7 +388,10 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 
 void main(int argc, char ** argv)
 {
-  int i;
+  int i, hasdata;
+  unsigned long nr, inode_nr;
+
+  struct Generic_Inode *GInode = NULL;
 
   sigset_t sa_mask;
   struct sigaction intaction = { (void *)handle_sigint, sa_mask, SA_RESTART, NULL };
@@ -452,6 +452,29 @@ void main(int argc, char ** argv)
       } else if ((main_opts.dump_end==(main_opts.dump_start+1UL))&&(main_opts.dump_all)) {
 	main_opts.dump_end = sb->ninodes;
       }
+
+      /* Looks for recoverable inodes */
+      if (lde_flags.check_recover) {
+	warn = no_warn;  /* Suppress output */
+	for (nr=main_opts.dump_start; nr<main_opts.dump_end; nr++) {
+	  if (lde_flags.quit_now) {
+	    printf("Search aborted at inode 0x%lX\n",nr);
+	    exit(0);
+	  }
+	  if ((!FS_cmd.inode_in_use(nr))||(lde_flags.search_all)) {
+	    GInode = FS_cmd.read_inode(nr);
+	    /* Make sure there's some data here */
+	    hasdata = 0;
+	    for (i=0; i<INODE_BLKS ; i++)
+	      if (GInode->i_zone[i])
+		hasdata = 1;
+	    if ((hasdata)&&(check_recover_file( GInode->i_zone )))
+		printf("Inode 0x%lX recovery possible\n",nr);
+	  }
+	}
+	exit(0);
+      }
+
     } else {
       if ((main_opts.dump_start>sb->nzones)||(main_opts.dump_end>sb->nzones)) {
 	tty_warn("Block out of range:  Start = 0x%lX (%lu), \n\tEnd = 0x%lX (%lu), Max = 0x%lX (%lu)",
@@ -461,6 +484,24 @@ void main(int argc, char ** argv)
       } else if ((main_opts.dump_end==(main_opts.dump_start+1UL))&&(main_opts.dump_all)) {
 	main_opts.dump_end = sb->nzones;
       }
+
+      /* Lookup blocks inode reference and exit */
+      if (lde_flags.inode_lookup) {
+	for (nr=main_opts.dump_start; nr<main_opts.dump_end; nr++) {
+	  if (lde_flags.quit_now) {
+	    printf("Search aborted at block 0x%lX\n",nr);
+	    exit(0);
+	  }
+	  printf("Block 0x%lX ",nr);
+	  if ( (inode_nr = find_inode(nr, 0UL)) ) {
+	    printf("found in inode 0x%lX\n",inode_nr);
+	  } else {
+	    printf("not found in any %sinode\n",((lde_flags.search_all)?"":"unused ") );
+	  }
+	}
+	exit(0);
+      }
+
     }
     for (i=main_opts.dump_start; i<main_opts.dump_end; i++)
       main_opts.dumper(i);
