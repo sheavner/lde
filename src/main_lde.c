@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.2 1994/03/21 06:00:16 sdh Exp $
+ *  $Id: main_lde.c,v 1.3 1994/03/21 09:24:56 sdh Exp $
  */
 
 #include <unistd.h>
@@ -20,7 +20,7 @@
 
 char *program_name = "lde";
 char *device_name = NULL;
-char *text_names[4] = { "no file system detected" , "minix", "xiafs", "ext2fs" };
+char *text_names[5] = { "autodetect", "no file system" , "minix", "xiafs", "ext2fs" };
 
 char *inode_map;
 char *zone_map;
@@ -83,18 +83,18 @@ void read_tables(int fs_type)
    */
   if (ONE_BLOCK != read(CURR_DEVICE, super_block_buffer, ONE_BLOCK))
     die("unable to read super block");
-  if ( ((!fs_type)||(fs_type==XIAFS)) && (!XIAFS_test(super_block_buffer)) )
+  if ( ((fs_type==AUTODETECT)||(fs_type==XIAFS)) && (!XIAFS_test(super_block_buffer)) )
     (void) XIAFS_init(super_block_buffer);
   else { 
     /* Pull in second block for other fs's */
     if (ONE_BLOCK != read(CURR_DEVICE, super_block_buffer, ONE_BLOCK))
       die("unable to read super block");
-    if ( ((!fs_type)||(fs_type==MINIX)) && (!MINIX_test(super_block_buffer)) )
+    if ( ((fs_type==AUTODETECT)||(fs_type==MINIX)) && (!MINIX_test(super_block_buffer)) )
       MINIX_init(super_block_buffer);
-    else if ( ((!fs_type)||(fs_type==EXT2)) && (!EXT2_test(super_block_buffer)) )
+    else if ( ((fs_type==AUTODETECT)||(fs_type==EXT2)) && (!EXT2_test(super_block_buffer)) )
       EXT2_init(super_block_buffer);
     else
-      die("bad magic number in super-block");
+      NOFS_init(super_block_buffer);
   }
 
 }
@@ -108,7 +108,7 @@ void long_usage()
   printf("   -d ##:      dump block's data to stdout (binary format)\n");
   printf("   -S string:  search disk for data (questionable)\n");
   printf("   -T type:    search disk for data. type = {gz, tgz, script}\n");
-  printf("   -t fstype:  Overide the autodetect. fstype = {minix, xiafs, ext2fs}\n");
+  printf("   -t fstype:  Overide the autodetect. fstype = {no, minix, xiafs, ext2fs}\n");
   printf("   --help:     output this screen\n");
   printf("   --paranoid: Open the device read only.\n");
   printf("   --quiet:    Turn off warning beeps.\n");
@@ -132,7 +132,7 @@ int main(int argc, char ** argv)
   };
   
   
-  int search_len = 0, fs_type = 0;
+  int search_len = 0, fs_type = AUTODETECT;
   int count,idump_all=0,bdump_all=0;
   int grep_mode = 0, paranoid = 0;
   unsigned int idump=0,bdump=0,i,ddump=0;
@@ -203,19 +203,21 @@ int main(int argc, char ** argv)
 	search_string = optarg;
 	break;
       case 't':
-	i = 0;
-	while (strcmp(text_names[++i],"")) {
-	  if (!strcmp(optarg, text_names[i])) {
+	i = NONE;
+	while (text_names[i]) {
+	  if (!strncmp(optarg, text_names[i], strlen(optarg))) {
 	    fs_type = i;
 	    break;
 	  }
+	  i++;
 	}
-	if (!fs_type) {
+	if (fs_type==AUTODETECT) {
 	  printf("`%s' type not recognized.\n",optarg);
-	  i = 0;
+	  i = NONE;
 	  printf("Supported file systems include: ");
-	  while (strcmp(text_names[++i],"")) {
-	    printf("%s ",text_names[i]);
+	  while (text_names[i]) {
+	    printf("\"%s\" ",text_names[i]);
+	    i++;
 	  }
 	  printf("\n");
 	  exit(0);

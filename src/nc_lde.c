@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.3 1994/03/21 06:00:29 sdh Exp $
+ *  $Id: nc_lde.c,v 1.4 1994/03/21 09:24:26 sdh Exp $
  */
 
 #include "lde.h"
@@ -301,13 +301,13 @@ int win_start, win_size;
   return dind;
 }
 
-void cwrite_block(unsigned long block_nr, char *data_buffer, int modified)
+void cwrite_block(unsigned long block_nr, char *data_buffer, int *mod_yes)
 {
   WINDOW *win;
   int c, flag;
 
   flag = 1;
-  if ((modified)&&(write_ok)) {
+  if ((*mod_yes)&&(write_ok)) {
     win = newwin(5,80,((VERT-5)/2+HEADER_SIZE),HOFF);
     wclear(win);
     box(win,0,0);
@@ -324,6 +324,7 @@ void cwrite_block(unsigned long block_nr, char *data_buffer, int modified)
       }
     }
   }
+  *mod_yes = 0;
 }
 
 void highlight_block(int cur_row,int cur_col,int win_start,unsigned char *block_buffer)
@@ -394,7 +395,7 @@ int block_mode() {
       } else {
 	if (c == ('W'-'A'+1)) {
 	  edit_block = 0;
-	  cwrite_block(current_block, block_buffer, modified);
+	  cwrite_block(current_block, block_buffer, &modified);
 	}
       }
     } else {
@@ -494,9 +495,9 @@ int block_mode() {
 	break;
       case 'V'-'A'+1: /* ^V */
       case KEY_NPAGE:
+        cwrite_block(current_block, block_buffer, &modified);
 	current_block++;
 	win_start = prev_col = prev_row = cur_col = cur_row = 0;
-        cwrite_block(current_block, block_buffer, modified);
 	break;
       case 'P'-'A'+1: /* ^P */
       case KEY_UP:
@@ -512,9 +513,9 @@ int block_mode() {
 	  redraw = 0;
 	break;
       case KEY_PPAGE:
+        cwrite_block(current_block, block_buffer, &modified);
 	if (current_block!=0) current_block--;
 	win_start = prev_col = prev_row = cur_col = cur_row = 0;
-        cwrite_block(current_block, block_buffer, modified);
 	break;
       case 'l':
       case 'L':
@@ -528,10 +529,10 @@ int block_mode() {
 	warn(echo_string);
 	break;
       case 'I':
+	cwrite_block(current_block, block_buffer, &modified);
 	temp_ptr = block_pointer(&block_buffer[cur_row*16+cur_col+win_start],(unsigned long) 0, fsc->INODE_ENTRY_SIZE);
 	if (temp_ptr <= sb->ninodes) {
 	  current_inode = temp_ptr;
-	  cwrite_block(current_block, block_buffer, modified);
 	  return c;
 	} else
 	  warn("Inode out of range.");
@@ -545,11 +546,11 @@ int block_mode() {
       case 'r':
       case 'F':
       case 'f':
-        cwrite_block(current_block, block_buffer, modified);
+        cwrite_block(current_block, block_buffer, &modified);
 	return c;
 	break;
       case '#':
-        cwrite_block(current_block, block_buffer, modified);
+        cwrite_block(current_block, block_buffer, &modified);
 	current_block = cread_num("Enter block number (leading 0x or $ indicates hex):");
 	win_start = prev_col = prev_row = cur_col = cur_row = 0;
 	edit_block = 0;

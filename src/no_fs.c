@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.1 1994/03/21 08:41:40 sdh Exp $
+ *  $Id: no_fs.c,v 1.2 1994/03/21 09:24:40 sdh Exp $
  */
 
 /* 
@@ -12,15 +12,14 @@
  
 #include "lde.h"
 
-/* In order to prevent division by zeroes, set junk entries to 1 */
 struct fs_constants NOFS_constants = {
   NONE,                         /* int FS */
   1,                            /* int ROOT_INODE */
-  1,                            /* int INODE_SIZE */
+  4,                            /* int INODE_SIZE */
   1,                            /* unsigned short N_DIRECT */
-  1,                            /* unsigned short INDIRECT */
-  1,                            /* unsigned short X2_INDIRECT */
-  1,                            /* unsigned short X3_INDIRECT */
+  0,                            /* unsigned short INDIRECT */
+  0,                            /* unsigned short X2_INDIRECT */
+  0,                            /* unsigned short X3_INDIRECT */
   1,                            /* unsigned short N_BLOCKS */
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
@@ -42,6 +41,7 @@ void NOFS_sb_init(char * sb_buffer)
   /* How do we find the size of a block device?? */
   if (!sb->nzones) sb->nzones = -1L;
 
+  /* In order to prevent division by zeroes, set junk entries to 1 */
   sb->ninodes = 1;
   sb->imap_blocks = 1;
   sb->zmap_blocks = 1;

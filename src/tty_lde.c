@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.3 1994/03/21 06:01:00 sdh Exp $
+ *  $Id: tty_lde.c,v 1.4 1994/03/21 09:24:33 sdh Exp $
  */
 
 #include "lde.h"
@@ -41,20 +41,20 @@ long read_num(char *cinput)
 static char cache[MAX_BLOCK_SIZE];
 char * cache_read_block (unsigned long block_nr)
 {
-  static unsigned long cache_block_nr = 0;
+  static unsigned long cache_block_nr = -1L;
+  int read_count;
   
   if (block_nr != cache_block_nr)
     {
       cache_block_nr = block_nr;
-      if (!block_nr)
-	memset(cache,0,sb->blocksize);
-      else if (lseek (CURR_DEVICE, cache_block_nr * sb->blocksize, SEEK_SET) !=
+      memset(cache,0,sb->blocksize);
+
+      if (lseek (CURR_DEVICE, cache_block_nr * sb->blocksize, SEEK_SET) !=
 	       cache_block_nr * sb->blocksize) {                          
 	warn("Read error: unable to seek to block in cache_read_block ");
-	memset(cache,0,sb->blocksize);
-      } else if (read (CURR_DEVICE, cache, sb->blocksize) != sb->blocksize) {
-	warn("read failed in cache_read_block");
-	memset(cache,0,sb->blocksize);
+      } else if ( (read_count = read (CURR_DEVICE, cache, sb->blocksize)) != sb->blocksize) {
+	if ((sb->nzones != block_nr) && (read_count != sb->last_block_size)) 
+	  warn("Unable to read full block in cache_read_block");
       }
     }
   return cache;
@@ -63,13 +63,21 @@ char * cache_read_block (unsigned long block_nr)
 int write_block (unsigned long block_nr, char *data_buffer)
 {
 #ifndef PARANOID
+  int write_count;
+
   if (lseek (CURR_DEVICE, block_nr * sb->blocksize, SEEK_SET) !=
       block_nr * sb->blocksize) {
     warn("Write error: unable to seek to block in write_block ");
     return -1;
-  } else if (write (CURR_DEVICE, data_buffer, sb->blocksize) != sb->blocksize) {
-    warn("write failed in write_block");
-    return -1;
+  } else {
+    if (sb->nzones == block_nr) 
+      write_count = sb->last_block_size;
+    else
+      write_count = sb->blocksize;
+    if (write (CURR_DEVICE, data_buffer, write_count) != write_count) {
+      warn("write failed in write_block");
+      return -1;
+    }
   }
 #endif
   return 0;

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.4 1994/03/21 06:00:50 sdh Exp $
+ *  $Id: lde.h,v 1.5 1994/03/21 09:24:48 sdh Exp $
  */
 
 #include <stdio.h>
@@ -24,7 +24,7 @@
 #include <grp.h>
 #include <pwd.h>
 
-#define VERSION "2.1beta2"
+#define VERSION "2.1beta4"
 extern char *program_name;
 extern char *device_name;
 
@@ -42,6 +42,8 @@ void ddump_block();
 void dump_block();
 void dump_inode();
 char *entry_type();
+/* no_fs.c */
+void NOFS_init();
 /* minix.c */
 void MINIX_init();
 int MINIX_test();
@@ -71,7 +73,7 @@ void parse_grep();
 #define MAX_BLOCK_SIZE 1024
 #define MIN_BLOCK_SIZE 1024
 
-enum { NONE, MINIX, XIAFS, EXT2 };
+enum { AUTODETECT, NONE, MINIX, XIAFS, EXT2 };
 extern char *text_names[]; /* defined in main.c */
 
 /*
@@ -112,6 +114,7 @@ struct sbinfo {
 	int I_MAP_SLOTS;
 	int Z_MAP_SLOTS;
 	int INODES_PER_BLOCK;
+	unsigned long last_block_size;
 };
 
 struct fs_constants {
