@@ -14,7 +14,6 @@
 #define BHELP_BLOCK 1
 #define BHELP_INODE 8
 
-#ifndef USE_OLD_HELP_FORMAT
 static lde_menu block_help[] = {
   { CMD_CALL_MENU,"Popup menu of commands"},
   { CMD_BLOCK_MODE_MC,"" /* This will be filled in at runtime */ },
@@ -34,6 +33,8 @@ static lde_menu block_help[] = {
   { CMD_NO_ACTION, "Move cursor (arrows)"},
   { CMD_NEXT_BLOCK,"View next block"},
   { CMD_PREV_BLOCK,"View previous block"},
+  { CMD_NEXT_IND_BLOCK,"View next block indexed by the current inode"},
+  { CMD_PREV_IND_BLOCK,"View previous block indexed by the current inode"},
   { CMD_NEXT_SCREEN,"View next part of current block"},
   { CMD_PREV_SCREEN,"View previous part of current block"},
   { CMD_NO_ACTION, "Add block to recovery list at position (keys at top of screen)"},
@@ -46,36 +47,6 @@ static lde_menu block_help[] = {
   { CMD_WRITE_CHANGES, "Write changes to disk"},
   { 0, NULL } 
 };
-#else
-static char *block_help[] = {
-  "F2, ^O  : Popup menu of commands",
-  "",
-  "c       : Copy block into copy buffer.",
-  "d       : View block as a directory.",
-  "e       : Edit block.",
-  "f       : Menu of toggle flags",
-  "?,^H,F1 : Calls up this help.",
-  "i       : Enter inode mode.",
-  "",
-  "p       : Paste block from copy buffer.",
-  "q       : Quit.",
-  "r       : Enter recovery mode.",
-  "s       : View superblock.",
-  "v       : View error/warning log.",
-  "w       : Write this block's data to the recovery file.",
-  "arrows  : Move cursor (also ^P, ^N, ^F, ^B)",
-  "PGUP/DN : View next/previous block (also ^U, ^D)",
-  "+/-     : View next/previous part of current block.",
-  "0123... : Add current block to recovery list at position.",
-  "#       : Enter block number and view it.",
-  "^A      : Abort changes, re-read original block from disk.",
-  "TAB,^I  : Toggle hex/ascii edit. (in edit mode)",
-  "^R      : Find an inode which references this block.",
-  "M-r     : Find an inode which references this block and view it.",
-  "^W      : Write changes to disk.",
-  NULL
-};
-#endif
 
 /* Popup menu in block_mode() */
 static lde_menu block_menu[] = {

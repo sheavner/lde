@@ -9,7 +9,6 @@
 
 #include "keymap.h"
 
-#ifndef USE_OLD_HELP_FORMAT
 static lde_menu recover_help[] = {
   { CMD_CALL_MENU, "Popup menu of commands" } ,
   { CMD_BLOCK_MODE, "Enter block mode." },
@@ -37,34 +36,6 @@ static  lde_menu ncmain_help[] = {
   { CMD_REFRESH,"Refresh screen."} ,
   { 0, NULL }
 };
-#else
-static char *recover_help[] = {
-  "F2, ^O  : Popup menu of commands",
-  "b       : Enter block mode.",
-  "f       : Menu of toggle flags",
-  "h,?,^H  : Calls up this help.",
-  "i       : Enter inode mode.",
-  "q       : Quit.",
-  "r       : Write recover file to disk.",
-  "c       : Check if file can be recovered.",
-  "s       : View superblock.",
-  "v       : View error/warning log.",
-  "^L      : Refresh screen.",
-  NULL
-};
-static char *ncmain_help[] = {
-  "F2, ^O  : Popup menu of commands",
-  "b,B     : Enter block mode.",
-  "f       : Menu of toggle flags",
-  "h,H,?,^H: Calls up this help.",
-  "i,I     : Enter inode mode.",
-  "q,Q     : Quit.",
-  "r,R     : Enter recovery mode.",
-  "v       : View error/warning log.",
-  "^L      : Refresh screen.",
-  NULL
-};
-#endif
 
 static lde_menu recover_menu[] = {
   { CMD_BLOCK_MODE,    "Block mode" },
@@ -167,6 +138,10 @@ lde_keymap global_keymap[] = {
   { CTRL('P'), CMD_PREV_LINE },
   { 'K', CMD_PREV_LINE },
   { 'k', CMD_PREV_LINE },
+  { 'N', CMD_NEXT_IND_BLOCK },
+  { 'n', CMD_NEXT_IND_BLOCK },
+  { 'M', CMD_PREV_IND_BLOCK },
+  { 'm', CMD_PREV_IND_BLOCK },
   { 0, 0 }
 };
 

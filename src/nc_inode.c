@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.15 1996/10/12 21:12:48 sdh Exp $
+ *  $Id: nc_inode.c,v 1.16 1996/10/13 01:41:19 sdh Exp $
  */
 
 #include <ctype.h>
@@ -548,10 +548,7 @@ int inode_mode() {
       case CMD_VIEW_AS_DIR: /* View inode as a directory */
 	if (S_ISDIR(GInode->i_mode)&&((highlight_field>=I_ZONE_0)&&(highlight_field<=I_ZONE_LAST)))
 	  if (GInode->i_zone[highlight_field-I_ZONE_0]) {
-	    if (directory_popup(GInode->i_zone[highlight_field-I_ZONE_0])==CMD_NEXT_DIR_BLOCK) {
-	      while (! *(&fsc->inode->i_mode+(++highlight_field)) )
-		if (highlight_field >= (I_END-1) ) highlight_field = I_BEGIN;
-	    }
+	    directory_popup(0UL,current_inode,(unsigned long)(highlight_field-I_ZONE_0));
 	    GInode = FS_cmd.read_inode(current_inode);
 	    cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
 	  }

@@ -3,11 +3,13 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.h,v 1.4 1996/09/15 19:22:33 sdh Exp $
+ *  $Id: recover.h,v 1.5 1996/10/13 01:42:34 sdh Exp $
  */
 
 unsigned long block_pointer(unsigned char *ind, unsigned long blknr, int zone_entry_size);
 int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *mapped_block);
+int advance_zone_pointer(unsigned long zone_index[], unsigned long *currblk,
+                     unsigned long *ipointer, long increment);
 void recover_file(int fp,unsigned long zone_index[]);
 int check_recover_file(unsigned long zone_index[]);
 unsigned long find_inode(unsigned long nr, unsigned long last_nr);
@@ -35,6 +37,8 @@ enum map_block_errors { EMB_NO_ERROR=0,
 			EMB_DIRECT_RANGE,       /* Block pointed to by direct pointer is out of range */
 			EMB_IND_LOOKED_RANGE,   /* Entry in indirect block is zero, move to next entry */ 
 			EMB_2IND_LOOKED_RANGE,  /* Block is zero, move to next entry */
+
+			AZP_BAD_START,          /* Block is not indexed by current inode */
 };
 
 
