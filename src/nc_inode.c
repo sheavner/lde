@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.16 1996/10/13 01:41:19 sdh Exp $
+ *  $Id: nc_inode.c,v 1.17 1996/10/13 17:14:56 sdh Exp $
  */
 
 #include <ctype.h>
@@ -288,7 +288,7 @@ static void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, i
       if (GInode->i_zone[j]) {
 	mvwprintw(workspace,2+j,65,"0x%8.8lX",GInode->i_zone[j]);
       } else {
-	mvwprintw(workspace,2+j,65,"         ");
+	mvwprintw(workspace,2+j,65,"          ");
       }
       wattroff(workspace,WHITE_ON_RED);
     }
