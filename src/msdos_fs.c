@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.13 2001/02/07 18:31:13 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.14 2001/02/21 19:36:52 sdh Exp $
  */
 
 /* 
@@ -131,9 +131,9 @@ struct Generic_Inode *DOS_init_junk_inode(void)
 {
   int i;
 
-  DOS_junk_inode.i_mode        = 0UL;
+  DOS_junk_inode.i_mode        = 0040000;  /* Fake all into being dirs */
   DOS_junk_inode.i_uid         = 0UL;
-  DOS_junk_inode.i_size        = 0UL;
+  DOS_junk_inode.i_size        = 1UL;      /* Always putting in 1 block? */
   DOS_junk_inode.i_atime       = 0UL;
   DOS_junk_inode.i_ctime       = 0UL;
   DOS_junk_inode.i_mtime       = 0UL;
@@ -167,12 +167,14 @@ static struct Generic_Inode *DOS_read_inode(unsigned long nr)
     nr = 0;
   }
 
-  DOS_junk_inode.i_zone[0] = (nr-2UL) + sb->zmap_blocks + 1UL;
+  /* Compute offset relative to block 0 on disk for data indexed by FAT */
+  DOS_junk_inode.i_zone[0] = nr*sb->zonesize + sb->first_data_zone;
 
   inode_buffer = cache_read_block(DOS_map_inode(nr),NULL,CACHEABLE);
+/*
   nr = nr % (sb->blocksize/fsc->INODE_SIZE);
   DOS_junk_inode.i_zone[1] = block_pointer(inode_buffer, nr, fsc->INODE_SIZE) + sb->zmap_blocks + 1UL;
-
+*/
   return &DOS_junk_inode;
 }
 
@@ -190,7 +192,7 @@ static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode
     cname[8] = '.';
     strncpy(&cname[9], dir->ext, 3);  /* File extension */
     cname[MSDOS_NAME+1] = 0;
-    *inode_nr = (unsigned long) dir->start;
+    *inode_nr = (unsigned long) dir->start + (((unsigned long)dir->starthi)<<16);
   }
   return (cname);
 }
@@ -212,8 +214,13 @@ static void DOS_sb_init(void *sb_buffer)
   /* In order to prevent division by zeroes, set junk entries to 1 */
   sb->ninodes = sb->nzones/Boot->cluster_size;
   sb->imap_blocks = 1;
-  sb->zmap_blocks = 2*Boot->fat_length;
-  sb->first_data_zone = 0;
+  if (!Boot->fats)  /* Could this ever happen? */
+     Boot->fats = 2;
+  if (Boot->fat_length)  /* FAT12/16 */
+     sb->zmap_blocks = Boot->fats*Boot->fat_length;
+  else
+     sb->zmap_blocks = Boot->fats*Boot->fat32_length;
+  sb->first_data_zone = Boot->reserved + sb->zmap_blocks - 2 * Boot->cluster_size;
   sb->max_size = 1;
   sb->zonesize = Boot->cluster_size;
   sb->magic = 0;
