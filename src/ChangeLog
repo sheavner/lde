@@ -4,6 +4,7 @@
 	- ditch the kernel bitops forever, let's all use the c ones, we don't need
 	  the mega-optimization
 	- add big-endian byteswab during bitops tests
+	- catch undef termname() and missing /etc/mtab errors
 
 2003-12-05    Scott Heavner
 	- remove unnecessary = operator from yacc sources, causes

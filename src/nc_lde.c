@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.43 2003/12/03 18:33:10 scottheavner Exp $
+ *  $Id: nc_lde.c,v 1.44 2003/12/07 05:55:47 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -1045,12 +1045,14 @@ void interactive_main(void)
   /* Curses initialization junk */
   if (!(ldeScreen=newterm(NULL,stdout,stdin))) {
     printf("* It seems you have not set up ncurses correctly -- See INSTALL for assistance.\n");
+#if USE_NCURSES
     if (termname()) {
       printf("* Unknown terminal type '%s' specified.\n", termname());
       printf("* Check your shell's TERM and TERMINFO variables.\n");
     } else {
       printf("* Your shell's TERM variable is unset.\n");
     }
+#endif
     printf("* Try something like 'export TERM=vt100' or 'setenv TERM vt100'\n");
     printf("* On older distros, you might try 'export TERMPATH=/usr/lib/terminfo' first.\n");
     return;

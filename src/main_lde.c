@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.52 2003/12/06 07:01:37 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.53 2003/12/07 05:55:47 scottheavner Exp $
  */
 
 #include <signal.h>
@@ -99,24 +99,26 @@ static int check_mount(char *device_name)
   struct stat statbuf;
 
   fd = open("/etc/mtab",O_RDONLY|O_BINARY);
-  fstat(fd, &statbuf);
+  if ( fd > 0 ) {
+    fstat(fd, &statbuf);
 
-  mtab = malloc(statbuf.st_size+1);
-  if (mtab==NULL) {
-    lde_warn("Out of memory reading /etc/mtab");
+    mtab = malloc(statbuf.st_size+1);
+    if (mtab==NULL) {
+      lde_warn("Out of memory reading /etc/mtab");
+      close(fd);
+      exit(-1);
+    }
+    read(fd, mtab, statbuf.st_size);
     close(fd);
-    exit(-1);
-  }
-  read(fd, mtab, statbuf.st_size);
-  close(fd);
 
-  /* Set last character to 0 (we've allocated a space for the 0) */
-  mtab[statbuf.st_size] = 0;
-  if (strstr(mtab, device_name))
-    lde_flags.mounted = 1;
-  else
-    lde_flags.mounted = 0;
-  free(mtab);
+    /* Set last character to 0 (we've allocated a space for the 0) */
+    mtab[statbuf.st_size] = 0;
+    if (strstr(mtab, device_name))
+      lde_flags.mounted = 1;
+    else
+      lde_flags.mounted = 0;
+    free(mtab);
+  }
 
   return lde_flags.mounted;
 }
