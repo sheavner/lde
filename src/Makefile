@@ -3,7 +3,7 @@
 #################################################################
 
 SRCS = $(FS_SRCS) no_fs.c recover.c \
-       main_lde.c $(LDE_CURSES_SRC) tty_lde.c bitops.c iso9660.
+       main_lde.c $(LDE_CURSES_SRC) tty_lde.c bitops.c iso9660.c
 
 OBJS = $(FS_OBJS) no_fs.o recover.o \
        main_lde.o $(LDE_CURSES_OBJ) tty_lde.o bitops.o iso9660.o swiped.a
