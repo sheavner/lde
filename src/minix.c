@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.5 1994/04/04 04:22:41 sdh Exp $
+ *  $Id: minix.c,v 1.6 1994/04/24 20:37:11 sdh Exp $
  */
 
 /* 
@@ -128,7 +128,7 @@ int MINIX_write_inode(unsigned long inode_nr, struct Generic_Inode *GInode)
 int MINIX_inode_in_use(unsigned long inode_nr)
 {
   if ((!inode_nr)||(inode_nr>sb->ninodes)) inode_nr = 1;
-  return bit(inode_map,inode_nr);
+  return test_bit(inode_nr,inode_map);
 }
 
 int MINIX_zone_in_use(unsigned long inode_nr)
@@ -137,7 +137,7 @@ int MINIX_zone_in_use(unsigned long inode_nr)
     return 1;
   else if ( inode_nr > sb->nzones )
     return 0;
-  return bit(zone_map,(inode_nr-sb->first_data_zone+1));
+  return test_bit((inode_nr-sb->first_data_zone+1),zone_map);
 }
 
 char *MINIX_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)

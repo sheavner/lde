@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.4 1994/04/01 09:47:51 sdh Exp $
+ *  $Id: no_fs.c,v 1.5 1994/04/24 20:36:28 sdh Exp $
  */
 
 /* 
@@ -67,7 +67,7 @@ struct fs_constants NOFS_constants = {
 
 struct Generic_Inode NOFS_junk_inode;
 
-struct Generic_Inode *NOFS_init_junk_inode()
+struct Generic_Inode *NOFS_init_junk_inode(void)
 {
   int i;
 
@@ -91,7 +91,7 @@ struct Generic_Inode *NOFS_read_inode(unsigned long nr)
   return &NOFS_junk_inode;
 }
 
-unsigned long NOFS_null_call()
+unsigned long NOFS_null_call(void)
 {
   return 0UL;
 }

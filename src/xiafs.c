@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.5 1994/04/04 04:22:22 sdh Exp $
+ *  $Id: xiafs.c,v 1.6 1994/04/24 20:34:23 sdh Exp $
  */
 
 #include "lde.h"
@@ -183,6 +183,24 @@ int XIAFS_init(char * sb_buffer)
   MINIX_read_tables();
 
   return check_root();
+}
+
+#undef ONE_BLOCK
+#define ONE_BLOCK 1024
+void XIAFS_scrub(int flag)
+{
+  char sb_buffer[ONE_BLOCK];
+
+  if (ONE_BLOCK != read(CURR_DEVICE, sb_buffer, ONE_BLOCK))
+    die("unable to read super block in XIAFS_scrub()");
+
+  if (flag > 0)
+    Super.s_magic = 0;
+  else
+    Super.s_magic = _XIAFS_SUPER_MAGIC;
+
+  if (ONE_BLOCK != write(CURR_DEVICE, sb_buffer, ONE_BLOCK))
+    die("unable to write super block in XIAFS_scrub()");
 }
 
 int XIAFS_test(char * sb_buffer)

@@ -3,20 +3,21 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.8 1994/04/04 04:22:16 sdh Exp $
+ *  $Id: tty_lde.c,v 1.9 1994/04/24 20:35:32 sdh Exp $
  */
 
 #include "lde.h"
 
 /* We don't need no stinkin' linked list */
-char error_save[ERRORS_SAVED][132];
+char *error_save[ERRORS_SAVED];
 int current_error = -1;
 
 /* Stores errors/warnings */
 void log_error(char *echo_string)
 {
   if ((++current_error)>=ERRORS_SAVED) current_error=0;
-  strncpy(error_save[current_error], echo_string, 132);
+  error_save[current_error] = realloc(error_save[current_error],strlen(echo_string));
+  strcpy(error_save[current_error], echo_string);
 }
 
 /* Immediate printing of warnings and errors to standard out */
@@ -83,7 +84,7 @@ char * cache_read_block (unsigned long block_nr, int force)
   return cache;
 }
 
-int write_block (unsigned long block_nr, char *data_buffer)
+int write_block (unsigned long block_nr, void *data_buffer)
 {
   int write_count;
 
@@ -111,8 +112,7 @@ int write_block (unsigned long block_nr, char *data_buffer)
 }
 
 
-void ddump_block(nr)
-unsigned long nr;
+void ddump_block(unsigned long nr)
 {
   int i;
   unsigned char *dind;
@@ -122,15 +122,14 @@ unsigned long nr;
 }
 
 /* Dumps a full block to STDOUT -- could merge with curses version someday */
-void dump_block(nr)
-unsigned short nr;
+void dump_block(unsigned long nr)
 {
   int i,j;
   unsigned char *dind,	 c;
 
   dind = cache_read_block(nr,CACHEABLE);
 
-  printf("\nDATA FOR BLOCK %d (%#X):\n",nr,nr);
+  printf("\nDATA FOR BLOCK %lu (%#lX):\n",nr,nr);
 
   j = 0;
 
@@ -156,7 +155,7 @@ unsigned short nr;
 
   
 /* Dump inode contents to STDOUT -- could also merge with the curses one someday */
-void dump_inode(unsigned int nr)
+void dump_inode(unsigned long nr)
 {
   int j;
   char f_mode[12];
@@ -167,7 +166,7 @@ void dump_inode(unsigned int nr)
   GInode = FS_cmd.read_inode(nr);
 
   /* Print inode number and file type */
-  printf("\nINODE: %-6d (0x%5.5X) TYPE: ",nr,nr);
+  printf("\nINODE: %-6lu (0x%5.5lX) TYPE: ",nr,nr);
   printf("%14s",entry_type(GInode->i_mode));
 
   if (FS_cmd.inode_in_use(nr)) 

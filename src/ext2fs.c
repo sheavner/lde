@@ -3,7 +3,7 @@
 *
 *  Copyright (C) 1994  Scott D. Heavner
 *
-*  $Id: ext2fs.c,v 1.7 1994/04/04 04:22:54 sdh Exp $
+*  $Id: ext2fs.c,v 1.8 1994/04/24 20:37:30 sdh Exp $
 *
 *  The following routines were taken almost verbatim from
 *  the e2fsprogs-0.4a package by Remy Card. 
@@ -130,7 +130,7 @@ int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode)
   return write_block( blknr, inode_buffer);
 }
 
-#ifndef READ_FULL_TABLES
+#ifdef READ_PART_TABLES
 static int inode_map_cache = -1;
 static int block_map_cache = -1;
 #endif
@@ -142,7 +142,7 @@ static void EXT2_read_inode_bitmap (unsigned long nr)
 
   local_map = inode_map;
 
-#ifdef READ_FULL_TABLES
+#ifndef READ_PART_TABLES
   for (i = 0; i < group_desc_count; i++) {
 #else  
   i = nr / sb->s_inodes_per_group;
@@ -162,11 +162,11 @@ static void EXT2_read_inode_bitmap (unsigned long nr)
 int EXT2_inode_in_use(unsigned long nr)
 {
   nr--;
-#ifndef READ_FULL_TABLES
+#ifdef READ_PART_TABLES
   EXT2_read_inode_bitmap(nr);
-  return bit(inode_map,nr%sb->s_inodes_per_group);
+  return test_bit(inode_map,nr%sb->s_inodes_per_group);
 #endif
-  return bit(inode_map,nr);
+  return test_bit(nr,inode_map);
 }
 
 static void EXT2_read_block_bitmap(unsigned long nr)
@@ -176,7 +176,7 @@ static void EXT2_read_block_bitmap(unsigned long nr)
 
   local_map = inode_map;
 
-#ifdef READ_FULL_TABLES
+#ifndef READ_PART_TABLES
   for (i = 0; i < group_desc_count; i++) {
 #else  
   i = nr / sb->s_blocks_per_group;
@@ -197,11 +197,11 @@ int EXT2_zone_in_use(unsigned long nr)
 {
   if (nr < sb->first_data_zone) return 1;
   nr -= sb->first_data_zone;
-#ifndef READ_FULL_TABLES
+#ifdef READ_PART_TABLES
   EXT2_read_block_bitmap(nr);
-  return bit(one_map,nr%sb->s_blocks_per_group);
+  return test_bit(nr%sb->s_blocks_per_group,one_map);
 #endif
-  return bit(zone_map,nr);
+  return test_bit(nr,zone_map);
 }
 
 /* Could use some optimization maybe?? */
@@ -256,7 +256,7 @@ void EXT2_read_tables()
   if (read (CURR_DEVICE, group_desc, group_desc_size) != group_desc_size)
     die ("Unable to read group descriptors");
   
-#ifdef READ_FULL_TABLES
+#ifndef READ_PART_TABLES
   isize = (sb->ninodes / 8) + 1;
 #else
   isize = (sb->s_inodes_per_group / 8) + 1;
@@ -268,7 +268,7 @@ void EXT2_read_tables()
   memset (inode_map, 0, isize);
   EXT2_read_inode_bitmap(1UL);
   
-#ifdef READ_FULL_TABLES
+#ifndef READ_PART_TABLES
   isize = (sb->nzones / 8) + 1;
 #else
   isize = (sb->s_blocks_per_group / 8) + 1;

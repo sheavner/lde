@@ -3,11 +3,21 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.1 1994/04/24 02:19:39 sdh Exp $
+ *  $Id: nc_dir.c,v 1.2 1994/04/24 20:36:54 sdh Exp $
  */
 
 #include "nc_lde.h"
-#include "nc_dir_help.h"
+
+/* Help for directory_popup() function */
+static char *dp_help[] = {
+  "d      : expand directory under cursor",
+  "D      : expand directory under cursor and make it the current inode.",
+  "i      : make inode under cursor the current inode.",
+  "I      : make inode under cursor the current inode and view it.",
+  "n      : view next block in directory (if called from inode mode).",
+  "arrows : scroll window.",
+  NULL
+};
 
 /* Dumps a one line display of a directory entry */
 int dump_dir_entry(WINDOW *win, int i, int off, unsigned long bnr, unsigned long *inode_nr)
@@ -62,9 +72,9 @@ void highlight_dir_entry(WINDOW *win, int nr)
 
   /* Highlight new position */
   mvwinsnstr(win, nr, 0, str, 10);
-  wattron(win,RED_ON_WHITE);
+  wattron(win,WHITE_ON_RED);
   mvwprintw(win, nr, 0, str);
-  wattroff(win,RED_ON_WHITE);
+  wattroff(win,WHITE_ON_RED);
   
   last_entry = nr;
 #endif
@@ -163,7 +173,8 @@ int directory_popup(unsigned long bnr)
       case CTRL('H'):
       case META('H'):
       case META('h'):
-        do_scroll_help(dp_help);
+        do_scroll_help(dp_help, FANCY);
+	redraw_win(win);
         redraw = 0;
         break;
       case ' ':

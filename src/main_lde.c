@@ -3,16 +3,12 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.5 1994/04/04 04:22:48 sdh Exp $
+ *  $Id: main_lde.c,v 1.6 1994/04/24 20:37:20 sdh Exp $
  */
 
 #include <unistd.h>
 #include <getopt.h>
 #include "lde.h"
-
-#ifndef __GNUC__
-#error "needs gcc for the bitop-__asm__'s"
-#endif
 
 #ifndef __linux__
 #define volatile
@@ -41,22 +37,15 @@ int write_ok = 0, quiet = 0;
 struct _rec_flags rec_flags = 
   { 0 } ;
 
-/* Volatiles to let gcc know that this doesn't return. */
-volatile void bye(int i)
-{
-  if (inode_map) free(inode_map);
-  if (zone_map) free(zone_map);
-  exit(i);
-}
-
+/* Volatile to let gcc know that this doesn't return. */
 volatile void fatal_error(const char * fmt_string)
 {
 	fprintf(stderr,fmt_string,program_name,device_name);
-	bye(1);
+	exit(1);
 }
 
-/* Check if device is mounted, return 1 if is else 0 */
-int check_mount(char *device_name)
+/* Check if device is mounted, return 1 if is mounted else 0 */
+static int check_mount(char *device_name)
 {
   int fd;
   char *mtab;
@@ -91,38 +80,30 @@ int check_root(void)
   return 0;
 }
   
-#undef ONE_BLOCK
-#define ONE_BLOCK 1024
 void read_tables(int fs_type)
 {
-  char super_block_buffer[ONE_BLOCK];
+  char *super_block_buffer;
 
   /* Read and parse super block -- xiafs stuff is in 1st block,
-   * 
-   * xiafs and any other filesystems which use block 0 may cause
-   * autodetect problems, as if a new fs which uses block two for
-   * the superblock will leave block 0 alone -- anyhow, sometimes
-   * the autodect will return xiafs even though the fs blatently
-   * isn't.
+   * most others are in the second block. 
    */
-  if (ONE_BLOCK != read(CURR_DEVICE, super_block_buffer, ONE_BLOCK))
-    die("unable to read super block");
-  if ( ((fs_type==AUTODETECT)||(fs_type==XIAFS)) && (!XIAFS_test(super_block_buffer)) )
-    (void) XIAFS_init(super_block_buffer);
-  else { 
-    /* Pull in second block for other fs's */
-    if (ONE_BLOCK != read(CURR_DEVICE, super_block_buffer, ONE_BLOCK))
-      die("unable to read super block");
-    if ( ((fs_type==AUTODETECT)||(fs_type==MINIX)) && (!MINIX_test(super_block_buffer)) )
-      MINIX_init(super_block_buffer);
-    else if ( ((fs_type==AUTODETECT)||(fs_type==EXT2)) && (!EXT2_test(super_block_buffer)) )
-      EXT2_init(super_block_buffer);
+ 
+  /* Pull in second block for other fs's */
+  super_block_buffer = cache_read_block(1UL, FORCE_READ);
+  if ( ((fs_type==AUTODETECT)||(fs_type==MINIX)) && (!MINIX_test(super_block_buffer)) )
+    MINIX_init(super_block_buffer);
+  else if ( ((fs_type==AUTODETECT)||(fs_type==EXT2)) && (!EXT2_test(super_block_buffer)) )
+    EXT2_init(super_block_buffer);
+  else {
+    super_block_buffer = cache_read_block(0UL, FORCE_READ);
+    if ( ((fs_type==AUTODETECT)||(fs_type==XIAFS)) && (!XIAFS_test(super_block_buffer)) )
+      (void) XIAFS_init(super_block_buffer);
     else
       NOFS_init(super_block_buffer);
   }
-
+  
 }
-#undef ONE_BLOCK
+
 
 void long_usage()
 {
@@ -141,7 +122,7 @@ void long_usage()
 }
 
 
-int main(int argc, char ** argv)
+void main(int argc, char ** argv)
 {
   char search_type[10], *search_string = search_type;
   static char gzip_tar_type[] = { 31, 138, 8, 0 };
@@ -158,13 +139,15 @@ int main(int argc, char ** argv)
   
   int search_len = 0, fs_type = AUTODETECT;
   int count,idump_all=0,bdump_all=0;
-  int grep_mode = 0;
+  int grep_mode = 0, scrubxiafs = 0;
   unsigned int idump=0,bdump=0,i,ddump=0;
   unsigned int search_all=0;
   char c;
 
   static struct option long_options[] =
     {
+      {"scrubxiafs", 0, 0, 0},
+      {"unscrubxiafs", 0, 0, 0},
       {"version", 0, 0, 'v'},
       {"help", 0, 0, 'h'},
       {"inode", 1, 0, 'i'},
@@ -194,6 +177,17 @@ int main(int argc, char ** argv)
 
     switch(c)
       {
+      case 0:
+	switch (option_index)
+	  {
+	  case 0:
+	     scrubxiafs = 1;
+	     break;
+	   case 1:
+	     scrubxiafs = -1;
+	     break;
+	   }
+
       case 'V': 
       case 'v':
 	warn("This is %s (version %s).\n",program_name,VERSION);
@@ -308,12 +302,22 @@ int main(int argc, char ** argv)
     die("unable to open '%s'");
   for (count=0 ; count<3 ; count++)
     sync();
+
+  NOFS_init(NULL);
+
+  if (scrubxiafs) {
+    XIAFS_scrub(scrubxiafs);
+    exit(0);
+  }
+
   read_tables(fs_type);
-   if (ddump) {
+
+  if (ddump) {
     if (ddump<sb->nzones) 
       ddump_block(ddump);
-    bye(0);
+    exit(0);
   }
+
   if (bdump||bdump_all) {
     list=1;
     if (bdump<sb->nzones) 
@@ -323,8 +327,9 @@ int main(int argc, char ** argv)
 	dump_block(bdump);
     else
       warn("Zone %d out of range.",bdump);
-    bye(0);
+    exit(0);
   }
+
   if (idump||idump_all) {
     list=1;
     if (idump==0) idump=1;
@@ -335,28 +340,30 @@ int main(int argc, char ** argv)
       	dump_inode(idump);
     else
       warn("Inode %d out of range.",idump);
-    bye(0);
+    exit(0);
   }
+
   if (grep_mode) {
     parse_grep();
-    bye(0);
+    exit(0);
   }
+
   if (search_all) {
-#ifdef EMERGENCY
+#ifdef ALPHA_CODE
     search_fs(search_string, search_len);
-    bye(0);
+    exit(0);
 #else
     warn("Search function not implemented, recompile source with -DEMERGENCY");
-    bye(1);
+    exit(1);
 #endif
   }
+
 #ifdef LDE_CURSES
   warn = nc_warn;
   interactive_main();
 #endif
-  bye(0);
 
-  return 0; /* Gcc complains without this */
+  exit(0);
 }
 
 

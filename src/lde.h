@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.9 1994/04/04 04:22:33 sdh Exp $
+ *  $Id: lde.h,v 1.10 1994/04/24 20:34:09 sdh Exp $
  */
 
 #include <stdio.h>
@@ -32,51 +32,65 @@
 #include <grp.h>
 #include <pwd.h>
 
-#define VERSION "2.2alpha"
+#include "bitops.h"
+
+#ifndef VERSION
+#define VERSION "2.2alpha3"
+#endif
+
 extern char *program_name;
 extern char *device_name;
 
-/* main.c */
-volatile void fatal_error();
-void read_tables();
-int check_root();
+/* main_lde.c */
+volatile void fatal_error(const char * fmt_string);
+void read_tables(int fs_type);
+int check_root(void);
 void (*warn)(char *fmt, ...);
+
 /* tty_lde.c */
 void log_error(char *echo_string);
 void tty_warn(char *fmt, ...);
-long read_num();
-char *cache_read_block();
-int write_block();
-void ddump_block();
-void dump_block();
-void dump_inode();
-char *entry_type();
+long read_num(char *cinput);
+char *cache_read_block(unsigned long block_nr, int force);
+int write_block(unsigned long block_nr, void *data_buffer);
+void ddump_block(unsigned long nr);
+void dump_block(unsigned long nr);
+void dump_inode(unsigned long nr);
+char *entry_type(unsigned long imode);
+
 /* no_fs.c */
-void NOFS_init();
-unsigned long NOFS_null_call();
-unsigned long NOFS_one();
-struct Generic_Inode *NOFS_init_junk_inode();
+void NOFS_init(char * sb_buffer);
+unsigned long NOFS_null_call(void);
+unsigned long NOFS_one(unsigned long nr);
+struct Generic_Inode *NOFS_init_junk_inode(void);
+
 /* minix.c */
-void MINIX_init();
-int MINIX_test();
+void MINIX_init(char * sb_buffer);
+int MINIX_test(char * sb_buffer);
+
 /* xiafs.c */
-int XIAFS_init();
-int XIAFS_test();
+int XIAFS_init(char * sb_buffer);
+int XIAFS_test(char * sb_buffer);
+void XIAFS_scrub(int flag);
+
 /* ext2fs.c */
-void EXT2_init();
-int EXT2_test();
+void EXT2_init(char * sb_buffer);
+int EXT2_test(char * sb_buffer);
+
 /* nc_lde.c */
 void nc_warn(char *fmt, ...);
-void interactive_main();
+void interactive_main(void);
+
 /* filemode.c */
-void mode_string();
+void mode_string(unsigned short mode, char *str);
+
 /* recover.c */
-void recover_file();
-unsigned long map_block();
-unsigned long block_pointer();
-unsigned long find_inode();
-void search_fs();
-void parse_grep();
+unsigned long block_pointer(unsigned char *ind, unsigned long blknr, int zone_entry_size);
+unsigned long map_block(unsigned long zone_index[], unsigned long blknr);
+void recover_file(int fp,unsigned long zone_index[]);
+unsigned long find_inode(unsigned long nr);
+void parse_grep(void);
+void search_fs(unsigned char *search_string, int search_len);
 
 #define die(str) fatal_error("%s: " str "\n")
 
@@ -288,29 +302,12 @@ extern int CURR_DEVICE;
 extern int paranoid, list, write_ok, quiet;  
 
 /* Error logging functionality */
-#define ERRORS_SAVED 24
-extern char error_save[ERRORS_SAVED][132];
+#define ERRORS_SAVED 30
+extern char *error_save[ERRORS_SAVED];
 extern int current_error;
 
-/* This bitop stuff is straight out of the original fsck code for the minix fs. */
-#define bitop(name,op) \
-static inline int name(char * addr,unsigned int nr) \
-{ \
-int __res; \
-__asm__ __volatile__("bt" op "l %1,%2; adcl $0,%0" \
-:"=g" (__res) \
-:"r" (nr),"m" (*(addr)),"0" (0)); \
-return __res; \
-}
-
-bitop(bit,"")
-bitop(setbit,"s")
-bitop(clrbit,"r")
-
 /* #define block_is_bad(x) (bit(bad_map, (x) - FIRSTBLOCK)) */
-
 /* #define mark_inode(x) (setbit(inode_map,(x)),changed=1) */
 /* #define unmark_inode(x) (clrbit(inode_map,(x)),changed=1) */
-
 /* #define mark_zone(x) (setbit(zone_map,(x)-sb->first_dat_zone+1),changed=1) */
 /* #define unmark_zone(x) (clrbit(zone_map,(x)-sb->first_data_zone+1),changed=1) */

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.4 1994/04/01 09:50:18 sdh Exp $
+ *  $Id: recover.c,v 1.5 1994/04/24 20:35:40 sdh Exp $
  */
 
 #include "lde.h"
@@ -112,7 +112,7 @@ unsigned long find_inode(unsigned long nr)
 /* Parses output from grep to locate inode which may still
  * be intact.
  */
-void parse_grep()
+void parse_grep(void)
 {
   unsigned long inode_nr, blknr;
   int i, miss_count=0;
@@ -140,7 +140,7 @@ void parse_grep()
   }
 }
     
-#ifdef EMERGENCY
+#ifdef ALPHA_CODE
 /* Tweakable parameters */
 #define HB_COUNT  100
 #define SEQ_COUNT 10

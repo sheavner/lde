@@ -3,11 +3,26 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.7 1994/04/04 04:22:28 sdh Exp $
+ *  $Id: nc_lde.c,v 1.8 1994/04/24 20:36:35 sdh Exp $
  */
 
 #include "nc_lde.h"
+#include "nc_lde_help.h"
 
+/* This will recognize escapes keys as "META" strokes */
+int mgetch(void)
+{
+  int c;
+
+  if ( (c=getch()) == ESC )
+    if ( (c=getch()) == ESC )
+      return c;
+    else
+      return META(c);
+
+  return c;
+}
+    
 /* Touches a window then refreshes it to make sure it gets updated */
 void redraw_win(WINDOW *win)
 {
@@ -33,7 +48,7 @@ int cquery(char *data_string, char *data_options, char *warn_string)
 
   wrefresh(win);
   while (!strchr(data_options,c))
-      c = tolower(getch());
+      c = tolower(mgetch());
 
   delwin(win);
   refresh_all();
@@ -94,8 +109,10 @@ void display_trailer(char *line1, char *line2)
 {
 #if TRAILER_SIZE>0
   werase(trailer);
-  mvwaddstr(trailer,0,(COLS-strlen(line1))/2-1,line1);
-  mvwaddstr(trailer,1,(COLS-strlen(line2))/2-1,line2);
+  if (line1 != NULL)
+    mvwaddstr(trailer,0,(COLS-strlen(line1))/2-1,line1);
+  if (line2 != NULL)
+    mvwaddstr(trailer,1,(COLS-strlen(line2))/2-1,line2);
   wrefresh(trailer);
 #endif
 }
@@ -103,7 +120,7 @@ void display_trailer(char *line1, char *line2)
 /* This fills in the header window -- 
  * things like the program name, current inode, tagged recovered blocks
  */
-void update_header()
+void update_header(void)
 {
 #if HEADER_SIZE>0
   int j;
@@ -129,13 +146,13 @@ void clobber_window(WINDOW *win)
 
 /* This takes care of the reverse video in the header window,
  * and puts up the device and program name. */
-void restore_header()
+void restore_header(void)
 {
 #if HEADER_SIZE>0
   int i,j;
   char echo_string[132];
 
-  wattron(header,BLUE_ON_WHITE);
+  wattron(header,WHITE_ON_BLUE);
   werase(header);
 
   /* A cute way to RVS video the header window, since erase and clear don't seem to
@@ -152,7 +169,7 @@ void restore_header()
 }
 
 /* Redraw header and trailer, other routine does workspace -- ^L */
-void refresh_ht()
+void refresh_ht(void)
 {
 #if TRAILER_SIZE>0
   redraw_win(trailer);
@@ -161,7 +178,7 @@ void refresh_ht()
 }
 
 /* Redraw everything -- ^L */
-void refresh_all()
+void refresh_all(void)
 {
   redraw_win(stdscr);
   refresh_ht();
@@ -193,94 +210,230 @@ void nc_warn(char *fmt, ...)
 }
 
 /* Dump the error log to a window */
-int error_popup()
+int error_popup(void)
 {
-  WINDOW *win;
-  int c, redraw, flag, present_error, i;
+  int  present_error, i;
+  char *errors[ERRORS_SAVED+1];
 
-  win = newwin(VERT,COLS,HEADER_SIZE,0);
-
-  flag = 1; c = 0;
-  while ((flag)||(c = getch())) {
-    flag = 0;
-    redraw = 0;
-    switch (c) {
-      case 'q':
-      case 'Q':
-        delwin(win);
-	refresh_all();
-        return ' ';
-	break;
-      case CTRL('L'):
-        refresh_all();
-        break;
-      case  0:
-	redraw = 1;
-	break;
-      default:
-	return c;
-	break;
-    }
-
-    wclear(win);
-    for (i=-1;((++i<VERT)&&(i<ERRORS_SAVED)); ) {
-      present_error = current_error  - i;
-      if (present_error<0) present_error += ERRORS_SAVED;
-      mvwprintw(win,i,0,error_save[present_error]);
-    }
-    wrefresh(win);
+  errors[ERRORS_SAVED] = NULL;
+  for (i=-1;(++i<ERRORS_SAVED); ) {
+    present_error = current_error - i;
+    if (present_error<0) present_error += ERRORS_SAVED;
+    errors[i] = error_save[present_error];
   }
+  do_scroll_help(errors, (PLAIN|HELP_BOXED));
 
+  refresh_all();
   return 0;
 }
 
-/* Display some help in a separate window */
-void do_help()
+/* Popup menu */
+int do_popup_menu(char **menu_choices, char *valid_choices)
 {
-  WINDOW *win;
+  WINDOW *win, *bigwin;
+  int    c, window_length, window_width, length, width, last_highlight = 0, highlight = 0;
+  char   *choice;
 
-  win = newwin(13,WIN_COL,((VERT-13)/2+HEADER_SIZE),HOFF);
-  wclear(win);
-  box(win,0,0);
-  mvwprintw(win,1,16,"Program name : Filesystem type : Device name");
-  mvwprintw(win,2,7,"Inode: dec. (hex)     Block: dec. (hex)    0123456789:;<=>");
-  mvwprintw(win,4,20,"h,H,?   : Calls up this help.");
-  mvwprintw(win,5,20,"b,B     : Enter block mode.");
-  mvwprintw(win,6,20,"i,I     : Enter inode mode.");
-  mvwprintw(win,7,20,"r,R     : Enter recovery mode.");
-  mvwprintw(win,8,20,"q,Q     : Quit.");
-  mvwprintw(win,9,20,"^L      : Refresh screen.");
-  mvwprintw(win,11,20," Press any key to continue. ");
-  wrefresh(win);
-  getch();
-  delwin(win);
-  refresh_all();
+  length = width = 0;
+  while (menu_choices[length]!=NULL) {
+    width = (strlen(menu_choices[length]) > width) ? strlen(menu_choices[length])+1 : width;
+    length++;
+  }
 
-  return;
+  window_length = ((length+2)<VERT) ? (length+2) : VERT;
+  window_width  = ((width+2)<WIN_COL) ? (width+2) : WIN_COL;
+
+  bigwin = newwin(window_length,window_width,HEADER_SIZE,0);
+
+  window_length -= 2;
+  window_width  -= 2;
+
+  win = derwin(bigwin, window_length, window_width, 1, 1);
+
+  scrollok(win, TRUE);
+  wclear(bigwin);
+  box(bigwin,0,0);
+
+  wattron(win,WHITE_ON_RED);
+  mvwprintw(win,0,0,menu_choices[0]);
+  wattroff(win,WHITE_ON_RED);
+  for (c=1; c < window_length; c++) 
+      mvwprintw(win,c,0,menu_choices[c]);
+  wmove(bigwin,1,1);
+  wrefresh(bigwin);
+
+  while ( (c = mgetch()) ) {
+    switch (c) {
+      case CTRL('P'):
+      case KEY_UP:
+      case 'k':
+      case 'K':
+	if (highlight>0) highlight--;
+	break;
+      case CTRL('N'):
+      case KEY_DOWN:
+      case 'j':
+      case 'J':
+	if (highlight<(window_length-1)) highlight++;
+	break;
+      case 'q':
+      case 'Q':
+      case ESC:
+	delwin(win);
+	delwin(bigwin);
+	refresh_all();
+	return 0;
+      case KEY_ENTER:
+      case CTRL('M'):
+      case CTRL('J'):
+	c = valid_choices[highlight];
+      default:
+	if ( (choice = strchr(valid_choices, c)) != NULL ) {
+	  delwin(win);
+	  delwin(bigwin);
+	  refresh_all();
+	  return choice[0];
+	break;
+	}
+      }
+
+    if (highlight != last_highlight) { 
+      mvwprintw(win,last_highlight,0,menu_choices[last_highlight]);
+      wattron(win,WHITE_ON_RED);
+      mvwprintw(win,highlight,0,menu_choices[highlight]);
+      wattroff(win,WHITE_ON_RED);
+      wmove(win,highlight,0);
+      wrefresh(win);
+      last_highlight = highlight;
+    } 
+    
+  }
+    
+  return 0;
 }
 
-/* Format the super block for curses */
-void show_super()
+/* Dumps a line of text to the scrollable help window */
+void dump_scroll(WINDOW *win, int i, int window_offset, int win_col, int banner_size, 
+		 char **banner, char **help_text, int fancy) 
 {
-  clobber_window(workspace);
-  workspace = newwin(10,WIN_COL,((VERT-10)/2+HEADER_SIZE),HOFF);
+  int j;
+
+  if (i+window_offset < banner_size ) {
+    if (banner[i+window_offset] != NULL) {
+      wattron(win,WHITE_ON_BLUE);
+      for (j=0;j<win_col;j++)
+	mvwaddch(win,i,j,' ');
+      mvwprintw(win,i,(win_col-strlen(banner[i+window_offset]))/2-1,banner[i+window_offset]);
+      wattroff(win,WHITE_ON_BLUE);
+    }
+  } else
+    mvwprintw(win,i,fancy,help_text[i+window_offset-banner_size]);
+
+  wmove(win,i,fancy);
+}
+
+/* Display some help in a separate scrollable window */
+void do_scroll_help(char **help_text, int fancy)
+{
+  WINDOW *win, *bigwin;
+  int c, i, length, banner_size, win_col, window_size, window_offset = 0;
+
+#define BANNER_SIZE 3
+#if (BANNER_SIZE > 0)
+  char *banner[BANNER_SIZE] = {
+    "Program name : Filesystem type : Device name",
+    "Inode: dec. (hex)     Block: dec. (hex)    0123456789:;<=>",
+    NULL
+  };
+#else
+  char *banner[0] = { NULL };
+#endif
+
+  if (fancy&HELP_NO_BANNER)
+    banner_size = 0;
+  else
+    banner_size = BANNER_SIZE;
+
+  if (fancy&HELP_WIDE)
+    win_col = COLS;
+  else
+    win_col = WIN_COL;
+
+  if (fancy&HELP_BOXED)
+    fancy = 2;
+  else
+    fancy = 0;
+    
+  length = -1;
+  while (help_text[++length]!=NULL);
+  window_size = ((length+fancy+banner_size)<VERT) ? (length+fancy+banner_size) : VERT;
+
+  bigwin = newwin(window_size,win_col,((VERT-window_size)/2+HEADER_SIZE),(win_col == WIN_COL) ? HOFF : 0);
+  wclear(bigwin);
+
+  if (fancy) {
+    win = derwin(bigwin, window_size - 2 , win_col - 2, 1, 1);
+    box(bigwin,0,0);
+    mvwprintw(bigwin,(window_size-1),(win_col/2-20)," Arrows to scroll, any other key to continue. ");
+  } else {
+    win = bigwin;
+  }
   
-  mvwprintw(workspace,0,20,"Inodes:       %10ld (0x%8.8lX)",sb->ninodes, sb->ninodes);
-  mvwprintw(workspace,1,20,"Blocks:       %10ld (0x%8.8lX)",sb->nzones, sb->nzones);
-  mvwprintw(workspace,2,20,"Firstdatazone:%10ld (N=%lu)",sb->first_data_zone,sb->norm_first_data_zone);
-  mvwprintw(workspace,3,20,"Zonesize:     %10ld (0x%4.4lX)",sb->blocksize, sb->blocksize);
-  mvwprintw(workspace,4,20,"Maximum size: %10ld (0x%8.8lX)",sb->max_size,sb->max_size);
-  mvwprintw(workspace,6,20,"* Directory entries are %d characters.",sb->namelen);
-  mvwprintw(workspace,7,20,"* Inode map occupies %lu blocks.",sb->imap_blocks);
-  mvwprintw(workspace,8,20,"* Zone map occupies %lu blocks.",sb->zmap_blocks);
-  mvwprintw(workspace,9,20,"* Inode table occupies %lu blocks.",INODE_BLOCKS);
-  wrefresh(workspace);
+  scrollok(win, TRUE);
+
+  for (i=0; i < (window_size - fancy) ; i++) 
+    dump_scroll(win, i, window_offset, win_col, banner_size, 
+		 banner, help_text, fancy);
+    
+  wrefresh(bigwin);
+
+  c = ' ';
+  while (c != 'q') {
+    c = mgetch();
+    i = -1;
+    switch (c) {
+      case CTRL('P'):
+      case KEY_UP:
+      case 'K':
+      case 'k':
+	if (window_offset>0) {
+	  window_offset--;
+	  wscrl(win,-1);
+	  i = 0;
+	}
+	break;
+      case CTRL('N'):
+      case KEY_DOWN:
+      case 'J':
+      case 'j':
+	if ((window_offset+window_size-fancy)<(length+banner_size)) {
+	  window_offset++;
+	  wscrl(win,1);
+	  i = window_size - fancy - 1;
+	}
+	break;
+      default:
+	c = 'q';
+	break;
+      }
+
+    if (i>=0) {
+      dump_scroll(win, i, window_offset, win_col, banner_size, 
+		  banner, help_text, fancy);
+      wrefresh(win);
+    }
+  }
+
+  delwin(win);
+  if (fancy)
+    delwin(bigwin);
 
   return;
 }
+
 
 /* Throw up a list of flags which the user can toggle */
-void flag_popup()
+void flag_popup(void)
 {
   WINDOW *win;
   int c, redraw, flag;
@@ -288,7 +441,7 @@ void flag_popup()
   win = newwin(7,WIN_COL,((VERT-7)/2+HEADER_SIZE),HOFF);
 
   flag = 1; c = ' ';
-  while ((flag)||(c = getch())) {
+  while ((flag)||(c = mgetch())) {
     flag = 0;
     redraw = 0;
     switch (c) {
@@ -375,7 +528,7 @@ void crecover_file(unsigned long inode_zones[])
 }
   
 /* This lists all the tagged inodes */
-int recover_mode()
+int recover_mode(void)
 {
   int j,c,flag;
   unsigned long a;
@@ -387,7 +540,8 @@ int recover_mode()
 		  "Q to quit, R to dump to file");
 
   flag=1; c = ' ';
-  while (flag||(c = getch())) {
+  while (flag||(c = mgetch())) {
+    flag = 0;
     switch (c) {
       case '0':
       case '1':
@@ -421,11 +575,17 @@ int recover_mode()
       case 'F':
 	flag_popup();
 	break;
-      case 'h':
-      case 'H':
+      case 'z':
+      case KEY_F(2):
+      case CTRL('O'):
+	c = flag = do_popup_menu(recover_menu_options, recover_menu_map);	
+	break;
       case '?':
       case CTRL('H'):
-        do_help();
+      case META('H'):
+      case META('h'):
+      case KEY_F(1):
+	do_scroll_help(recover_help, FANCY);
       case CTRL('L'):
 	refresh_all();
 	break;
@@ -458,14 +618,35 @@ int recover_mode()
       j++;
     }
     wrefresh(workspace);
-    flag = 0;
   }	
 
   return 0; /* Ain't gunna happen */
 }
 
+
+/* Format the super block for curses */
+void show_super(void)
+{
+  clobber_window(workspace);
+  workspace = newwin(10,WIN_COL,((VERT-10)/2+HEADER_SIZE),HOFF);
+  
+  mvwprintw(workspace,0,20,"Inodes:       %10ld (0x%8.8lX)",sb->ninodes, sb->ninodes);
+  mvwprintw(workspace,1,20,"Blocks:       %10ld (0x%8.8lX)",sb->nzones, sb->nzones);
+  mvwprintw(workspace,2,20,"Firstdatazone:%10ld (N=%lu)",sb->first_data_zone,sb->norm_first_data_zone);
+  mvwprintw(workspace,3,20,"Zonesize:     %10ld (0x%4.4lX)",sb->blocksize, sb->blocksize);
+  mvwprintw(workspace,4,20,"Maximum size: %10ld (0x%8.8lX)",sb->max_size,sb->max_size);
+  mvwprintw(workspace,6,20,"* Directory entries are %d characters.",sb->namelen);
+  mvwprintw(workspace,7,20,"* Inode map occupies %lu blocks.",sb->imap_blocks);
+  mvwprintw(workspace,8,20,"* Zone map occupies %lu blocks.",sb->zmap_blocks);
+  mvwprintw(workspace,9,20,"* Inode table occupies %lu blocks.",INODE_BLOCKS);
+  wrefresh(workspace);
+
+  return;
+}
+
+
 /* Not too exciting main parser with superblock on screen */
-void interactive_main()
+void interactive_main(void)
 {
   int c, redraw, flag;
 
@@ -483,13 +664,13 @@ void interactive_main()
     init_pair(1,COLOR_WHITE,COLOR_RED);
     init_pair(2,COLOR_WHITE,COLOR_BLUE);
     init_pair(3,COLOR_RED,COLOR_BLACK);
-    RED_ON_WHITE = COLOR_PAIR(1);
-    BLUE_ON_WHITE = COLOR_PAIR(2);
+    WHITE_ON_RED = COLOR_PAIR(1);
+    WHITE_ON_BLUE = COLOR_PAIR(2);
     RED_ON_BLACK = COLOR_PAIR(3);
   } else {
-    BLUE_ON_WHITE = A_REVERSE;
+    WHITE_ON_BLUE = A_REVERSE;
     RED_ON_BLACK = A_NORMAL;
-    RED_ON_WHITE = A_UNDERLINE;
+    WHITE_ON_RED = A_UNDERLINE;
   }
   
   /* Our three curses windows */
@@ -505,10 +686,10 @@ void interactive_main()
   
   /* flag is used so that the user can switch between modes without
    * getting stuck here.  Flag indicates no keypress is required, so
-   * getch() is not called.
+   * mgetch() is not called.
    */
   flag = 1; c = ' ';
-  while (flag || (c = getch())) {
+  while (flag || (c = mgetch())) {
     flag = 0;
     redraw = 0;
     switch (c|flag) {
@@ -519,11 +700,6 @@ void interactive_main()
       case 'F':
       case 'f':
 	flag_popup();
-	break;
-      case 'h':
-      case 'H':
-      case '?':
-	do_help();
 	break;
       case 'I':
       case 'i':
@@ -542,6 +718,17 @@ void interactive_main()
       case 'v':
 	c = flag = error_popup();
 	break;
+      case 'z':
+      case KEY_F(2):
+      case CTRL('O'):
+	c = flag = do_popup_menu(ncmain_menu_options, ncmain_menu_map);	
+	break;
+      case CTRL('H'):
+      case META('H'):
+      case META('h'):
+      case KEY_F(1):
+      case '?':
+	do_scroll_help(ncmain_help,FANCY);
       case CTRL('L'):
 	refresh_all();
 	redraw = 1;

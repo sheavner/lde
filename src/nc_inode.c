@@ -3,40 +3,13 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.2 1994/04/04 04:21:58 sdh Exp $
+ *  $Id: nc_inode.c,v 1.3 1994/04/24 20:36:43 sdh Exp $
  */
 
 #include "nc_lde.h"
+#include "nc_inode_help.h"
 
 static int park_x = 0, park_y = 0;
-
-void do_inode_help(void)
-{
-  WINDOW *win;
-
-  win = newwin(16,WIN_COL,((VERT-16)/2+HEADER_SIZE),HOFF);
-  wclear(win);
-  box(win,0,0);
-  mvwprintw(win,1,16,"Program name : Filesystem type : Device name");
-  mvwprintw(win,2,7,"Inode: dec. (hex)     Block: dec. (hex)    0123456789:;<=>");
-  mvwprintw(win,4,7,"h,H,?   : Calls up this help.");
-  mvwprintw(win,5,7,"B       : View block under cursor.");
-  mvwprintw(win,6,7,"b       : Enter block mode.");
-  mvwprintw(win,7,7,"r       : Enter recovery mode.");
-  mvwprintw(win,8,7,"R       : Enter recovery mode, copy inode block ptrs to recovery list.");
-  mvwprintw(win,9,7,"q,Q     : Quit.");
-  mvwprintw(win,10,7,"LT/RT   : Move cursor (also ^F, ^B)");
-  mvwprintw(win,11,7,"UP/DN   : View next/previous inode (also PG_UP/DN, ^N, ^P, ^V).");
-  mvwprintw(win,12,7,"0123... : Add block under cursor to recovery list at position.");
-  mvwprintw(win,13,7,"#       : Enter inode number and view it.");
-  mvwprintw(win,15,25," Press any key to continue. ");
-  wrefresh(win);
-  getch();
-  delwin(win);
-  refresh_all();
-
-  return;
-}
 
 void cwrite_inode(unsigned long inode_nr, struct Generic_Inode *GInode, int *mod_yes)
 {
@@ -119,7 +92,7 @@ void cdump_inode_labels()
 }
 
 /* Display current inode */
-void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode)
+void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, int highlight_field)
 {
   unsigned long imode = 0UL, j = 0UL;
   char f_mode[12];
@@ -161,131 +134,130 @@ void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode)
 
   if (fsc->inode->i_links_count) {
     if (highlight_field == I_LINKS_COUNT) {
-      wattron(workspace,RED_ON_WHITE);
+      wattron(workspace,WHITE_ON_RED);
       park_y = 2;
       park_x = 27;
     }
     mvwprintw(workspace,2,27,"%3d",GInode->i_links_count);
-    wattroff(workspace,RED_ON_WHITE);
+    wattroff(workspace,WHITE_ON_RED);
   }
 
   if (fsc->inode->i_mode) {
     if (highlight_field == I_MODE) {
-      wattron(workspace,RED_ON_WHITE);
+      wattron(workspace,WHITE_ON_RED);
       park_y = 3;
       park_x = 6;
     }
     mvwprintw(workspace,3,6,"\\%4.4s",&f_mode[3]);
-    wattroff(workspace,RED_ON_WHITE);
+    wattroff(workspace,WHITE_ON_RED);
   }
 
   if (fsc->inode->i_mode_flags) {
     if (highlight_field == I_MODE_FLAGS) {
-      wattron(workspace,RED_ON_WHITE);
+      wattron(workspace,WHITE_ON_RED);
       park_y = 3;
       park_x = 27;
     }
     mvwprintw(workspace,3,27,"\\%2.2s\n",&f_mode[1]);
-    wattroff(workspace,RED_ON_WHITE);
+    wattroff(workspace,WHITE_ON_RED);
   }
 
   if (fsc->inode->i_uid) {
     mvwprintw(workspace,4,10,"(%s)",(NC_PASS != NULL) ? NC_PASS->pw_name : "");
     if (highlight_field == I_UID) {
-      wattron(workspace,RED_ON_WHITE);
+      wattron(workspace,WHITE_ON_RED);
       park_y = 4;
       park_x = 5;
     }
     mvwprintw(workspace,4,5,"%05d",GInode->i_uid);
-    wattroff(workspace,RED_ON_WHITE);
+    wattroff(workspace,WHITE_ON_RED);
   }
 
   if (fsc->inode->i_gid) {
     mvwprintw(workspace,4,30,"(%s)",(NC_GROUP != NULL) ? NC_GROUP->gr_name : "");
     if (highlight_field == I_GID) {
-      wattron(workspace,RED_ON_WHITE);
+      wattron(workspace,WHITE_ON_RED);
       park_y = 4;
       park_x = 25;
     }
     mvwprintw(workspace,4,25,"%05d",GInode->i_gid);
-    wattroff(workspace,RED_ON_WHITE);
+    wattroff(workspace,WHITE_ON_RED);
   }
 
   if (fsc->inode->i_size) {
     if (highlight_field == I_SIZE) {
-      wattron(workspace,RED_ON_WHITE);
+      wattron(workspace,WHITE_ON_RED);
       park_y = 5;
       park_x = 6;
     }
     mvwprintw(workspace,5,6,"%-8ld",GInode->i_size);
-    wattroff(workspace,RED_ON_WHITE);
+    wattroff(workspace,WHITE_ON_RED);
   }
 
   if (fsc->inode->i_blocks) {
     if (highlight_field == I_BLOCKS) {
-      wattron(workspace,RED_ON_WHITE);
+      wattron(workspace,WHITE_ON_RED);
       park_y = 5;
       park_x = 32;
     }
     mvwprintw(workspace,5,32,"%-8ld \n",GInode->i_blocks);
-    wattroff(workspace,RED_ON_WHITE);
+    wattroff(workspace,WHITE_ON_RED);
   }
 
   if (fsc->inode->i_atime) {
     if (highlight_field == I_ATIME) {
-      wattron(workspace,RED_ON_WHITE);
+      wattron(workspace,WHITE_ON_RED);
       park_y = 7;
       park_x = 20;
     }
     mvwprintw(workspace,7,20,"%24s",ctime(&GInode->i_atime));
-    wattroff(workspace,RED_ON_WHITE);
+    wattroff(workspace,WHITE_ON_RED);
   }
 
   if (fsc->inode->i_ctime) {
     if (highlight_field == I_CTIME) {
-      wattron(workspace,RED_ON_WHITE);
+      wattron(workspace,WHITE_ON_RED);
       park_y = 8;
       park_x = 20;
     }
     mvwprintw(workspace,8,20,"%24s",ctime(&GInode->i_ctime));
-    wattroff(workspace,RED_ON_WHITE);
+    wattroff(workspace,WHITE_ON_RED);
   }
 
   if (fsc->inode->i_mtime) {
     if (highlight_field == I_MTIME) {
-      wattron(workspace,RED_ON_WHITE);
+      wattron(workspace,WHITE_ON_RED);
       park_y = 9;
       park_x = 20;
     }
     mvwprintw(workspace,9,20,"%24s",ctime(&GInode->i_mtime));
-    wattroff(workspace,RED_ON_WHITE);
+    wattroff(workspace,WHITE_ON_RED);
   }
 
   if (fsc->inode->i_dtime) {
     if (highlight_field == I_DTIME) {
-      wattron(workspace,RED_ON_WHITE);
+      wattron(workspace,WHITE_ON_RED);
       park_y = 10;
       park_x = 20;
     }
     mvwprintw(workspace,10,20,"%24s",ctime(&GInode->i_dtime));
-    wattroff(workspace,RED_ON_WHITE);
+    wattroff(workspace,WHITE_ON_RED);
   }
  
   if (fsc->inode->i_zone[0]) {
     j=-1;
     while (++j<fsc->N_BLOCKS) {
       if (j==(highlight_field-I_ZONE_0)) {
-	wattron(workspace,RED_ON_WHITE);
+	wattron(workspace,WHITE_ON_RED);
 	park_y = 2+j;
 	park_x = 65;
       }
       if (GInode->i_zone[j]) {
-	max_blocks_this_inode = j;
 	mvwprintw(workspace,2+j,65,"0x%7.7lX",GInode->i_zone[j]);
       } else {
 	mvwprintw(workspace,2+j,65,"         ");
       }
-      wattroff(workspace,RED_ON_WHITE);
+      wattroff(workspace,WHITE_ON_RED);
     }
   }
 
@@ -385,7 +357,7 @@ int inode_mode() {
   long a;
   struct Generic_Inode *GInode = NULL;
   static unsigned char *copy_buffer = NULL;
-  int edit_inode, modified, re_read_inode;
+  int edit_inode, modified, re_read_inode, highlight_field;
 
 #ifdef NCURSES_IS_COOL
   WINDOW *win;
@@ -403,7 +375,7 @@ int inode_mode() {
   modified = edit_inode = 0;
   GInode = FS_cmd.read_inode(current_inode);
 
-  while (flag||(c = getch())) {
+  while (flag||(c = mgetch())) {
     flag = full_redraw = re_read_inode = 0;
     redraw = 1;
 
@@ -437,6 +409,10 @@ int inode_mode() {
     switch (c) {
       case CTRL('D'):
       case CTRL('F'):
+      case 'l':
+      case 'L':
+      case META('V'):
+      case META('v'):
       case KEY_RIGHT:
       case KEY_NPAGE:
 	cwrite_inode(current_inode, GInode, &modified);
@@ -449,7 +425,10 @@ int inode_mode() {
       case KEY_BACKSPACE:
       case KEY_DC:
       case KEY_LEFT:
+      case 'h':
+      case 'H':
       case CTRL('U'):
+      case CTRL('V'):
       case KEY_PPAGE:
 	cwrite_inode(current_inode, GInode, &modified);
 	edit_inode = modified = 0;
@@ -458,19 +437,19 @@ int inode_mode() {
 	re_read_inode = full_redraw = 1;
 	break;
       case KEY_DOWN:
+      case 'j':
+      case 'J':
       case CTRL('N'):
       case CTRL('I'):
-        while (! *(&fsc->inode->i_mode+(++highlight_field)) )
+        while ( (! *(&fsc->inode->i_mode+(++highlight_field))) || (highlight_field >= I_END) )
           if (highlight_field >= (I_END-1) ) highlight_field = I_BEGIN;
 	break;
       case KEY_UP:
       case CTRL('P'):
+      case 'k':
+      case 'K':
       case KEY_BTAB:
-	/* For some reason, this gets stuck on 0 fields, for about 4 keystrokes,
-	 * when you move back past the first defined field, on the way down it
-	 * it works fine
-	 */
-        while (! *(&fsc->inode->i_mode+(--highlight_field)) ) 
+        while ( (! *(&fsc->inode->i_mode+(--highlight_field))) || (highlight_field <= I_BEGIN)) 
           if (highlight_field <= (I_BEGIN+1) ) highlight_field = I_END;
 	break;
       case '0':
@@ -546,6 +525,8 @@ int inode_mode() {
 	  full_redraw = modified = 1;
 	  memcpy(GInode,copy_buffer,sizeof(struct Generic_Inode));
 	  if (!write_ok) warn("Turn on write permissions before saving this inode");
+	} else {
+	  warn("Nothing in copy buffer.");
 	}
 	break;
       case 'V':
@@ -566,15 +547,20 @@ int inode_mode() {
 	  full_redraw = 1;
 	}
 	break;
-      case 'h':
-      case 'H':
-      case '?':
-      case CTRL('H'):
-        do_inode_help();
+      case 'z':
+      case KEY_F(2):
+      case CTRL('O'):
+	c = flag = do_popup_menu(inode_menu_options, inode_menu_map);	
+	if (c == '*') 
+	  c = flag = do_popup_menu(edit_menu_options, edit_menu_map);
 	break;
+      case '?':
+      case KEY_F(1):
+      case CTRL('H'):
+      case META('H'):
+        do_scroll_help(inode_help, FANCY);
       case CTRL('L'):
 	refresh_all();
-	break;
       case ' ':
 	break;
       default:
@@ -594,7 +580,7 @@ int inode_mode() {
       cdump_inode_labels();
 
     if (redraw||full_redraw)
-      cdump_inode_values(current_inode, GInode);
+      cdump_inode_values(current_inode, GInode, highlight_field);
   }
   return 0;
 }
