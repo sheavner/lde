@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.13 1995/06/02 14:53:48 sdh Exp $
+ *  $Id: nc_lde.c,v 1.14 1995/06/02 15:58:30 root Exp $
  */
 
 #include <stdio.h>
@@ -58,9 +58,9 @@ static lde_keymap recover_keymap[] = {
   { '9', REC_FILE9 },
   { '!', REC_FILE10 },
   { '@', REC_FILE11 },
-  { '#', REC_FILE12 },
-  { '$', REC_FILE13 },
-  { '%', REC_FILE14 },
+  { '$', REC_FILE12 },
+  { '%', REC_FILE13 },
+  { '^', REC_FILE14 },
   { 0, 0 }
 };
 
@@ -627,13 +627,20 @@ int recover_mode(void)
 {
   int j,c,next_cmd=CMD_REFRESH;
   unsigned long a;
+  char recover_labels[INODE_BLKS] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '@', '$', '%', '^' };
+
+#if 0
+  /* Fill in keys used to change blocks in recover mode -- WHY DOESN'T THIS WORK????? */
+  for (j=0;recover_keymap[j].action_code;j++)
+    if ( (REC_FILE0>=recover_keymap[j].action_code)&&(REC_FILE14<=recover_keymap[j].action_code) )
+      recover_labels[j-REC_FILE0] = recover_keymap[j].key_code;
+#endif
 
   clobber_window(workspace); 
   workspace = newwin(fsc->N_BLOCKS+1,WIN_COL,((VERT-fsc->N_BLOCKS-1)/2+HEADER_SIZE),HOFF);
   werase(workspace);
   
-  display_trailer("Enter number corresponding to block to modify values",
-		  "Q to quit, R to dump to file");
+  display_trailer("Enter character corresponding to block to modify values.  Q to quit.  R to dump to file", "");
 
   while ( (c=next_cmd)||(c=lookup_key(mgetch(),recover_keymap)) ) {
     next_cmd = 0;
@@ -687,20 +694,20 @@ int recover_mode(void)
 
     mvwprintw(workspace,0,0,"DIRECT BLOCKS:" );
     for (j=0;j<fsc->N_DIRECT; j++)
-      mvwprintw(workspace,j,20," %2d : 0x%8.8lX",j,fake_inode_zones[j]);
+      mvwprintw(workspace,j,20," %1c : 0x%8.8lX",recover_labels[j],fake_inode_zones[j]);
     if (fsc->INDIRECT) {
       mvwprintw(workspace,j,0,"INDIRECT BLOCK:" );
-      mvwprintw(workspace,j,20," %2d : 0x%8.8lX",j,fake_inode_zones[fsc->INDIRECT]);
+      mvwprintw(workspace,j,20," %1c : 0x%8.8lX",recover_labels[j],fake_inode_zones[fsc->INDIRECT]);
       j++;
     }
     if (fsc->X2_INDIRECT) {
       mvwprintw(workspace,j,0,"2x INDIRECT BLOCK:" );
-      mvwprintw(workspace,j,20," %2d : 0x%8.8lX",j,fake_inode_zones[fsc->X2_INDIRECT]);
+      mvwprintw(workspace,j,20," %1c : 0x%8.8lX",recover_labels[j],fake_inode_zones[fsc->X2_INDIRECT]);
       j++;
     }
     if (fsc->X3_INDIRECT) {
       mvwprintw(workspace,j,0,"3x INDIRECT BLOCK:" );
-      mvwprintw(workspace,j,20," %2d : 0x%8.8lX",j,fake_inode_zones[fsc->X3_INDIRECT]);
+      mvwprintw(workspace,j,20," %1c : 0x%8.8lX",recover_labels[j],fake_inode_zones[fsc->X3_INDIRECT]);
       j++;
     }
     wrefresh(workspace);
