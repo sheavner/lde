@@ -1,8 +1,8 @@
-#include <linux/ext2_fs.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include "../src/swiped/linux/ext2_fs.h"
 
 /* (C) 1994 Scott Heavner (sdh@po.cwru.edu) */
 
@@ -23,15 +23,20 @@
  * the superblock, so the start and end will be incorrect.  It may be necessary
  * to leave out the best guess option if nothing shows up on the first run.
  *
- * $Id: find_ext2_fs.c,v 1.2 1997/10/07 14:50:51 sdh Exp $
+ * $Id: find_ext2_fs.c,v 1.3 2002/01/10 19:33:33 scottheavner Exp $
  *
  * Changes:
+ *
+ * January 10, 2001 - Seems debian is still using/compiling this thing.
+ *   Switch to include our ext_fs.h but may need to define HAVE_ASM_TYPES
+ *   when compiling.
  *
  * October 6, 1997 - modified to search 512 byte blocks instead of 1024.  If
  *   the filesystem didn't start on a 1024 byte interval, it would have been
  *   skipped.
  * - comment out EXT2_PRE_02B_MAGIC - must not be supported in kernels anymore
- * - compile with "gcc -O6 -s -o find_ext2_fs find_ext2_fs.c" for a 4k binary
+ * - compile with this for a 4k i386 binary
+ *     "gcc -O6 -s -DHAVE_ASM_TYPES_H=1 -o find_ext2_fs find_ext2_fs.c"
  * - why is this thing so slow?
  *
  * October 7, 1997 - try to speed things up by reading in more blocks at a
@@ -60,7 +65,7 @@
  * probably won't improve - it will also control how close to the end of
  * the partition you can get as the last NB sectors won't be checked, must be
  * at least 1 */
-#define NB 32
+#define NB 500
 
 int main(int argc, char **argv)
 {
@@ -144,7 +149,7 @@ int main(int argc, char **argv)
 	}
 	if ((!best_guess)||(this_is_it)) {
 	  printf("   * Found ext2_magic in sector %lu (512 byte sectors).\n",i+C);
-	  printf("     This file system is %lu blocks long (each block is %lu bytes)\n",
+	  printf("     This file system is %u blocks long (each block is %lu bytes)\n",
 		 sb->s_blocks_count,blocksize);
 	  printf("     Filesystem runs %lu : %lu (512 byte sectors)\n",i+C,lastblock);
 	}
