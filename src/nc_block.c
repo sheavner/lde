@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.18 1996/10/11 02:44:04 sdh Exp $
+ *  $Id: nc_block.c,v 1.19 1996/10/13 01:40:12 sdh Exp $
  */
 
 #include <stdio.h>
@@ -160,7 +160,9 @@ int block_mode(void) {
   unsigned char block_buffer[MAX_BLOCK_SIZE];
   char *HEX_PTR, *HEX_NOS = "0123456789ABCDEF";
   unsigned long a, temp_ptr, search_iptr=0UL, inode_ptr[2] = { 0UL, 0UL };
+  unsigned long ipointer=0UL;
   struct bm_flags flags = { 0, 0, 0, 0, 0, 1 };
+  struct Generic_Inode *GInode = NULL;
 
   if (current_block >= sb->nzones)
     current_block=sb->nzones-1;
@@ -281,18 +283,32 @@ int block_mode(void) {
 	}
 	break;
 
-      case CMD_NEXT_BLOCK:
+      case CMD_NEXT_IND_BLOCK:
+      case CMD_PREV_IND_BLOCK:
         cwrite_block(current_block, block_buffer, &flags.modified);
-	if (++current_block >= sb->nzones)
-	  current_block=sb->nzones-1;
-	flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
-	flags.redraw = 1;
-	search_iptr = 0L;
+	GInode = FS_cmd.read_inode(current_inode);
+	/* Make sure that this block is indexed somewhere in the current inode */
+	if ( (AZP_BAD_START==advance_zone_pointer(GInode->i_zone,
+						&current_block,&ipointer,
+						(c==CMD_NEXT_IND_BLOCK)?+1L:-1L)) ||
+	     (GInode==NULL) ) {
+	  lde_warn("Can only index blocks contained in the current inode.");
+	} else {
+	  flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
+	  flags.redraw = 1;
+	  search_iptr = 0L;
+	}
 	break;
 
+      case CMD_NEXT_BLOCK:
       case CMD_PREV_BLOCK:
         cwrite_block(current_block, block_buffer, &flags.modified);
-	if (current_block!=0) current_block--;
+	if (c==CMD_NEXT_BLOCK) {
+	  if (++current_block >= sb->nzones)
+	    current_block=sb->nzones-1;
+	} else {
+	  if (current_block!=0) current_block--;
+	}
 	flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
 	flags.redraw = 1;
 	search_iptr = 0L;
@@ -373,7 +389,7 @@ int block_mode(void) {
 	break;
 
       case CMD_VIEW_AS_DIR: /* View the current block as a directory */
-        if (directory_popup(current_block) == CMD_INODE_MODE_MC) {
+        if (directory_popup(current_block,0UL,0UL) == CMD_INODE_MODE_MC) {
 	  c = CMD_INODE_MODE;
 	  flags.dontwait = 1;
 	}
