@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.5 1994/09/06 01:31:36 sdh Exp $
+ *  $Id: nc_block.c,v 1.6 1994/09/06 01:48:10 sdh Exp $
  */
 
 #include <stdio.h>
@@ -153,6 +153,9 @@ int block_mode(void) {
   unsigned long temp_ptr, inode_ptr[2] = { 0UL, 0UL };
   struct bm_flags flags = { 0, 0, 0, 0, 0, 1 };
 
+  if (current_block >= sb->nzones)
+    current_block=sb->nzones-1;
+
   update_block_help();
 
   display_trailer("PG_UP/DOWN = previous/next block, or '#' to enter block number",
@@ -287,7 +290,8 @@ int block_mode(void) {
       case CTRL('D'):
       case KEY_NPAGE:
         cwrite_block(current_block, block_buffer, &flags.modified);
-	current_block++;
+	if (++current_block >= sb->nzones)
+	  current_block=sb->nzones-1;
 	flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
 	flags.redraw = 1;
 	break;
@@ -376,7 +380,7 @@ int block_mode(void) {
 
       case 'B': /* View the block under the cursor */
 	temp_ptr = block_pointer(&block_buffer[cur_row*16+cur_col+win_start],(unsigned long) 0, fsc->ZONE_ENTRY_SIZE);
-	if (temp_ptr <= sb->nzones) {
+	if (temp_ptr < sb->nzones) {
 	  current_block = temp_ptr;
 	  flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
 	  flags.redraw = 1;
@@ -425,6 +429,8 @@ int block_mode(void) {
         if (cread_num("Enter block number (leading 0x or $ indicates hex):",&current_block)) {
 	  flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
 	  flags.redraw = 1;
+	  if (current_block >= sb->nzones)
+	    current_block=sb->nzones-1;
 	}
 	break;
 
@@ -454,9 +460,6 @@ int block_mode(void) {
       default:
 	break;
     }
-
-    if (current_block > sb->nzones)
-      current_block=sb->nzones;
 
     /* More room on screen, but have we gone past the end of the block? */
     if (cur_row*16+win_start>=sb->blocksize)
