@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.23 1998/01/18 06:34:51 sdh Exp $
+ *  $Id: lde.h,v 1.24 1998/01/23 04:09:31 sdh Exp $
  */
 
 #ifndef LDE_H
@@ -204,6 +204,9 @@ struct {
   int (*zone_in_use)(unsigned long n);
   /* Check if data zone/block is marked in bad -- not implemented in v2.2 yet */
   int (*zone_is_bad)(unsigned long n);
+  /* Check if data zone/block is part of the filesystems reserved area 
+     -- inode tables, block bitmaps, etc, etc */
+  int (*is_system_block)(unsigned long nr);
   /* Get dir name and inode number */
   char* (*dir_entry)(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
   /* Copies the FS specific inode into a generic inode structure */
