@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: iso9660.c,v 1.5 2001/02/26 21:18:29 scottheavner Exp $
+ *  $Id: iso9660.c,v 1.6 2001/11/26 00:07:23 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -24,6 +24,7 @@
 #include "tty_lde.h"
 #include "no_fs.h"
 #include "iso9660.h"
+#include "recover.h"
 
 static struct Generic_Inode *NOFS_read_inode(unsigned long nr);
 static char* NOFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
@@ -89,7 +90,8 @@ static struct fs_constants NOFS_constants = {
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
   &NOFS_inode_fields,
-  "iso9660"                     /* char *text_name */
+  "iso9660",                    /* char *text_name */
+  16*2048                       /* unsigned long supertest_offset */
 };
 
 static struct Generic_Inode ISO9660_junk_inode;
@@ -218,6 +220,7 @@ void ISO9660_init(char * sb_buffer)
   FS_cmd.read_inode = NOFS_read_inode;
   FS_cmd.write_inode = NOFS_write_inode_NOT;
   FS_cmd.map_inode = NOFS_one_ul__ul;
+  FS_cmd.map_block = map_block;
 }
 
 static int valid_offset (unsigned long offset)
@@ -254,16 +257,13 @@ static unsigned long NOFS_get_device_size(void)
 }
 
 
-int ISO9660_test(void *sb_buffer)
+int ISO9660_test(void *sb_buffer, int use_offset)
 {
-  char *testbuffer = (char *)sb_buffer + 16*2048 + 1;
-  char s[3] = {0};
+  if (use_offset)
+    sb_buffer += NOFS_constants.supertest_offset;
 
-  s[0] = testbuffer[2];
-  s[1] = testbuffer[3];
-
-  if (!strncmp("CD001",testbuffer,5)) {
-    lde_warn("Found iso9660 filesystem on device");
+  if (!strncmp("CD001",sb_buffer+1,5)) {
+    if (use_offset) lde_warn("Found iso9660 filesystem on device");
     return 1;
   }
 

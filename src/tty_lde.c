@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.26 2001/02/26 19:02:40 scottheavner Exp $
+ *  $Id: tty_lde.c,v 1.27 2001/11/26 00:07:23 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -12,6 +12,9 @@
 #include <string.h>
 #if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#if HAVE_FCNTL_H
+#include <fcntl.h>
 #endif
 #include <time.h>
 #include <pwd.h>
@@ -179,7 +182,27 @@ unsigned long lde_seek_block(unsigned long block_nr)
   return 0;
 }
 
+/* mask_bad_block: 
+ *  - if we get an error reading from the disk, we look in a directory
+ *    for the a file with the blocknumbers name in uppercase hex with no
+ *    leading zeros or spaces.  I.e. you'll specify /tmp/badblocks on
+ *    the commandline and this will look for /tmp/badblocks/A if we
+ *    need block 10.
+ */
+static size_t mask_bad_block (unsigned long block_nr, void *dest, size_t read_size) {
+	int f;
+	size_t act_size=0;
+	char filename[256];
 
+	sprintf(filename, "%s/%lX", badblocks_directory, block_nr);
+	f = open(filename,O_RDONLY);
+	if ( f <= 0 ) return -1;  /* return error, no override file found */
+	act_size = read(f,dest, read_size);
+	close(f);
+	return act_size;
+}
+
+	
 
 /* Reads a block w/o caching results */
 size_t nocache_read_block (unsigned long block_nr, void *dest, 
@@ -193,9 +216,11 @@ size_t nocache_read_block (unsigned long block_nr, void *dest,
     lde_warn("Read error: unable to seek to block"
 	     "0x%lx in nocache_read_block, errno=%d",
 	     block_nr,errno);
-  else if ( (act_size=read (CURR_DEVICE, dest, read_size)) != read_size)
+  else if ( (act_size=read (CURR_DEVICE, dest, read_size)) != read_size) {
     lde_warn("Unable to read full block (%lu) in nocache_read_block,"
 	     " errno=%d",block_nr,errno);
+    return mask_bad_block(block_nr, dest, read_size);
+  }
   
   return act_size;
 }
@@ -231,7 +256,11 @@ void * cache_read_block (unsigned long block_nr, void *dest, int force)
     read_size = lookup_blocksize(block_nr);
 
     bp->size = nocache_read_block(cache_block_nr, bp->data, read_size);
-    if (bp->size)
+    if ( bp->size == -1 ) {
+	bp->size = read_size;  /* Lousy handling */
+	memset(bp->data,'!',bp->size);
+    }
+    if ( bp->size )
       bp->bnr = block_nr;
     else
       bp->bnr = 0UL;

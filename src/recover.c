@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.30 2001/02/26 19:02:40 scottheavner Exp $
+ *  $Id: recover.c,v 1.31 2001/11/26 00:07:23 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -21,6 +21,13 @@
 #include "lde.h"
 #include "recover.h"
 #include "tty_lde.h"
+
+#include "iso9660.h"
+#include "ext2fs.h"
+#include "minix.h"
+#include "msdos_fs.h"
+#include "xiafs.h"
+#include "no_fs.h"
 
 /* This takes care of the mapping from a char pointer to unsigned
  * long/short, depending on the file system */
@@ -324,10 +331,10 @@ int advance_zone_pointer(unsigned long zone_index[], unsigned long *currblk,
   long sincrement,i;
 
   /* Check that we are at a block that is indexed by this inode */
-  if ((map_block(zone_index, *ipointer, &blknr))||(blknr!=(*currblk))) {
+  if ((FS_cmd.map_block(zone_index, *ipointer, &blknr))||(blknr!=(*currblk))) {
     /* We aren't: look it up using brute force */
     for (;;) {
-      result = map_block(zone_index, local_ipointer, &blknr);
+      result = FS_cmd.map_block(zone_index, local_ipointer, &blknr);
       if (result < EMB_HALT) {
 	return AZP_BAD_START;
       } else if (result < EMB_SKIP) {
@@ -349,7 +356,7 @@ int advance_zone_pointer(unsigned long zone_index[], unsigned long *currblk,
   for (i=0; i<increment; i++) {
     for (;;) {
       local_ipointer += sincrement;
-      result = map_block(zone_index, local_ipointer, &blknr);
+      result = FS_cmd.map_block(zone_index, local_ipointer, &blknr);
       if (result < EMB_HALT) {
 	return result;
       } else if (result < EMB_SKIP) {
@@ -417,9 +424,9 @@ int recover_file(int fp,unsigned long zone_index[],unsigned long filesize)
     if (lde_flags.blanked_indirects) 
       result = hacked_map_block(zone_index,j,&nr,&skipped);
     else 
-      result=map_block(zone_index,j,&nr);
+      result=FS_cmd.map_block(zone_index,j,&nr);
 #else
-    result=map_block(zone_index,j,&nr);
+    result=FS_cmd.map_block(zone_index,j,&nr);
 #endif
 
     /* Block successfully looked up? */
@@ -437,8 +444,13 @@ int recover_file(int fp,unsigned long zone_index[],unsigned long filesize)
 
     /* Have a valid block number? */
     if (nr) {
+      int k = 0;
+#ifdef MSDOSHACK /* Also added k in line above and below */
+#warning MSDOS HACK ENABLED
+      for ( k=0; k<sb->zonesize; k++) { /* MSDOS HACK */
+#endif
       /* Read data from disk */
-      dind = cache_read_block(nr,NULL,CACHEABLE);
+      dind = cache_read_block(nr+k,NULL,CACHEABLE);
       /* Check for small block if we opened a file instead of a device */
       write_count = (size_t) lookup_blocksize(nr);
       /* Add what we're about to write to total written */
@@ -454,6 +466,9 @@ int recover_file(int fp,unsigned long zone_index[],unsigned long filesize)
       /* Quit when we've written enough */
       if ((filesize)&&(written>=filesize))
 	return 0;
+#ifdef MSDOSHACK
+      } /* END MSDOS HACK */
+#endif
     }
     j++;
   }
@@ -482,7 +497,7 @@ int check_recover_file(unsigned long zone_index[],unsigned long filesize)
       return 1;
     }
 
-    result=map_block(zone_index,j,&nr);
+    result=FS_cmd.map_block(zone_index,j,&nr);
 
     if (result) {
       if (result < EMB_HALT) {
@@ -553,7 +568,7 @@ unsigned long find_inode(unsigned long nr, unsigned long last_nr)
       while (1) {
 	if (lde_flags.quit_now)
 	  return 0L;
-	if ((result=map_block(GInode->i_zone, b++, &test_block))) {
+	if ((result=FS_cmd.map_block(GInode->i_zone, b++, &test_block))) {
 	  if (result < EMB_HALT ) {
 	    break;
 	  } else if (result < EMB_SKIP ) {
@@ -658,21 +673,21 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 	} while (++i<search_len);
 	
 	if (matched) {
-	  printf("Match at block 0x%lX",nr);
+	  fprintf(stderr,"Match at block 0x%lX",nr);
 	  if (lde_flags.inode_lookup) {
 	    if ( (inode_nr = find_inode(nr, 0UL)) ) {
-	      printf(", check inode 0x%lX",inode_nr);
+	      fprintf(stderr,", check inode 0x%lX",inode_nr);
 	      if (lde_flags.check_recover) {
 		lde_warn = no_warn;  /* Suppress output */
 		GInode = FS_cmd.read_inode(nr);
-		printf(", recovery %spossible",(check_recover_file(GInode->i_zone,GInode->i_size)?"":"NOT ") );
+		fprintf(stderr,", recovery %spossible",(check_recover_file(GInode->i_zone,GInode->i_size)?"":"NOT ") );
 		lde_warn = tty_warn; /* Reinstate output */
 	      }
 	    } else {
-	      printf(", no %sinode found",((lde_flags.search_all)?"":"unused ") );
+	      fprintf(stderr,", no %sinode found",((lde_flags.search_all)?"":"unused ") );
 	    }
 	  }
-	  printf(".\n");
+	  fprintf(stderr,".\n");
 	}
       }
 
@@ -795,6 +810,11 @@ int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, i
       retval   = 1;
       break;
     }
+    if (lde_flags.quit_now) {
+      lde_warn("Search aborted at block 0x%lx",sbnr);
+      retval = -2;
+      break;
+    }
   }
   
   free(buffer);
@@ -807,4 +827,43 @@ int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, i
      lde_warn("No match");
   
   return retval;
+}
+
+
+int search_for_superblocks(int fs_type) {
+  unsigned long sbnr = 0;
+  char *buffer[512*500];
+  size_t  bytesread;
+ 
+  /* Want to do all searches on 512 byte boundries, in case something has gotten screwed up */
+  NOFS_init(NULL,512);
+
+  for ( ; sbnr<sb->nzones; ++sbnr) {
+    bytesread = nocache_read_block(sbnr, buffer, 512);
+    if (bytesread < 0)
+      break;
+
+    if ( ((fs_type==AUTODETECT)||(fs_type==MINIX)) && (MINIX_test(buffer,0)) )
+      lde_warn("Found minix superblock at 0x%lx",sbnr);
+
+    if ( ((fs_type==AUTODETECT)||(fs_type==EXT2)) && (EXT2_test(buffer,0)) )
+      lde_warn("Found ext2 superblock at 0x%lx",sbnr);
+
+    if ( ((fs_type==AUTODETECT)||(fs_type==XIAFS)) && (XIAFS_test(buffer,0)) )
+      lde_warn("Found xiafs superblock at 0x%lx",sbnr);
+
+    if ( ((fs_type==AUTODETECT)||(fs_type==DOS)) && (DOS_test(buffer,0)) )
+      lde_warn("Found DOS superblock at 0x%lx",sbnr);
+
+    if ( ((fs_type==AUTODETECT)||(fs_type==ISO9660)) && (ISO9660_test(buffer,0)) )
+      lde_warn("Found ISO9660 superblock at 0x%lx",sbnr);
+
+    if (lde_flags.quit_now) {
+      lde_warn("Search aborted");
+      return -1;
+    }
+  }
+
+  lde_warn("Search complete");
+  return 0;
 }

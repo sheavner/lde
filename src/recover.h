@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.h,v 1.9 2001/02/23 23:40:04 scottheavner Exp $
+ *  $Id: recover.h,v 1.10 2001/11/26 00:07:23 scottheavner Exp $
  */
 
 unsigned long block_pointer(unsigned char *ind, unsigned long blknr, int zone_entry_size);
@@ -16,6 +16,7 @@ unsigned long find_inode(unsigned long nr, unsigned long last_nr);
 void parse_grep(void);
 void search_fs(unsigned char *search_string, int search_len, int search_off, unsigned long start_nr);
 int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, int *moffset);
+int search_for_superblocks(int fs_type);
 
 enum map_block_errors { EMB_NO_ERROR=0, 
 			EMB_3IND_NOT_YET=-200,  /* Sorry, I haven't progammed this yet, stop checking when encountered */

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.16 2001/02/26 19:02:40 scottheavner Exp $
+ *  $Id: no_fs.c,v 1.17 2001/11/26 00:07:23 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -22,10 +22,11 @@
 #include "lde.h"
 #include "tty_lde.h"
 #include "no_fs.h"
+#include "recover.h"
 
 static struct Generic_Inode *NOFS_read_inode(unsigned long nr);
 static char* NOFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
-static void NOFS_sb_init(char * sb_buffer);
+static void NOFS_sb_init(char * sb_buffer, unsigned long blocksize);
 static int NOFS_write_inode_NOT(unsigned long ino,
 				struct Generic_Inode *GInode);
 static int NOFS_one_i__ul(unsigned long nr);
@@ -86,7 +87,8 @@ static struct fs_constants NOFS_constants = {
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
   &NOFS_inode_fields,
-  "no file sytem"               /* char *text_name */
+  "no file sytem",              /* char *text_name */
+  1024                          /* unsigned long supertest_offset */
 };
 
 static struct Generic_Inode NOFS_junk_inode;
@@ -149,14 +151,17 @@ static char* NOFS_dir_entry(int i, lde_buffer *block_buffer,
 }
 
 
-static void NOFS_sb_init(char * sb_buffer)
+static void NOFS_sb_init(char * sb_buffer, unsigned long blocksize)
 {
   static int firsttime=1;
   struct stat statbuf;
 
   fstat(CURR_DEVICE, &statbuf);
 
-  sb->blocksize = 1024;
+  if (blocksize==0)
+    blocksize = 1024;
+
+  sb->blocksize = blocksize;
 
   /* Try to look up the size of the file/device */
   sb->nzones = ((unsigned long)statbuf.st_size+(sb->blocksize-1UL))/
@@ -195,11 +200,11 @@ static void NOFS_sb_init(char * sb_buffer)
   firsttime = 0;
 }
 
-void NOFS_init(char * sb_buffer)
+void NOFS_init(char * sb_buffer, unsigned long blocksize)
 {
   fsc = &NOFS_constants;
 
-  NOFS_sb_init(sb_buffer);
+  NOFS_sb_init(sb_buffer, blocksize);
 
   (void) NOFS_init_junk_inode();
 
@@ -215,6 +220,7 @@ void NOFS_init(char * sb_buffer)
   FS_cmd.read_inode = NOFS_read_inode;
   FS_cmd.write_inode = NOFS_write_inode_NOT;
   FS_cmd.map_inode = NOFS_one_ul__ul;
+  FS_cmd.map_block = map_block;
 }
 
 static int valid_offset (unsigned long offset)

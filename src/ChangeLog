@@ -1,3 +1,58 @@
+2001-11-25    Scott Heavner
+
+	* xiafs.c (XIAFS_dir_entry): Change dir_entry for minix, ext2,
+	xiafs.  Make the xiafs and ext2 ones use the defined structures to
+	make the thing a little more readable.  Minix wasn't setting final
+	zero in string, sometimes would see entries ending in AAAAAAAA.
+	Thanks to John Quirk for noticing and tracking down the problem
+	with the ext2 misbehaviour.
+
+	
+2001-10-25    Scott Heavner
+
+	Some changes implemented while hacking through a trashed windows98
+	disk.  FAT is actually useful now.  Also a few (one?) small change
+	which I never checked in.
+
+	* recover.c (map_block): Add hack for fatbased filesystems.
+	Not enabled by default.
+
+	* tty_lde.c (mask_bad_block): When a disk read error occurs, look
+	in a directory for a file named for this block.  Files should be
+	named in uppercase hex with no leading zeros or spaces, i.e %lX
+	format.  Also make changes to main_lde.c to parse the command line
+	for --badblocks dir.
+
+	* msdos_fs.c: Mucho changes.  It did actually work and allowed me
+	to recover a bunch of files (with some help from mtools).  Change
+	to detect various fat sizes 12,16,32.  Make long directory entries
+	sorta work (they're displayed above the shortname).  I don't
+	recall if it feels like the rest of the filesystems, but you can
+	navigate a windows 98 disk reasonably.
+
+	* nc_block.c (block_mode): Not sure what I did here.  Made some
+	changes under CMD_FIND_STRING to position the cursor on match??
+
+	* main_lde.c (main): clean up command line when we dump a block to
+	stdout, unless it was a binary dump.
+
+	* recover.c (search_for_superblocks) : Add capability to search
+	disk for superblocks.  If no filesystem is specified on the
+	command line, all filesystem types will be tested.  If you do
+	specify a filesystem, only tests for that filesystem will be used.
+	Make appropriate changes to main_lde.c to run this test from
+	command line option --superscan or -P. When searching for
+	superblocks, we don't read the inode/block map tables off this
+	disk (as we normally would if someone specified a filesystem), so
+	added skiptableread to main_opts struct.	
+
+	* main_lde.c (read_tables): Add use_offset argument to XXXX_test()
+	functions.  Allows test function to be used when searching disk
+	for super blocks.  Also FS specific changes.  Add offset (from
+	start of device) to each FS's fs_constants structure.  Modify
+	XXXX_test routine not to print anything unless use_offset is
+	non-zero (which only happens during the startup tests).
+	
 Tue Feb 27 2001 Scott Heavner
 
 	* Solaris compile cleanup -- still probably has wrong endianness.

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.25 2001/02/26 19:02:40 scottheavner Exp $
+ *  $Id: ext2fs.c,v 1.26 2001/11/26 00:07:23 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -110,7 +110,8 @@ static struct fs_constants EXT2_constants = {
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
   &EXT2_inode_fields,
-  "ext2"                        /* char *text_name */
+  "ext2",                       /* char *text_name */
+  1024                          /* unsigned long supertest_offset */
 };
 
 static unsigned long group_desc_count, group_desc_size;
@@ -275,33 +276,47 @@ static int EXT2_zone_in_use(unsigned long nr)
   return test_bit(nr,zone_map);
 }
 
-/* Could use some optimization maybe?? */
+/* Could use some optimization maybe?? -- same as xiafs's */
 static char* EXT2_dir_entry(int i, lde_buffer *block_buffer,
 			    unsigned long *inode_nr)
 {
-  char *bp;
-  int j;
-  static char EXT2_cname[EXT2_NAME_LEN+1];
+  static char cname[EXT2_NAME_LEN+1];
 
-  bp = block_buffer->start;
+  int j, name_len;
+  void *end;
+  struct ext2_dir_entry_2 *dir;
 
-  if (i)
-    for (j = 0; j < i ; j++) {
-      bp += block_pointer(bp,(unsigned long)(fsc->INODE_ENTRY_SIZE/2),2);
+  dir = (void *) block_buffer->start;
+  end = block_buffer->start + block_buffer->size;
+
+  *inode_nr = 0;
+  cname[0] = 0;
+
+  /* Directories are variable length, we have to examine all the previous ones to get to the current one */
+  for (j=0; j<i; j++) {
+    dir = (void *)dir + dir->rec_len;
+    if ( (void *)dir >= end ) {
+      return (cname);
     }
-  if ( (void *)bp >= (block_buffer->start + block_buffer->size) ) {
-    EXT2_cname[0] = 0;
-  } else {
-    bzero(EXT2_cname,EXT2_NAME_LEN+1);
-    *inode_nr = block_pointer(bp,0UL,fsc->INODE_ENTRY_SIZE);
-    strncpy(EXT2_cname, (bp+fsc->INODE_ENTRY_SIZE+2*sizeof(unsigned short)),
-	    block_pointer(bp,(unsigned long)
-                               ( (fsc->INODE_ENTRY_SIZE+
-                                  sizeof(unsigned short))
-                                  /sizeof(unsigned short) ),
-			  sizeof(unsigned short)));
   }
-  return (EXT2_cname);
+
+  /* Test for overflow, could be spanning multiple blocks */
+  if ( (void *)dir + sizeof(dir->inode) <= end ) { 
+    *inode_nr = dir->inode;
+  }
+
+  /* Chance this could overflow ? */
+  name_len = (int)dir->name_len;
+  if ( (void *)dir->name + name_len > end ) {
+    name_len = end - (void *)dir->name;
+  }
+  if ( name_len > EXT2_NAME_LEN ) {
+    name_len = EXT2_NAME_LEN;
+  }
+  strncpy(cname, dir->name, name_len);
+  cname[name_len] = 0;
+    
+  return cname;
 }
 
 /* Reads the inode/block in use tables from disk */
@@ -420,6 +435,7 @@ void EXT2_init(void *sb_buffer)
   FS_cmd.read_inode   = EXT2_read_inode;
   FS_cmd.write_inode  = EXT2_write_inode;
   FS_cmd.map_inode    = EXT2_map_inode;
+  FS_cmd.map_block    = map_block;
 
   EXT2_read_tables();
 
@@ -427,13 +443,17 @@ void EXT2_init(void *sb_buffer)
 }
 
 /* Tests if this disk/file has the EXT2MAGIC in the proper location */
-int EXT2_test(void *sb_buffer)
+int EXT2_test(void *sb_buffer, int use_offset)
 {
   struct ext2_super_block *Super;
-  Super = (void *)(sb_buffer+1024);
+
+  if (use_offset)
+    Super = (void *)(sb_buffer+EXT2_constants.supertest_offset);
+  else
+    Super = (void *)(sb_buffer);
 
    if (Super->s_magic == EXT2_SUPER_MAGIC) {
-     lde_warn("Found ext2fs on device.");
+     if (use_offset) lde_warn("Found ext2fs on device.");
      return 1;
    }
    return 0;

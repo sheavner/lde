@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.30 2001/02/23 23:40:04 scottheavner Exp $
+ *  $Id: nc_block.c,v 1.31 2001/11/26 00:07:23 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -798,7 +798,10 @@ has command */
 	    irecptr = NULL;
 	    clear_data_cache(this_block,&curs);
 	    update_block_data(&this_block,mbnr,irecptr,&curs,&flags,0);
-	    flags.edit_block = curs.col = curs.row = 0;
+	    moffset -= curs.sow;
+	    curs.row = moffset / curs.rs;
+	    curs.col = moffset % curs.rs;
+	    flags.edit_block = 0;
 	    flags.redraw = 1;
 	    search_iptr = 0L;
 	  }

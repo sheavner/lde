@@ -3,11 +3,11 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.h,v 1.1 1994/11/20 21:11:29 sdh Exp $
+ *  $Id: msdos_fs.h,v 1.2 2001/11/26 00:07:23 scottheavner Exp $
  */
 
 struct Generic_Inode *DOS_init_junk_inode(void);
 void DOS_init(void *sb_buffer);
-int DOS_test(void *sb_buffer);
+int DOS_test(void *sb_buffer, int use_offset);
 
 

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.19 2001/02/26 19:02:40 scottheavner Exp $
+ *  $Id: minix.c,v 1.20 2001/11/26 00:07:23 scottheavner Exp $
  */
 
 /* 
@@ -84,7 +84,8 @@ struct fs_constants MINIX_constants = {
   2,                            /* int ZONE_ENTRY_SIZE */
   2,                            /* int INODE_ENTRY_SIZE */
   &MINIX_inode_fields,          /* struct * inode_fields */
-  "minix"                       /* char *text_name */
+  "minix",                      /* char *text_name */
+  1024                          /* unsigned long supertest_offset */
 };
 
 static struct Generic_Inode* MINIX_read_inode(unsigned long inode_nr)
@@ -173,12 +174,12 @@ int MINIX_is_system_block(unsigned long nr)
 
 static char *MINIX_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr)
 {
-  static char cname[32];
+  static char cname[32] = { 0 };
   
   if (i*sb->dirsize+fsc->INODE_ENTRY_SIZE >= block_buffer->size) {
     cname[0] = 0;
+    *inode_nr = 0;
   } else {
-    memset(cname,65,32);
     strncpy(cname, block_buffer->start+(i*sb->dirsize+fsc->INODE_ENTRY_SIZE), sb->namelen);
     *inode_nr = block_pointer(block_buffer->start,(i*sb->dirsize)/fsc->INODE_ENTRY_SIZE,fsc->INODE_ENTRY_SIZE);
   }
@@ -283,19 +284,24 @@ void MINIX_init(void *sb_buffer)
   FS_cmd.read_inode   = MINIX_read_inode;
   FS_cmd.write_inode  = MINIX_write_inode;
   FS_cmd.map_inode    = MINIX_map_inode;
+  FS_cmd.map_block    = map_block;
 
   MINIX_read_tables();
 
   (void) check_root();
 }
 
-int MINIX_test(void *buffer)
+int MINIX_test(void *buffer, int use_offset)
 {
   struct minix_super_block *Super;
-  Super = (void *) (buffer + 1024);
+
+  if (use_offset)
+	Super = (void *) (buffer + MINIX_constants.supertest_offset);
+  else
+	Super = (void *) (buffer);
 
   if ( (Super->s_magic == MINIX_SUPER_MAGIC) || (Super->s_magic == MINIX_SUPER_MAGIC2) ) {
-    lde_warn("Found a minixfs on device.");
+    if (use_offset) lde_warn("Found a minixfs on device.");
     return 1;
   }
 

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.35 2001/02/27 21:43:00 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.36 2001/11/26 00:07:23 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -58,6 +58,8 @@ struct _main_opts {
   char *recover_file_name;
   int log_to_file;
   int blocksize;
+  int superscan;
+  int skiptableread;
 };
 
 struct _search_types {
@@ -88,6 +90,8 @@ unsigned char *zone_count = NULL;
 
 struct sbinfo sb2, *sb = &sb2;
 struct fs_constants *fsc = NULL;
+
+char *badblocks_directory = NULL;
 
 int CURR_DEVICE = 0;
 volatile struct _lde_flags lde_flags = 
@@ -159,24 +163,24 @@ void read_tables(int fs_type)
   nocache_read_block(0UL,super_block_buffer,sb->blocksize);
   lde_warn("User requested %s filesystem. Checking device . . .",text_names[fs_type]);
 
-  if ( ((fs_type==AUTODETECT)&&(MINIX_test(super_block_buffer))) || (fs_type==MINIX) ) {
+  if ( ((fs_type==AUTODETECT)&&(MINIX_test(super_block_buffer,1))) || (fs_type==MINIX) ) {
     MINIX_init(super_block_buffer);
   } else
-  if ( ((fs_type==AUTODETECT)&&(EXT2_test(super_block_buffer))) || (fs_type==EXT2) ) {
+  if ( ((fs_type==AUTODETECT)&&(EXT2_test(super_block_buffer,1))) || (fs_type==EXT2) ) {
     EXT2_init(super_block_buffer);
   } else 
-  if ( ((fs_type==AUTODETECT)&&(XIAFS_test(super_block_buffer))) || (fs_type==XIAFS) ) {
+  if ( ((fs_type==AUTODETECT)&&(XIAFS_test(super_block_buffer,1))) || (fs_type==XIAFS) ) {
     XIAFS_init(super_block_buffer);
   } else 
-  if ( ((fs_type==AUTODETECT)&&(DOS_test(super_block_buffer))) || (fs_type==DOS) ) {
+  if ( ((fs_type==AUTODETECT)&&(DOS_test(super_block_buffer,1))) || (fs_type==DOS) ) {
     DOS_init(super_block_buffer);
   } else
-  if ( ((fs_type==AUTODETECT)&&(ISO9660_test(super_block_buffer))) || (fs_type==ISO9660) ) {
+  if ( ((fs_type==AUTODETECT)&&(ISO9660_test(super_block_buffer,1))) || (fs_type==ISO9660) ) {
     ISO9660_init(super_block_buffer);
   } else
   {
     lde_warn("No file system found on device");
-    NOFS_init(super_block_buffer);
+    NOFS_init(super_block_buffer,0);
   }
 }
 
@@ -222,7 +226,8 @@ static void long_usage(void)
                  "   --version            Print version information\n"
                  "   --write              Allow writes to the device\n"
                  "   --file name          Specify filename to save recovered inodes to\n"
-                 "   --logtofile          Save all errors/messages to /tmp/ldeerrors\n"
+                 "   --superscan          Search device for superblocks, may be used with -t\n"
+                 "   --badblocks dir      Override badblocks using files in dir\n"
 	  );
   exit(0);
 }
@@ -265,6 +270,8 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       {"append",0,0,'%'},
       {"file",1,0,'f'},
       {"logtofile",0,0,'F'},
+      {"superscan",0,0,'P'},
+      {"badblocks",0,0,'X'},
       {0, 0, 0, 0}
     };
 #endif
@@ -277,10 +284,10 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
     option_index = 0;
 
 #if HAVE_GETOPT_LONG
-    c = getopt_long (argc, argv, "avFf:I:i:n:N:B:b:D:d:gpqs:S:t:T:whH?O:L:",
+    c = getopt_long (argc, argv, "avFf:I:i:n:N:B:b:D:d:gpPqs:S:t:T:X:whH?O:L:",
 		     long_options, &option_index);
 #else
-    c = getopt (argc, argv, "avFf:I:i:n:N:B:b:D:d:gpqs:S:t:T:whH?O:L:");
+    c = getopt (argc, argv, "avFf:I:i:n:N:B:b:D:d:gpPqs:S:t:T:X:whH?O:L:");
 #endif
 
     if (c == -1)
@@ -338,6 +345,10 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       case 'p': /* open FS read only */
 	lde_flags.paranoid = 1;
 	break;
+      case 'P': /* Superblock scanner */
+	opts->superscan = 1;
+	opts->skiptableread = 1;
+	break;
       case 'q': /* no audio -- well nop beeps */
 	lde_flags.quiet = 1;
 	break;
@@ -392,6 +403,9 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	    lde_warn("Can't open search file: %s",opts->search_string);
 	  }
 	}
+	break;
+      case 'X': /* Where we'll look for data on disk read errors */
+	badblocks_directory = optarg;
 	break;
       case 'O': /* Set offset for search string */
 	opts->search_off = read_num(optarg);
@@ -458,7 +472,7 @@ int main(int argc, char ** argv)
   sigset_t sa_mask;
   struct sigaction intaction ;
 
-  struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0UL, 0UL, NULL, NULL, NULL, 0, 0 };
+  struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0UL, 0UL, NULL, NULL, NULL, 0, 0, 0, 0 };
 
   /* Set things up to handle control-c:  just sets lde_flags.quit_now to 1 */
   sigemptyset(&sa_mask);
@@ -496,9 +510,10 @@ int main(int argc, char ** argv)
   for (i=0 ; i<3 ; i++)
     sync();
 
-  NOFS_init(NULL);
+  NOFS_init(NULL,0);
 
-  read_tables(main_opts.fs_type);
+  if (main_opts.skiptableread==0)
+    read_tables(main_opts.fs_type);
 
   /* Override blocksize, if desired */
   if (main_opts.blocksize) {
@@ -622,13 +637,17 @@ int main(int argc, char ** argv)
       }
       main_opts.dumper(nr);
     }
-    printf("\n"); /* Even up the command line for exit */
+    if (main_opts.dumper != ddump_block)
+       printf("\n"); /* Even up the command line for exit */
     exit(0);
   } else if (main_opts.grep_mode) {
     parse_grep();
     exit(0);
   } else if (main_opts.search_string!=NULL) {
     search_fs(main_opts.search_string, main_opts.search_len, main_opts.search_off,main_opts.dump_end);
+    exit(0);
+  } else if (main_opts.superscan) {
+    search_for_superblocks(main_opts.fs_type);
     exit(0);
   }
 

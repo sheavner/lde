@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.28 2001/02/22 19:48:20 sdh Exp $
+ *  $Id: lde.h,v 1.29 2001/11/26 00:07:23 scottheavner Exp $
  */
 
 #ifndef LDE_H
@@ -200,6 +200,7 @@ struct fs_constants {
   int INODE_ENTRY_SIZE;
   struct inode_fields * inode;
   char *text_name;
+  unsigned long supertest_offset;
 };
 
 /* File system specific commands */
@@ -221,6 +222,8 @@ struct {
   int (*write_inode)(unsigned long inode_nr, struct Generic_Inode *GInode);
   /* Map inode to block containing inode -- CAN BE NULL */
   unsigned long (*map_inode)(unsigned long n);
+  /* Map block number in file chain to physical block on disk */
+  int (*map_block)(unsigned long zone_index[], unsigned long blknr, unsigned long *mapped_block);
 } FS_cmd;
 
 /* Flags */
@@ -256,6 +259,9 @@ extern unsigned char *zone_count;
 
 /* The current device file descriptor */
 extern int CURR_DEVICE;
+
+/* Where we look when we can't read the disk */
+extern char *badblocks_directory;
 
 /* Error logging functionality */
 #ifndef ERRORS_SAVED

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.18 2001/02/26 19:02:40 scottheavner Exp $
+ *  $Id: msdos_fs.c,v 1.19 2001/11/26 00:07:23 scottheavner Exp $
  */
 
 /* 
@@ -51,7 +51,7 @@ static struct inode_fields DOS_inode_fields = {
   1,   /*   unsigned short i_links_count; */
   0,   /*   ()             i_mode_flags; */
   0,   /*   unsigned short i_gid; */
-  0,   /*   unsigned long  i_blocks; */
+  1,   /*   unsigned long  i_blocks; */
   1,   /*   unsigned long  i_atime; */
   1,   /*   unsigned long  i_ctime; */
   1,   /*   unsigned long  i_mtime; */
@@ -97,7 +97,8 @@ static struct fs_constants DOS_constants = {
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
   &DOS_inode_fields,
-  "msdos"                       /* char *text_name */
+  "msdos",                      /* char *text_name */
+  0                             /* unsigned long supertest_offset */
 };
 
 static struct Generic_Inode DOS_junk_inode;
@@ -139,8 +140,8 @@ static int date_dos2unix(unsigned short time,unsigned short date)
 	    ((date & 31)-1+day_n[month]+(year/4)+year*365-((year & 3) == 0 &&
 	    month < 2 ? 1 : 0)+3653);
 			/* days since 1.1.70 plus 80's leap day */
-//	secs += sys_tz.tz_minuteswest*60;
-//	if (sys_tz.tz_dsttime) secs -= 3600;
+/*	secs += sys_tz.tz_minuteswest*60; */
+/*	if (sys_tz.tz_dsttime) secs -= 3600; */
 	return secs;
 }
 /***************** END: STOLEN FROM LINUX KERNEL *******************/
@@ -151,9 +152,9 @@ static unsigned long DOS_map_inode(unsigned long ino)
   unsigned long block;
 
   /* Find disk block containing FAT entry */
-  block = (unsigned long) ino/sb->zonesize + 1UL;
-  if (block > sb->ninodes)
-    block = 0;
+  block = ino * (unsigned long) fsc->INODE_SIZE / sb->blocksize + 2 * sb->zonesize;  /* WHY 2*zonesize? */
+/*  if (block > sb->ninodes) */
+/*   block = 0; */
   return block;
 }
 #endif
@@ -193,6 +194,7 @@ static unsigned long DOS_dir_inode = 0UL;
 static struct Generic_Inode *DOS_read_inode(unsigned long nr)
 {
   /* char * inode_buffer; */
+  unsigned long nextfat ;
 
   /* Might have already filled in some of the inode info
    *  from the directory entry we just looked at (nc_dir calls
@@ -211,30 +213,53 @@ static struct Generic_Inode *DOS_read_inode(unsigned long nr)
   /* Compute offset relative to block 0 on disk for data indexed by FAT */
   DOS_junk_inode.i_zone[0] = nr*sb->zonesize + sb->first_data_zone;
 
-/*
+#if 1
   inode_buffer = cache_read_block(DOS_map_inode(nr),NULL,CACHEABLE);
   nr = nr % (sb->blocksize/fsc->INODE_SIZE);
-  DOS_junk_inode.i_zone[1] = block_pointer(inode_buffer, nr, fsc->INODE_SIZE) + sb->zmap_blocks + 1UL;
-*/
+  // DOS_junk_inode.i_zone[1] = block_pointer(inode_buffer, nr, fsc->INODE_SIZE) + sb->zmap_blocks + 1UL;
+
+  nextfat = block_pointer(inode_buffer, nr, fsc->INODE_SIZE);
+  if ( nextfat >= 0xFFFFFF8 ) nextfat = 0;
+  DOS_junk_inode.i_blocks = nextfat;
+  DOS_junk_inode.i_zone[1] = nextfat;
+#endif
+
   return &DOS_junk_inode;
 }
 
 static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr)
 {
-  static char cname[MSDOS_NAME+2];
+  static char cname[MSDOS_NAME+2+14];
   struct msdos_dir_entry *dir;
+  struct msdos_dir_slot  *slot;
 
   if (i*sb->dirsize >= block_buffer->size) {
     cname[0] = 0;
   } else {
-    memset(cname,MSDOS_NAME+2,' ');
     dir = block_buffer->start+(i*sb->dirsize);
-    strncpy(cname, dir->name, 8); /* File name */
-    cname[8] = '.';
-    strncpy(&cname[9], dir->ext, 3);  /* File extension */
-    cname[MSDOS_NAME+1] = 0;
+
     *inode_nr = (unsigned long) dir->start + (((unsigned long)dir->starthi)<<16);
     DOS_dir_inode = *inode_nr;
+
+    slot = (void *)dir;
+    if ( (slot->attr == 0xF) && (!slot->reserved) ) {
+      int i;
+      for (i=0; i<5; i++) {
+	cname[i] = slot->name0_4[i*2];
+      }
+      for (i=0; i<6; i++) {
+	cname[i+5] = slot->name5_10[i*2];
+      }
+      cname[11] = slot->name11_12[0];
+      cname[12] = slot->name11_12[2];
+      cname[13] = 0;
+    } else {
+      memset(cname,MSDOS_NAME+2,' ');
+      strncpy(cname, dir->name, 8); /* File name */
+      cname[8] = '.';
+      strncpy(&cname[9], dir->ext, 3);  /* File extension */
+      cname[MSDOS_NAME+1] = 0;
+    }
 
     DOS_junk_inode.i_mode = S_IRUSR|S_IROTH|S_IRGRP;
     DOS_junk_inode.i_size = dir->size;
@@ -259,6 +284,26 @@ static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode
   return (cname);
 }
 
+/* This is used to pull the correct block from the inode block table which
+ * should have been copied into zone_index */
+static int DOS_map_block(unsigned long zone_index[], unsigned long blknr,
+	      unsigned long *mapped_block)
+{
+  struct Generic_Inode *GInode=NULL;
+  *mapped_block = zone_index[0];
+  if ( zone_index[0] && zone_index[1] ) {
+    GInode = FS_cmd.read_inode(zone_index[1]);
+    zone_index[0] = GInode->i_zone[0];
+    zone_index[1] = GInode->i_blocks;  /* Really next entry in FAT chain */
+    return (EMB_NO_ERROR);
+  } else if ( zone_index[0] ) {
+    zone_index[0] = 0;
+    return (EMB_NO_ERROR);
+  } /* else { */
+  return (EMB_WAY_OUT_OF_RANGE);
+}
+
+
 static void DOS_sb_init(void *sb_buffer)
 {
   struct fat_boot_sector *Boot;
@@ -280,8 +325,10 @@ static void DOS_sb_init(void *sb_buffer)
      Boot->fats = 2;
   if (Boot->fat_length)  /* FAT12/16 */
      sb->zmap_blocks = Boot->fats*Boot->fat_length;
-  else
+  else {
      sb->zmap_blocks = Boot->fats*Boot->fat32_length;
+     fsc->INODE_SIZE = 4;
+  }
   sb->first_data_zone = Boot->reserved + sb->zmap_blocks - 2 * Boot->cluster_size;
   sb->max_size = 1;
   sb->zonesize = Boot->cluster_size;
@@ -313,10 +360,11 @@ void DOS_init(void *sb_buffer)
   FS_cmd.read_inode = DOS_read_inode;
   FS_cmd.write_inode = DOS_write_inode_NOTYET;
   FS_cmd.map_inode = NULL /* DOS_map_inode */ ;
+  FS_cmd.map_block = DOS_map_block;
 }
 
 
-int DOS_test(void *sb_buffer)
+int DOS_test(void *sb_buffer, int use_offset)
 {
   struct fat_boot_sector *Boot;
   Boot = sb_buffer;
@@ -327,7 +375,7 @@ int DOS_test(void *sb_buffer)
        !(strncmp(Boot->system_id,"OPENDOS",7)) ||
        !(strncmp(Boot->system_id,"DRDOS",5)) ||
        !(strncmp(Boot->system_id,"MSWIN",5)) ) {
-    lde_warn("Found msdos_fs on device");
+    if (use_offset) lde_warn("Found msdos_fs on device");
     return 1;
   }
 

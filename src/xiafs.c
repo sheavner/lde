@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.22 2001/02/26 21:09:09 scottheavner Exp $
+ *  $Id: xiafs.c,v 1.23 2001/11/26 00:07:23 scottheavner Exp $
  */
 
 #include <string.h>
@@ -80,7 +80,8 @@ static struct fs_constants XIAFS_constants = {
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
   &XIAFS_inode_fields,
-  "xiafs"                       /* char *text_name */
+  "xiafs",                      /* char *text_name */
+  0                             /* unsigned long supertest_offset */
 };
 
 static struct Generic_Inode* XIAFS_read_inode(unsigned long nr)
@@ -146,28 +147,48 @@ static int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode)
   return write_block( bnr, (struct xiafs_inode *) inode_buffer+((nr-1)/sb->INODES_PER_BLOCK) );   
 }
 
-/* Could use some optimization maybe?? */
+/* Could use some optimization maybe??  -- Same as ext2's */
 static char* XIAFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr)
 {
-  char *bp;
-  int j;
   static char cname[_XIAFS_NAME_LEN+1];
 
-  bp = block_buffer->start;
+  int j, name_len;
+  void *end;
+  struct xiafs_direct *dir;
 
-  if (i)
-    for (j = 0; j < i ; j++) {
-      bp += block_pointer(bp,(unsigned long)(fsc->INODE_ENTRY_SIZE/2),2);
+  dir = (void *) block_buffer->start;
+  end = block_buffer->start + block_buffer->size;
+
+  *inode_nr = 0;
+  cname[0] = 0;
+
+  /* Directories are variable length, we have to examine all the previous ones to get to the current one */
+  for (j=0; j<i; j++) {
+    dir = (void *)dir + dir->d_rec_len;
+    if ( (void *)dir >= end ) {
+      return (cname);
     }
-  if ( (bp+fsc->INODE_ENTRY_SIZE+sizeof(unsigned short)+sizeof(unsigned char)) >= (char *)(block_buffer->start+block_buffer->size)) {
-    cname[0] = 0;
-  } else {
-    bzero(cname,_XIAFS_NAME_LEN+1);
-    *inode_nr = block_pointer(bp,0UL,fsc->INODE_ENTRY_SIZE);
-    strncpy(cname, (bp+fsc->INODE_ENTRY_SIZE+sizeof(unsigned short)+sizeof(unsigned char)),
-	    bp[fsc->INODE_ENTRY_SIZE+sizeof(unsigned short)+sizeof(unsigned char)]);
   }
-  return (cname);
+
+  /* Test for overflow, could be spanning multiple blocks */
+  if ( (void *)dir + sizeof(dir->d_ino) <= end ) { 
+    *inode_nr = dir->d_ino;
+  }
+
+  /* Chance this could overflow ? */
+  name_len = (int)dir->d_name_len;
+  if ( (void *)dir->d_name + name_len > end ) {
+    name_len = end - (void *)dir->d_name;
+  }
+  if ( name_len > _XIAFS_NAME_LEN ) {
+    name_len = _XIAFS_NAME_LEN;
+  }
+  strncpy(cname, dir->d_name, name_len);
+  cname[name_len] = 0;
+    
+  return cname;
+
+
 }
 
 static void XIAFS_sb_init(void *sb_buffer)
@@ -208,26 +229,22 @@ int XIAFS_init(void *sb_buffer)
   FS_cmd.read_inode   = XIAFS_read_inode;
   FS_cmd.write_inode  = XIAFS_write_inode;
   FS_cmd.map_inode    = MINIX_map_inode;
+  FS_cmd.map_block    = map_block;
 
   MINIX_read_tables();
 
   return check_root();
 }
 
-int XIAFS_test(void *sb_buffer)
+int XIAFS_test(void *sb_buffer, int use_offset)
 {
   struct xiafs_super_block *Super;
   Super = sb_buffer;
 
   if (Super->s_magic == _XIAFS_SUPER_MAGIC) {
-    lde_warn("Found xia_fs on device");
+    if (use_offset) lde_warn("Found xia_fs on device");
     return 1;
   }
 
   return 0;
 }
-
-
-
-
-
