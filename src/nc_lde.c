@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.23 1996/09/15 19:22:14 sdh Exp $
+ *  $Id: nc_lde.c,v 1.24 1996/10/11 00:06:51 sdh Exp $
  */
 
 #include <stdio.h>
@@ -109,7 +109,7 @@ int cread_num(char *coutput, unsigned long *a)
   delwin(window_available);
 #endif
 
-  if (coutput[0]!=' ') {
+  if ((coutput[0]!=' ')&&(a)) {
     *a = read_num(cinput);
     return strlen(cinput);
   } else {
