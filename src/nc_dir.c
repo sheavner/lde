@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.8 1995/06/02 15:24:09 sdh Exp $
+ *  $Id: nc_dir.c,v 1.9 1995/06/02 15:28:17 sdh Exp $
  */
 
 #include <strings.h>
@@ -181,7 +181,7 @@ int directory_popup(unsigned long bnr)
 
     switch (c) {
       case CMD_SET_CURRENT_INODE: /* Set this inode to be the current inode */
-      case CMD_SET_INODE_MODE_MC:
+      case CMD_INODE_MODE_MC:
 	(void) FS_cmd.dir_entry(current+screen_off, cache_read_block(bnr,CACHEABLE), &inode_nr);
 	if (inode_nr) {
 	  current_inode = inode_nr;
