@@ -36,31 +36,13 @@ AC_CHECK_PROG(system,uname,`uname`,unknown)
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h sys/fcntl.h unistd.h getopt.h pwd.h grp.h sys/timeb.h errno.h)
+AC_CHECK_HEADERS(fcntl.h stddef.h sys/fcntl.h unistd.h getopt.h pwd.h grp.h sys/types.h errno.h)
 
 dnl Determine variable sizes
 ACLDE_SETVARSIZES
 
 dnl Check that <asm/bitops.h> exists and works, if not will test for cli/sti
 AC_CHECK_KERNEL_BITOPS
-
-dnl Check for struct timeb
-AC_CACHE_CHECK(for struct timeb,
-	ac_cv_has_struct_timeb,
-	AC_TRY_LINK([
-#include <time.h>
-#ifdef HAVE_SYS_TIMEB_H
-#include <sys/timeb.h>
-#endif
-],
-		[struct timeb b ; b.time = 0; ftime(&b); return 0;],
-		ac_cv_has_struct_timeb="yes",
-		ac_cv_has_struct_timeb="no"
-	)
-)
-if test x$ac_cv_has_struct_timeb = xyes ; then
-	AC_DEFINE(HAVE_STRUCT_TIMEB)
-fi
 
 dnl See if we can find an lseek64
 AC_CHECK_FUNCS(lseek64,
@@ -90,6 +72,10 @@ if test x$ac_cv_func_lseek64 = xno ; then
 	fi
 fi
 
+dnl Look for external timezone variable
+AC_TRY_LINK([#include <time.h>], [return (int)timezone;],
+      AC_DEFINE([HAVE_TIMEZONE], 1,
+              [Define if you have the external `timezone' variable.]) )
 
 dnl KLUDGE - support both autoconf 2.13 and 2.50.
 dnl This is necessary because `__s64' is not a recognized C type,
@@ -252,7 +238,7 @@ AC_STRUCT_TM
 
 
 dnl Checks for library functions.
-dnl AC_CHECK_FUNCS([ftime memset strchr strstr])
+dnl AC_CHECK_FUNCS([memset strchr strstr])
 
 dnl ************************************************************************
 
@@ -260,7 +246,6 @@ AC_FUNC_VPRINTF
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS(uname memmem bzero)
-
 
 AC_OUTPUT(../Makefile:./Makefile.in)
 

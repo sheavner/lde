@@ -5,27 +5,24 @@
 	/*	University of North Carolina at Chapel Hill	*/
 	/*	@(#)getdate.y	2.13	9/16/86 */
 
-#if HAVE_STRUCT_TIMEB /* If don't have this, forget it */
-
-
 #include <stdio.h>
 #include <stdlib.h>
+#if HAVE_SYS_TYPES_H
 #include <sys/types.h>
+#endif
 #include <ctype.h>
 #include <time.h>
-#if TM_IN_SYS_TIME
-#include <sys/time.h>
-#endif
-#define	timezone	tmzn	/* ugly hack for obscure name clash */
 
-#if HAVE_SYS_TIMEB_H
-#include <sys/timeb.h>
-time_t lde_getdate(char *p, struct timeb *now);
+time_t lde_getdate(char *p);
+
+#if HAVE_TIMEZONE
+#else
+static time_t timezone = 0;
 #endif
 
 #define daysec (24L*60L*60L)
 
-	static int timeflag, zoneflag, dateflag, dayflag, relflag;
+	static int timeflag, dateflag, dayflag, relflag;
 	static time_t relsec, relmonth;
 	static int hh, mm, ss, merid, daylight;
 	static int dayord, dayreq;
@@ -40,7 +37,7 @@ time_t lde_getdate(char *p, struct timeb *now);
 
 void yyerror(char *s);
 static time_t dateconv(int mm, int dd, int yy, int h, int m, 
-         int s, int mer, int zone, int dayflag);
+         int s, int mer);
 static time_t dayconv(int ord, int day, time_t now);
 static time_t timeconv(int hh, int mm, int ss, int mer);
 static time_t monthadd(time_t sdate, time_t relmonth);
@@ -54,9 +51,9 @@ timedate: 		/* empty */
 	| timedate item;
 
 item:	tspec {timeflag++;}
-	| zone {zoneflag++;}
+	| zone {}
 	| dtspec {dateflag++;}
-	| dyspec {dayflag++;}
+	| dyspec {}
 	| rspec {relflag++;}
 	| nspec;
 
@@ -127,8 +124,7 @@ static int mdays[12] =
 #define epoch 1970
 
 static time_t
-dateconv(int mm, int dd, int yy, int h, int m, 
-         int s, int mer, int zone, int dayflag)
+dateconv(int mm, int dd, int yy, int h, int m, int s, int mer)
 {
 	time_t tod, jdate;
 	register int i;
@@ -142,11 +138,9 @@ dateconv(int mm, int dd, int yy, int h, int m,
         for (i=0; i<mm; i++) jdate += mdays[i];
 	for (i = epoch; i < yy; i++) jdate += 365 + (i%4 == 0);
 	jdate *= daysec;
-	jdate += zone * 60L;
 	if ((tod = timeconv(h, m, s, mer)) < 0) return (-1);
 	jdate += tod;
-	if (dayflag==DAYLIGHT || (dayflag==MAYBE&&localtime(&jdate)->tm_isdst))
-		jdate += -1*60*60;
+	jdate += timezone;  
 	return (jdate);
 }
 
@@ -190,7 +184,7 @@ monthadd(time_t sdate, time_t relmonth)
 	yy = mm/12;
 	mm = mm%12 + 1;
 	return daylcorr(dateconv(mm, ltime->tm_mday, yy, ltime->tm_hour,
-		ltime->tm_min, ltime->tm_sec, 24, ourzone, MAYBE), sdate);
+		ltime->tm_min, ltime->tm_sec, 24), sdate);
 }
 
 static time_t
@@ -488,45 +482,41 @@ int lookup(char *id)
 }
 
 time_t
-lde_getdate(char *p, struct timeb *now)
+lde_getdate(char *p)
 {
 #define mcheck(f)	if (f>1) err++
 	int err;
 	struct tm *lt;
-	struct timeb ftz;
 
-	time_t sdate, tod;
+	time_t now;
+	time_t sdate;
 
 	lptr = p;
-	if (now == ((struct timeb *) NULL)) {
-		now = &ftz;
-		ftime(&ftz);
-	}
-	lt = localtime(&now->time);
+
+	time(&now);
+
+	lt = localtime( &now );
 	year = lt->tm_year;
 	month = lt->tm_mon+1;
 	day = lt->tm_mday;
 	relsec = 0; relmonth = 0;
-	timeflag=zoneflag=dateflag=dayflag=relflag=0;
-	ourzone = now->timezone;
-	daylight = MAYBE;
+	timeflag=dateflag=relflag=0;
 	hh = mm = ss = 0;
 	merid = 24;
 
 	if ((err = yyparse())) return (-1);
 
 	mcheck(timeflag);
-	mcheck(zoneflag);
 	mcheck(dateflag);
-	mcheck(dayflag);
 
 	if (err) return (-1);
-	if (dateflag || timeflag || dayflag) {
-		sdate = dateconv(month,day,year,hh,mm,ss,merid,ourzone,daylight);
+
+	if (dateflag || timeflag ) {
+		sdate = dateconv(month,day,year,hh,mm,ss,merid);
 		if (sdate < 0) return -1;
 	}
 	else {
-		sdate = now->time;
+		sdate = now;
 		if (relflag == 0)
 			sdate -= (lt->tm_sec + lt->tm_min*60 +
 				lt->tm_hour*(60L*60L));
@@ -535,18 +525,7 @@ lde_getdate(char *p, struct timeb *now)
 	sdate += relsec;
 	sdate += monthadd(sdate, relmonth);
 
-	if (dayflag && !dateflag) {
-		tod = dayconv(dayord, dayreq, sdate);
-		sdate += tod;
-	}
-
 	return sdate;
 }
-
-#else
-
-#warning No struct timeb defined, you will not be able to edit inode times. ******************************************************************************
-
-#endif /* HAVE_STRUCT_TIMEB */
 
 void yyerror(char *s) {}

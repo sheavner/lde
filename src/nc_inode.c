@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.25 2002/01/27 23:11:51 scottheavner Exp $
+ *  $Id: nc_inode.c,v 1.26 2003/12/07 01:35:53 scottheavner Exp $
  */
 
 #include <ctype.h>
@@ -420,7 +420,7 @@ void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *G
 		int highlight_field, int park_x, int park_y )
 {
   unsigned long a;
-  int result;
+  int result = 0;
   char *s;
 
 #ifndef NC_FIXED_UNGETCH
@@ -430,7 +430,14 @@ void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *G
     case I_MTIME:
     case I_CTIME:
       if ((result = ncread("Enter new time and/or date:",NULL,&s)))
-	a = (unsigned long) lde_getdate(s,NULL);
+      {
+	a = (unsigned long) lde_getdate(s);
+	if ( a == -1 )
+        {
+	  lde_warn( "Bad date - %s", s );
+          result = 0;
+        }
+      }
       break;
     default:
       result = ncread("Enter new value: ",&a,NULL);
@@ -454,12 +461,18 @@ void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *G
     wgetnstr(workspace, cinput, 10);
     nodelay(workspace,FALSE);
     noecho();
+    result = 1;
     switch(highlight_field) {
       case I_ATIME:
       case I_DTIME:
       case I_MTIME:
       case I_CTIME:
-	a = (unsigned long) lde_getdate(cinput,NULL);
+	a = (unsigned long) lde_getdate(cinput);
+        if ( a == -1 )
+	{
+           result = 0;
+	   lde_warn( "Bad date - %s", cinput );
+        }
 	break;
       default:
 	a = read_num(cinput);
@@ -468,7 +481,7 @@ void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *G
     *modified = 1;
   }
 #endif /* NC_FIXED_UNGETCH */
-  if (!lde_flags.write_ok) lde_warn("Disk not writeable, change status flags with (F)");
+  if (!lde_flags.write_ok && result ) lde_warn("Disk not writeable, change status flags with (F)");
 }
 
 

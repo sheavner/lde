@@ -1,3 +1,7 @@
+2003-12-06    Scott Heavner
+	- remove references to ftime/timeb
+	- don't update inode date field if can't parse new date 
+
 2003-12-05    Scott Heavner
 	- remove unnecessary = operator from yacc sources, causes
 	  problems with newer versions of bison ( 1.35 < broke <= 1.875b)
