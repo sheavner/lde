@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.34 2002/01/12 01:51:57 scottheavner Exp $
+ *  $Id: recover.c,v 1.35 2002/01/12 03:50:09 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -507,7 +507,7 @@ int check_recover_file(unsigned long zone_index[],unsigned long filesize)
     }
 
     if ((nr)&&FS_cmd.zone_in_use(nr)) {
-      lde_warn("Block %ld (0x%lX) in use by another file. Hit any key to continue (q=abort, l=lookup inode).",nr,nr);
+      lde_warn("Block %ld (0x%lX) in use. (q=abort, l=lkupinode, c=cont)",nr,nr);
       result = mgetch();
       if (result == 'q') {
         lde_warn("Check aborted.");
@@ -530,6 +530,7 @@ int check_recover_file(unsigned long zone_index[],unsigned long filesize)
 	}
       }
       cr_result = 1;
+      break;
     }
     j++;
   }
@@ -673,8 +674,8 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 	      fprintf(stderr,", check inode 0x%lX",inode_nr);
 	      if (lde_flags.check_recover) {
 		lde_warn = no_warn;  /* Suppress output */
-		GInode = FS_cmd.read_inode(nr);
-		fprintf(stderr,", recovery %spossible",(check_recover_file(GInode->i_zone,GInode->i_size)?"":"NOT ") );
+		GInode = FS_cmd.read_inode(inode_nr);
+		fprintf(stderr,", recovery %spossible",((check_recover_file(GInode->i_zone,GInode->i_size)==0)?"":"NOT ") );
 		lde_warn = tty_warn; /* Reinstate output */
 	      }
 	    } else {
