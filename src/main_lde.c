@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.47 2002/01/27 23:11:51 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.48 2002/02/14 19:44:51 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -476,6 +476,8 @@ int main(int argc, char ** argv)
     /* lde_warn("Detected big endian system, assuming fs is little endian"); */
     lde_flags.byteswap = 1;
   }
+
+  init_disk_cache();
 
   parse_cmdline(argc, argv, &main_opts);
 

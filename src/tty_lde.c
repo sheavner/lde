@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.31 2002/01/14 18:53:35 scottheavner Exp $
+ *  $Id: tty_lde.c,v 1.32 2002/02/14 19:44:51 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -233,15 +233,39 @@ size_t nocache_read_block (unsigned long block_nr, void *dest,
   return act_size;
 }
 
+static cached_block diskcache[LDE_DISKCACHE];
+static cached_block *diskcachestart = diskcache;
+
+/* Assign pointers to link list, add bogus values to block number and size */
+void init_disk_cache () {
+  int i;
+  for (i=1; i<(LDE_DISKCACHE-1); i++) {
+    diskcache[i].prev = &diskcache[i-1];
+    diskcache[i].next = &diskcache[i+1];
+    diskcache[i].bnr = -1;
+    diskcache[i].size = 0;
+  }
+
+  diskcache[0].prev = &diskcache[LDE_DISKCACHE-1];
+  diskcache[0].next = &diskcache[1];
+  diskcache[0].bnr = -1;
+  diskcache[0].size = 0;
+
+  diskcache[LDE_DISKCACHE-1].prev = &diskcache[LDE_DISKCACHE-2];
+  diskcache[LDE_DISKCACHE-1].next = &diskcache[0];
+  diskcache[LDE_DISKCACHE-1].bnr = -1;
+  diskcache[LDE_DISKCACHE-1].size = 0;
+}
+
+
 /* Whopping cache of one block returns pointer to a cache_block structure
  *  The start of this struct is a buffer so it is possible to access the
  *  data buffer contents by referring to the structs address. */
 void * cache_read_block (unsigned long block_nr, void *dest, int force)
 {
-  static cached_block cache;
-  static unsigned long cache_block_nr = -1L; /* set to an outrageous number */
+  cached_block *bp, *cp;
+  int i;
 
-  cached_block *bp = &cache;
   
   /* User has specified another buffer */
   if (force&NEVER_CACHE) {
@@ -251,19 +275,41 @@ void * cache_read_block (unsigned long block_nr, void *dest, int force)
       return NULL;
     }
     bp = dest;
+  } else {
+    /* Search cache, see if we have a copy of this block */
+    bp = diskcachestart;
+    for (i=0; i<LDE_DISKCACHE; i++) {
+      if (bp->bnr == block_nr) {
+	break;
+      }
+      bp = bp->next;
+    }
+
+    /* Move this block to the top of the chain */
+    if ( bp != diskcachestart ) {
+      /* pull this block out of the chain */
+      bp->prev->next = bp->next;
+
+      /* jam it back at the top of the linked list */
+      bp->next = diskcachestart->next;
+      bp->prev = diskcachestart;
+      diskcachestart->next = bp;
+
+      /* save as new block in cache chain */
+      diskcachestart = bp;
+    }
   }
     
-  if ((force&FORCE_READ)||(block_nr != cache_block_nr)) {
+  if ((force&FORCE_READ)||(block_nr != bp->bnr)) {
     int read_size;
 
-    cache_block_nr = block_nr;
     bzero(bp->data,sb->blocksize);
 
     /* Lookup size of block (if it's the last block in a file,
      * it may be less than the blocksize of the device */
     read_size = lookup_blocksize(block_nr);
 
-    bp->size = nocache_read_block(cache_block_nr, bp->data, read_size);
+    bp->size = nocache_read_block(block_nr, bp->data, read_size);
     if ( bp->size == -1 ) {
 	bp->size = read_size;  /* Lousy handling */
 	memset(bp->data,'!',bp->size);
@@ -276,10 +322,10 @@ void * cache_read_block (unsigned long block_nr, void *dest, int force)
  
   /* Need to copy data to dest? */
   if ((dest)&&(bp!=dest)) {
-    bp = dest;
-    memcpy(bp,&cache,cache.size);
-    bp->bnr = cache.bnr;
-    bp->size = cache.size;
+    cp = dest;
+    memcpy(cp,bp,bp->size);
+    cp->bnr = bp->bnr;
+    cp->size = bp->size;
   }
 
   return bp;

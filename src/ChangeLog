@@ -1,3 +1,20 @@
+2002-02-14    Scott Heavner
+	- Add 20 block cache to nocache_read_block instead of its cache of
+	  1.  nocache_read_block actually returns a struct, with its data
+	  at the start of the struct, so it could be used as a void* data
+	  block.  Many routines are using the data that way, but then
+	  never check the size of the buffer, should probably update them
+	  to treat it as a cached_block struct and use the size
+	  information when operating on the new data.  Not sure anyone is
+	  really using the copy feature either, should probably drop the
+	  second argument and allow any routine that really thinks it
+	  needs a copy of the data to memcpy it itself.
+
+2002-02-11    Scott Heavner
+	- Fix some paging errors in all ASCII block mode, sometimes couldn't
+	  move all the way back to the start of block 0 or got stuck on last
+	  block.
+
 2002-02-09    John Quirk
         - Added code to test for end of Buffer in ext2_check_valid_name.
         - Cleaned up error messages and added tests in the undelete code
