@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.28 2001/02/07 18:31:13 sdh Exp $
+ *  $Id: nc_block.c,v 1.29 2001/02/20 20:55:45 sdh Exp $
  */
 
 #include <stdio.h>
@@ -106,7 +106,8 @@ static void cdump_block(unsigned long nr, bm_cursor *curs)
 /* Asks the user if it is ok to write the block to the disk, then goes
  * ahead and does it if the medium is writable.  The user has access to the
  * flags menu from this routine, to toggle the write flag */
-static int cwrite_block(cached_block *this_block, bm_cursor *curs, bm_flags *flags)
+static int cwrite_block(cached_block *this_block, bm_cursor *curs, bm_flags 
+*flags)
 {
   int c;
   char *warning = "(NOTE: write permission not set on disk,"
@@ -472,8 +473,10 @@ int block_mode(void) {
 	  curs.col = 0;
 	else if (curs.col>=curs.rs)
 	  curs.col = curs.rs - 1;
-	c = CMD_ANY_ACTION;                  /* Need a command that will fall through to refresh */
-	flags.dontwait = 1;                  /* Don't call lookup_key() on c, already has command */
+	c = CMD_ANY_ACTION;                  /* Need a command that will fall through 
+to refresh */
+	flags.dontwait = 1;                  /* Don't call lookup_key() on c, already 
+has command */
 	flags.highlight = 1;                 /* Update cursor position */
 	icount = 0;                          /* Abort any data entry in progress */
       }
@@ -536,7 +539,7 @@ int block_mode(void) {
 	break;
 
       case CMD_TOGGLE_ASCII: /* Toggle Ascii/Hex edit mode */
-	if (curs.rs != 16) { /* Should probably create a flag to indicate we
+	if (curs.rs == 16) { /* Should probably create a flag to indicate we
 			      * are in all ASCII MODE */
 	  flags.ascii_mode = 1 - flags.ascii_mode;
 	  flags.highlight = 1;
@@ -953,7 +956,8 @@ int block_mode(void) {
 	flags.redraw = 1;
 	break;
 
-      case CMD_ANY_ACTION: /* Unknown command, but still want to execute stuff */
+      case CMD_ANY_ACTION: /* Unknown command, but still want to execute stuff 
+*/
 	break;		   /* after loop */
 
       default:             /* Unknown command, get another */
@@ -984,6 +988,7 @@ int block_mode(void) {
   free(cb_buffer);
   return 0;
 }
+
 
 
 
