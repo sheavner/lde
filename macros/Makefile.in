@@ -113,22 +113,22 @@ test:
 doc/lde.man.text:	doc/lde.man
 	groff -Tascii -P-u -P-b -man doc/lde.man > doc/lde.man.text
 
-dist:	clear doc/lde.man.text all clean
+dist:	clear doc/lde.man.text all clean tar
 
 tar:
 	@if [ -f lde*tar.gz ] ; then mv -f lde*tar.gz old ; fi
-	( cd ..; tar -cvz -f lde/lde-$(VERSION).tar.gz lde \
-	   --exclude lde-$(VERSION).tar.gz --exclude RCS \
-	   --exclude lde/test\* --exclude \*~ \
+	( cd ..; tar -cvz -f lde/lde-$(LDE_VERSION).tar.gz lde \
+	   --exclude lde-$(LDE_VERSION).tar.gz --exclude RCS \
+	   --exclude lde/test\* --exclude \*~ --exclude CVS \
            --exclude .depend --exclude old \
-           --exclude lde-$(VERSION).zip --exclude lde/Makefile \
-           --exclude lde/macros/config.\* )
+           --exclude lde-$(LDE_VERSION).zip --exclude lde/Makefile \
+           --exclude lde/macros/config.\* --exclude configure.scan )
 
 diff:
 	( cd ..; diff -u --recursive --new-file \
-	  -x 'lde-$(VERSION).zip' -x 'lde/Makefile' \
+	  -x 'lde-$(LDE_VERSION).zip' -x 'lde/Makefile' \
 	  -x lde/old/untar/lde/Makefile  \
-	  -x 'lde-$(VERSION).tar.gz' -x 'RCS' \
+	  -x 'lde-$(LDE_VERSION).tar.gz' -x 'RCS' \
 	  -x 'test*' -x '*~' \
 	  -x '.depend' -x 'old' \
 	  -x 'config.*' lde/old/untar/lde lde )
