@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.11 1996/09/15 04:12:20 sdh Exp $
+ *  $Id: nc_dir.c,v 1.12 1996/10/12 21:13:15 sdh Exp $
  */
 
 #include <strings.h>
@@ -16,6 +16,7 @@
 #include "nc_lde.h"
 #include "nc_dir.h"
 #include "keymap.h"
+#include "swiped.h"
 
 static int dump_dir_entry(WINDOW *win, int i, int off, unsigned long bnr, int highlight);
 static void highlight_dir_entry(WINDOW *win, int nr, int *last, int screen_off, unsigned long bnr);

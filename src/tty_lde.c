@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.14 1996/10/11 00:36:18 sdh Exp $
+ *  $Id: tty_lde.c,v 1.15 1996/10/12 21:13:49 sdh Exp $
  */
 
 #include <stdio.h>
@@ -20,6 +20,7 @@
 
 #include "lde.h"
 #include "tty_lde.h"
+#include "swiped.h"
 
 /* We don't need no stinkin' linked list */
 char *error_save[ERRORS_SAVED];

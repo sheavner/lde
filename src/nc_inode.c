@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.14 1996/10/11 00:29:21 sdh Exp $
+ *  $Id: nc_inode.c,v 1.15 1996/10/12 21:12:48 sdh Exp $
  */
 
 #include <ctype.h>
@@ -22,6 +22,7 @@
 #include "nc_inode_help.h"
 #include "nc_dir.h"
 #include "keymap.h"
+#include "swiped.h"
 
 #define LDE_DUMP_ILABELS 128
 
