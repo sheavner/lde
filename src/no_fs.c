@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.8 1996/06/01 04:59:44 sdh Exp $
+ *  $Id: no_fs.c,v 1.9 1996/10/11 02:40:04 sdh Exp $
  */
 
 /* 
@@ -160,8 +160,10 @@ void NOFS_init(char * sb_buffer)
 
   FS_cmd.inode_in_use = (int (*)(unsigned long n)) NOFS_one;
   FS_cmd.zone_in_use = (int (*)(unsigned long n)) NOFS_one;
+  FS_cmd.zone_is_bad = (int (*)(unsigned long n)) NOFS_null_call;
   FS_cmd.dir_entry = NOFS_dir_entry;
   FS_cmd.read_inode = NOFS_read_inode;
   FS_cmd.write_inode = (int (*)(unsigned long inode_nr, struct Generic_Inode *GInode)) NOFS_null_call;
   FS_cmd.map_inode = (unsigned long (*)(unsigned long n)) NOFS_one;
 }
+
