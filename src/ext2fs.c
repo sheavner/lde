@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.17 1998/01/17 17:42:28 sdh Exp $
+ *  $Id: ext2fs.c,v 1.18 1998/01/23 04:26:20 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -20,8 +20,8 @@
 #include <linux/ext2_fs.h>
 
 /* I'm not going to support these until someone cleans up the ext2_fs.h file.
- * The multi-architecture support looks like it was just hacked in, there really
- * should be a better way to do it.
+ * The multi-architecture support looks like it was just hacked in, there
+ * really should be a better way to do it.
  */
 #undef i_translator
 #undef i_frag
@@ -45,12 +45,15 @@ static struct Generic_Inode *EXT2_read_inode (unsigned long ino);
 static int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode);
 static int EXT2_inode_in_use(unsigned long nr);
 static int EXT2_zone_in_use(unsigned long nr);
-static char* EXT2_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
+static int EXT2_is_system_block(unsigned long nr);
+static char* EXT2_dir_entry(int i, lde_buffer *block_buffer, 
+			    unsigned long *inode_nr);
 static void EXT2_read_tables(void);
 static void EXT2_sb_init(void * sb_buffer);
 
-/* Haven't defined ACL and stuff because inode mode doesn't do anything with them. */
-/* Should probably see what flags is, sorry, but I don't claim to be an ext2fs guru. */
+/* Haven't defined ACL and stuff because inode mode doesn't do anything 
+ * with them.  Should probably see what flags is, sorry, but I don't 
+ * claim to be an ext2fs guru. */
 static struct inode_fields EXT2_inode_fields = {
   1, /*   unsigned short i_mode; */
   1, /*   unsigned short i_uid; */
@@ -106,7 +109,7 @@ static struct fs_constants EXT2_constants = {
   &EXT2_inode_fields,
 };
 
-static unsigned long group_desc_count;
+static unsigned long group_desc_count, group_desc_size;
 static struct ext2_group_desc * group_desc = NULL;
 
 /* Compute disk block containing desired inode */
@@ -228,6 +231,38 @@ static void EXT2_read_block_bitmap(unsigned long nr)
   }
 }
   
+/* Checks if a data block is part of the ext2 system (i.e. not a data block) */
+static int EXT2_is_system_block(unsigned long nr)
+{
+  int i;
+
+  /* Group descriptor tables and first super block */
+  if (nr < (((EXT2_MIN_BLOCK_SIZE)/sb->blocksize)+1)*sb->blocksize + 
+                                   group_desc_size)
+    return 1;
+
+  for (i = 0; i < group_desc_count; i++) {
+    /* Is it part of the block map? */
+    if ( (nr>group_desc[i].bg_block_bitmap*sb->blocksize) &&
+	 (nr<group_desc[i].bg_block_bitmap*sb->blocksize+
+                  (2*sb->s_blocks_per_group-1)/8) )
+       return 1;
+    /* No.  How about the inode map? */
+    if ( (nr>group_desc[i].bg_inode_bitmap*sb->blocksize) &&
+	 (nr<group_desc[i].bg_inode_bitmap*sb->blocksize+
+                  (2*sb->s_inodes_per_group-1)/8) )
+       return 1;
+    /* No.  How about the inode table? */
+    if ( (nr>group_desc[i].bg_inode_table*sb->blocksize) &&
+	 (nr<group_desc[i].bg_inode_table*sb->blocksize+
+                  (2*sb->s_inodes_per_group-1)/8) )
+       return 1;
+  }
+
+  /* How about that, it wasn't a system block */
+  return 0;
+}
+
 /* Checks if a particular data block is in use */
 static int EXT2_zone_in_use(unsigned long nr)
 {
@@ -241,7 +276,8 @@ static int EXT2_zone_in_use(unsigned long nr)
 }
 
 /* Could use some optimization maybe?? */
-static char* EXT2_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr)
+static char* EXT2_dir_entry(int i, lde_buffer *block_buffer,
+			    unsigned long *inode_nr)
 {
   char *bp;
   int j;
@@ -259,7 +295,10 @@ static char* EXT2_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inod
     bzero(EXT2_cname,EXT2_NAME_LEN+1);
     *inode_nr = block_pointer(bp,0UL,fsc->INODE_ENTRY_SIZE);
     strncpy(EXT2_cname, (bp+fsc->INODE_ENTRY_SIZE+2*sizeof(unsigned short)),
-	    block_pointer(bp,(unsigned long)( (fsc->INODE_ENTRY_SIZE+sizeof(unsigned short))/sizeof(unsigned short) ),
+	    block_pointer(bp,(unsigned long)
+                               ( (fsc->INODE_ENTRY_SIZE+
+                                  sizeof(unsigned short))
+                                  /sizeof(unsigned short) ),
 			  sizeof(unsigned short)));
   }
   return (EXT2_cname);
@@ -269,7 +308,6 @@ static char* EXT2_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inod
 static void EXT2_read_tables()
 {
   int isize, addr_per_block, inode_blocks_per_group;
-  unsigned long group_desc_size;
   unsigned long desc_blocks;
   long desc_loc;
 
@@ -280,16 +318,19 @@ static void EXT2_read_tables()
   if (zone_map) free(zone_map);
   
   addr_per_block = sb->blocksize/sizeof(unsigned long);
-  inode_blocks_per_group = sb->s_inodes_per_group / (sb->blocksize/fsc->INODE_SIZE);
+  inode_blocks_per_group = sb->s_inodes_per_group /
+                               (sb->blocksize/fsc->INODE_SIZE);
   
-  /* Compute number of groups.  Add (sb->s_blocks_per_group - 1) to account for last
-   * group that may be incomplete */
-  group_desc_count = (sb->nzones - sb->first_data_zone + sb->s_blocks_per_group - 1) / sb->s_blocks_per_group;
+  /* Compute number of groups.  Add (sb->s_blocks_per_group - 1) to 
+   * account for last group that may be incomplete */
+  group_desc_count = (sb->nzones - sb->first_data_zone + 
+                        sb->s_blocks_per_group - 1) / sb->s_blocks_per_group;
   if (!group_desc_count)
     die ("No group descriptors.  Something is wrong with this ext2fs?");
 
   /* Compute number of blocks used by groups 
-   * - 1st use desc_blocks as temp variable to compute number of descriptors per block  */
+   * - 1st use desc_blocks as temp variable to compute number
+   *   of descriptors per block  */
   desc_blocks = sb->blocksize / sizeof(struct ext2_group_desc);
   desc_blocks = (group_desc_count + desc_blocks - 1) / desc_blocks;
 
@@ -326,7 +367,8 @@ static void EXT2_read_tables()
   EXT2_read_inode_bitmap(0UL);
   
 #ifndef READ_PART_TABLES
-  if (sb->nzones > sb->s_blocks_per_group) /* Allocate at least room for one block */
+  if (sb->nzones > sb->s_blocks_per_group) 
+    /* (+1) Allocate room for at least one block */
     isize = (group_desc_count * sb->s_blocks_per_group / 8) + 1;
   else
 #endif
@@ -389,8 +431,10 @@ void EXT2_init(void *sb_buffer)
 
   EXT2_sb_init(sb_buffer);
 
-  FS_cmd.inode_in_use = EXT2_inode_in_use;
-  FS_cmd.zone_in_use  = EXT2_zone_in_use;
+  FS_cmd.inode_in_use     = EXT2_inode_in_use;
+  FS_cmd.zone_in_use      = EXT2_zone_in_use;
+  FS_cmd.is_system_block  = EXT2_is_system_block;
+
   FS_cmd.dir_entry    = EXT2_dir_entry;
   FS_cmd.read_inode   = EXT2_read_inode;
   FS_cmd.write_inode  = EXT2_write_inode;
