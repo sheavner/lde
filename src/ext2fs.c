@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.13 1996/10/11 00:31:06 sdh Exp $
+ *  $Id: ext2fs.c,v 1.14 1996/10/11 02:29:04 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -292,10 +292,11 @@ static void EXT2_read_tables()
     die ("Unable to read group descriptors");
   
 #ifndef READ_PART_TABLES
-  isize = (sb->ninodes / 8) + 1;
-#else
-  isize = (sb->s_inodes_per_group / 8) + 1;
+  if (sb->ninodes > sb->s_inodes_per_group) /* Allocate room for at least one block */
+    isize = (sb->ninodes / 8) + 1;
+  else
 #endif
+    isize = (sb->s_inodes_per_group / 8) + 1;
   inode_map = (char *) malloc(isize);
   if (!inode_map)
     die ("Unable to allocate inodes bitmap");
@@ -303,10 +304,12 @@ static void EXT2_read_tables()
   EXT2_read_inode_bitmap(0UL);
   
 #ifndef READ_PART_TABLES
-  isize = (sb->nzones / 8) + 1;
-#else
-  isize = (sb->s_blocks_per_group / 8) + 1;
+  if (sb->nzones > sb->s_blocks_per_group) /* Allocate at least room for one block */
+    isize = (sb->nzones / 8) + 1;
+  else
 #endif
+    isize = (sb->s_blocks_per_group / 8) + 1;
+
   zone_map = (char *) malloc(isize);
   if (!zone_map)
     die ("Unable to allocate blocks bitmap");
