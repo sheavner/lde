@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.22 1998/01/24 04:32:54 sdh Exp $
+ *  $Id: main_lde.c,v 1.23 1998/05/30 17:24:49 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -409,7 +409,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
     }
 }
 
-void main(int argc, char ** argv)
+int main(int argc, char ** argv)
 {
   int i, hasdata, fp;
   unsigned long nr, inode_nr;
@@ -598,5 +598,7 @@ void main(int argc, char ** argv)
 #endif
 
   exit(0);
+
+  return 0; /* egcs complains about void main() */
 }
 
