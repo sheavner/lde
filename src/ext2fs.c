@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.18 1998/01/23 04:26:20 sdh Exp $
+ *  $Id: ext2fs.c,v 1.19 1998/01/24 02:00:00 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -242,6 +242,9 @@ static int EXT2_is_system_block(unsigned long nr)
     return 1;
 
   for (i = 0; i < group_desc_count; i++) {
+    /* Is it a superblock copy? */
+    if (nr==(i*sb->s_blocks_per_group+1))
+      return 1;
     /* Is it part of the block map? */
     if ( (nr>group_desc[i].bg_block_bitmap*sb->blocksize) &&
 	 (nr<group_desc[i].bg_block_bitmap*sb->blocksize+
