@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.32 2002/01/12 01:51:57 scottheavner Exp $
+ *  $Id: lde.h,v 1.33 2002/01/13 04:17:13 scottheavner Exp $
  */
 
 #ifndef LDE_H
@@ -235,6 +235,7 @@ volatile struct _lde_flags {
   int mounted;
   int blanked_indirects;  /* Set for Linux 2.0.* to work around blanked indirect blocks */
   int logtofile;
+  int nosymbolic_guid;
 } lde_flags;
 
 extern struct sbinfo *sb;

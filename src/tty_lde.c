@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.29 2002/01/13 03:50:31 scottheavner Exp $
+ *  $Id: tty_lde.c,v 1.30 2002/01/13 04:17:13 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -384,7 +384,7 @@ void dump_inode(unsigned long nr)
   /* UID field */
   if (fsc->inode->i_uid) {
 #if HAVE_GETPWUID
-    if ((NC_PASS = getpwuid(GInode->i_uid))!=NULL)
+    if ( !lde_flags.nosymbolic_guid && ((NC_PASS = getpwuid(GInode->i_uid))!=NULL) )
       printf("%-8s ",NC_PASS->pw_name);
     else
 #endif
@@ -395,7 +395,7 @@ void dump_inode(unsigned long nr)
   /* GID field */
   if (fsc->inode->i_gid) {
 #if HAVE_GETGRGID
-    if ((NC_GROUP = getgrgid(GInode->i_gid))!=NULL)
+    if ( !lde_flags.nosymbolic_guid && ((NC_GROUP = getgrgid(GInode->i_gid))!=NULL) )
       printf("%-8s ",NC_GROUP->gr_name);
     else
 #endif

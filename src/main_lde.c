@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.42 2002/01/12 04:56:31 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.43 2002/01/13 04:17:13 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -80,7 +80,7 @@ char *badblocks_directory = NULL;
 
 int CURR_DEVICE = 0;
 volatile struct _lde_flags lde_flags = 
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } ;
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } ;
 
 void (*lde_warn)(char *fmt, ...) = tty_warn;
 int  (*mgetch)(void) = tty_mgetch;
@@ -250,6 +250,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       {"ilookup",0,0,'@'},
       {"recoverable",0,0,'#'},
       {"append",0,0,'%'},
+      {"nosymbolic",0,0,'^'},
       {"file",1,0,'f'},
       {"logtofile",0,0,'F'},
       {"superscan",0,0,'P'},
@@ -419,6 +420,9 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       case '%': /* Always append data when recovery file exists */
 	lde_flags.always_append = 1;
 	break;
+      case '^': /* Don't do symbolic uid/gid lookups */
+        lde_flags.nosymbolic_guid = 1;
+        break;
       case 'f': /* Specify name of recovery file */
 	opts->recover_file_name = optarg;
 	break;
