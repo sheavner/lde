@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.h,v 1.1 1994/09/05 23:06:27 sdh Exp $
+ *  $Id: nc_dir.h,v 1.2 1996/10/13 00:41:32 sdh Exp $
  */
 
-int directory_popup(unsigned long bnr);
+int directory_popup(unsigned long bnr, unsigned long inr, unsigned long ipointer);
