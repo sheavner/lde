@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.10 1998/06/09 19:06:47 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.11 1998/08/11 04:04:09 sdh Exp $
  */
 
 /* 
@@ -254,6 +254,8 @@ int DOS_test(void *sb_buffer)
   if ( !(strncmp(Boot->system_id,"MSDOS",5)) ||
        !(strncmp(Boot->system_id,"IBM  ",5)) ||
        !(strncmp(Boot->system_id,"NWDOS",5)) ||
+       !(strncmp(Boot->system_id,"OPENDOS",7)) ||
+       !(strncmp(Boot->system_id,"DRDOS",5)) ||
        !(strncmp(Boot->system_id,"MSWIN",5)) ) {
     lde_warn("Found msdos_fs on device");
     return 1;
