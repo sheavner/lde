@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.13 1996/09/15 05:07:22 sdh Exp $
+ *  $Id: nc_inode.c,v 1.14 1996/10/11 00:29:21 sdh Exp $
  */
 
 #include <ctype.h>
@@ -79,7 +79,7 @@ static void cwrite_inode(unsigned long inode_nr, struct Generic_Inode *GInode, i
       FS_cmd.write_inode(inode_nr, GInode);
   }
 #else
-  warn("Compiled with NO_WRITE_INODE, write is disallowed");
+  lde_warn("Compiled with NO_WRITE_INODE, write is disallowed");
 #endif
   
   *mod_yes = 0;
@@ -397,10 +397,25 @@ void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *G
 		int highlight_field, int park_x, int park_y )
 {
   unsigned long a;
+  int result;
+  char newdate[80] = "Enter new time and/or date: ";
 
 #ifndef NC_FIXED_UNGETCH
-  if (cread_num("Enter new value: ",&a)) {
-    set_inode_field(highlight_field, (unsigned long) a, GInode);
+  switch(highlight_field) {
+    case I_ATIME:
+    case I_DTIME:
+    case I_MTIME:
+    case I_CTIME:
+      if ((result = cread_num(newdate,NULL)))
+	a = (unsigned long) getdate(newdate,NULL);
+      break;
+    default:
+      result = cread_num("Enter new value: ",&a);
+      break;
+  }
+
+  if (result) {
+    set_inode_field(highlight_field, a, GInode);
     *modified = 1;
   }
 #else
@@ -416,12 +431,21 @@ void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *G
     wgetnstr(workspace, cinput, 10);
     nodelay(workspace,FALSE);
     noecho();
-    set_inode_field(highlight_field, read_num(cinput), GInode);
+    switch(highlight_field) {
+      case I_ATIME:
+      case I_DTIME:
+      case I_MTIME:
+      case I_CTIME:
+	a = (unsigned long) getdate(cinput,NULL);
+	break;
+      default:
+	a = read_num(cinput);
+    }
+    set_inode_field(highlight_field, a, GInode);
     *modified = 1;
-    return;
   }
 #endif /* NC_FIXED_UNGETCH */
-  if (!lde_flags.write_ok) warn("Disk not writeable, change status flags with (F)");
+  if (!lde_flags.write_ok) lde_warn("Disk not writeable, change status flags with (F)");
 }
 
 
@@ -541,7 +565,7 @@ int inode_mode() {
       case CMD_COPY: /* Copy inode to copy buffer */
 	if (!copy_buffer) copy_buffer = malloc(sizeof(struct Generic_Inode));
 	memcpy(copy_buffer,GInode,sizeof(struct Generic_Inode));
-	warn("Inode (%lu) copied into copy buffer.",current_inode);
+	lde_warn("Inode (%lu) copied into copy buffer.",current_inode);
 	break;
 
       case CMD_PASTE: /* Paste inode from copy buffer */
@@ -549,9 +573,9 @@ int inode_mode() {
 	  modified = 1;
 	  memcpy(GInode,copy_buffer,sizeof(struct Generic_Inode));
 	  cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
-	  if (!lde_flags.write_ok) warn("Turn on write permissions before saving this inode");
+	  if (!lde_flags.write_ok) lde_warn("Turn on write permissions before saving this inode");
 	} else {
-	  warn("Nothing in copy buffer.");
+	  lde_warn("Nothing in copy buffer.");
 	}
 	break;
 
