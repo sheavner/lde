@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.14 2001/02/21 19:36:52 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.15 2001/02/21 23:24:58 sdh Exp $
  */
 
 /* 
@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <linux/msdos_fs.h>
 #include "lde.h"
 #include "no_fs.h"
@@ -40,21 +41,21 @@ static int DOS_zero_i__ul(unsigned long nr);
 static unsigned short align_ushort(char cp[2]);
 
 static struct inode_fields DOS_inode_fields = {
-  0,   /*   unsigned short i_mode; */
+  1,   /*   unsigned short i_mode; */
   0,   /*   unsigned short i_uid; */
-  0,   /*   unsigned long  i_size; */
-  0,   /*   unsigned short i_links_count; */
+  1,   /*   unsigned long  i_size; */
+  1,   /*   unsigned short i_links_count; */
   0,   /*   ()             i_mode_flags; */
   0,   /*   unsigned short i_gid; */
   0,   /*   unsigned long  i_blocks; */
-  0,   /*   unsigned long  i_atime; */
-  0,   /*   unsigned long  i_ctime; */
-  0,   /*   unsigned long  i_mtime; */
+  1,   /*   unsigned long  i_atime; */
+  1,   /*   unsigned long  i_ctime; */
+  1,   /*   unsigned long  i_mtime; */
   0,   /*   unsigned long  i_dtime; */
   0,   /*   unsigned long  i_flags; */
   0,   /*   unsigned long  i_reserved1; */
   { 1, /*   unsigned long  i_zone[0]; */
-    1, /*   unsigned long  i_zone[1]; */
+    0, /*   unsigned long  i_zone[1]; */
     0, /*   unsigned long  i_zone[2]; */
     0, /*   unsigned long  i_zone[3]; */
     0, /*   unsigned long  i_zone[4]; */
@@ -116,6 +117,31 @@ static int DOS_zero_i__ul(unsigned long nr)
   return 0;
 }
 
+/***************** STOLEN FROM LINUX KERNEL *******************/
+/* Convert a MS-DOS time/date pair to a UNIX date (seconds since 1 1 70). */
+
+static int date_dos2unix(unsigned short time,unsigned short date);
+static int date_dos2unix(unsigned short time,unsigned short date)
+{
+   /* Linear day numbers of the respective 1sts in non-leap years. */
+   static int day_n[] = { 0,31,59,90,120,151,181,212,243,273,304,334,0,0,0,0 };
+                        /* JanFebMarApr May Jun Jul Aug Sep Oct Nov Dec */
+
+	int month,year,secs;
+
+	month = ((date >> 5) & 15)-1;
+	year = date >> 9;
+	secs = (time & 31)*2+60*((time >> 5) & 63)+(time >> 11)*3600+86400*
+	    ((date & 31)-1+day_n[month]+(year/4)+year*365-((year & 3) == 0 &&
+	    month < 2 ? 1 : 0)+3653);
+			/* days since 1.1.70 plus 80's leap day */
+//	secs += sys_tz.tz_minuteswest*60;
+//	if (sys_tz.tz_dsttime) secs -= 3600;
+	return secs;
+}
+/***************** END: STOLEN FROM LINUX KERNEL *******************/
+
+
 static unsigned long DOS_map_inode(unsigned long ino)
 {
   unsigned long block;
@@ -131,14 +157,14 @@ struct Generic_Inode *DOS_init_junk_inode(void)
 {
   int i;
 
-  DOS_junk_inode.i_mode        = 0040000;  /* Fake all into being dirs */
+  DOS_junk_inode.i_mode        = S_IFDIR;  /* Fake all into being dirs */
   DOS_junk_inode.i_uid         = 0UL;
   DOS_junk_inode.i_size        = 1UL;      /* Always putting in 1 block? */
   DOS_junk_inode.i_atime       = 0UL;
   DOS_junk_inode.i_ctime       = 0UL;
   DOS_junk_inode.i_mtime       = 0UL;
   DOS_junk_inode.i_gid         = 0UL;
-  DOS_junk_inode.i_links_count = 0UL;
+  DOS_junk_inode.i_links_count = 1UL;
   
   for (i=0; i<INODE_BLKS; i++)
     DOS_junk_inode.i_zone[i] = 0UL;
@@ -156,11 +182,21 @@ static unsigned short align_ushort(char cp[2])
   return i;
 }
 
+/* Another hack, need to read the inode info from the directory entry */
+static unsigned long DOS_dir_inode = 0UL;
+
 static struct Generic_Inode *DOS_read_inode(unsigned long nr)
 {
   char * inode_buffer;
 
-  DOS_init_junk_inode();
+  /* Might have already filled in some of the inode info
+   *  from the directory entry we just looked at (nc_dir calls
+   *  dir_entry() followed by read_inode().  If so, don't clobber
+   *  file type and size info.  This might result in displaying old
+   *  info, but the inode chain will be filled in correctly below,
+   *  it's just the file attrs that may be displayed out of sync */
+  if ( !DOS_dir_inode || (DOS_dir_inode != nr) )
+     DOS_init_junk_inode();
 
   if (nr>sb->ninodes) {
     lde_warn("inode (%lu) out of range DOS_read_inode", nr);
@@ -193,6 +229,27 @@ static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode
     strncpy(&cname[9], dir->ext, 3);  /* File extension */
     cname[MSDOS_NAME+1] = 0;
     *inode_nr = (unsigned long) dir->start + (((unsigned long)dir->starthi)<<16);
+    DOS_dir_inode = *inode_nr;
+
+    DOS_junk_inode.i_mode = S_IRUSR|S_IROTH|S_IRGRP;
+    DOS_junk_inode.i_size = dir->size;
+    if (dir->attr&ATTR_DIR) {
+       DOS_junk_inode.i_mode |= S_IFDIR|S_IXOTH|S_IXUSR|S_IXGRP;
+       /* nc_dir.c:get_inode_info() gets pissy if dir length == 0 */
+       DOS_junk_inode.i_size = sb->zonesize*sb->blocksize;
+       /* .. seems to show up as inode 0 fairly often -- bump it to 2 */
+       if (*inode_nr==0UL)
+          *inode_nr = 2UL;
+    } else {
+       DOS_junk_inode.i_mode |= S_IFREG;
+    }
+    if (dir->attr&ATTR_SYS)
+       DOS_junk_inode.i_mode |= S_IFSOCK;
+    if (dir->attr&ATTR_RO)
+       DOS_junk_inode.i_mode |= S_IWUSR|S_IWGRP|S_IWOTH;
+    DOS_junk_inode.i_ctime = date_dos2unix(dir->ctime,dir->cdate);
+    DOS_junk_inode.i_atime = date_dos2unix(0,dir->adate);
+    DOS_junk_inode.i_mtime = date_dos2unix(dir->time,dir->date);
   }
   return (cname);
 }
