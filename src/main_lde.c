@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.1 1994/03/19 17:14:37 sdh Exp $
+ *  $Id: main_lde.c,v 1.2 1994/03/21 06:00:16 sdh Exp $
  */
 
 #include <unistd.h>
@@ -36,6 +36,7 @@ struct fs_constants *fsc = NULL;
 
 int CURR_DEVICE = 0;
 int verbose = 0, list = 0;
+int write_ok = 0, quiet = 0;
 
 #define USAGE_STRING "[-VvIibBdcCStThH?] /dev/name\n"
 #define usage() fatal_error("Usage: %s " USAGE_STRING)
@@ -102,14 +103,17 @@ void read_tables(int fs_type)
 void long_usage()
 {
   printf("This is %s (version %s), Usage %s %s\n",program_name,VERSION,program_name,USAGE_STRING);
-  printf("   -i ##:     dump inode number # to stdout (-I all inodes after #) \n");
-  printf("   -b ##:     dump block number # to stdout (-B all blocks after #)\n");
-  printf("   -d ##:     dump block's data to stdout (binary format)\n");
-  printf("   -S string: search disk for data (questionable)\n");
-  printf("   -T type:   search disk for data. type = {gz, tgz, script}\n");
-  printf("   -t fstype: Overide the autodetect. fstype = {minix, xiafs, ext2fs}\n");
-  printf("   --help:    output this screen\n");
-  printf("   --version: print version information\n");
+  printf("   -i ##:      dump inode number # to stdout (-I all inodes after #) \n");
+  printf("   -b ##:      dump block number # to stdout (-B all blocks after #)\n");
+  printf("   -d ##:      dump block's data to stdout (binary format)\n");
+  printf("   -S string:  search disk for data (questionable)\n");
+  printf("   -T type:    search disk for data. type = {gz, tgz, script}\n");
+  printf("   -t fstype:  Overide the autodetect. fstype = {minix, xiafs, ext2fs}\n");
+  printf("   --help:     output this screen\n");
+  printf("   --paranoid: Open the device read only.\n");
+  printf("   --quiet:    Turn off warning beeps.\n");
+  printf("   --version:  print version information\n");
+  printf("   --write:    Allow writes to the device.\n");
 }
 
 
@@ -130,7 +134,7 @@ int main(int argc, char ** argv)
   
   int search_len = 0, fs_type = 0;
   int count,idump_all=0,bdump_all=0;
-  int grep_mode = 0;
+  int grep_mode = 0, paranoid = 0;
   unsigned int idump=0,bdump=0,i,ddump=0;
   unsigned int search_all=0;
   char c;
@@ -143,6 +147,10 @@ int main(int argc, char ** argv)
       {"block", 1, 0, 'b'},
       {"all", 0, 0, 'a'},
       {"grep", 0, 0, 'g'},
+      {"write", 0, 0, 'w'},
+      {"paranoid", 0, 0, 'p'},
+      {"safe", 0, 0, 'p'},
+      {"quiet", 0, 0, 'q'},
       {0, 0, 0, 0}
     };
       
@@ -153,7 +161,7 @@ int main(int argc, char ** argv)
   while (1) {
     int option_index = 0;
 
-    c = getopt_long (argc, argv, "avIi:bB:d:cCgS:t:T:hH?",
+    c = getopt_long (argc, argv, "avIi:bB:d:cCgpqS:t:T:whH?",
 		     long_options, &option_index);
 
     if (c == -1)
@@ -183,6 +191,12 @@ int main(int argc, char ** argv)
 	break;
       case 'd':
 	ddump = read_num(optarg);
+	break;
+      case 'p':
+	paranoid = 1;
+	break;
+      case 'q':
+	quiet = 1;
 	break;
       case 'S': 
 	search_all = 1;
@@ -228,6 +242,9 @@ int main(int argc, char ** argv)
 	  exit(0);
 	}
 	break;
+      case 'w':
+	write_ok = 1;
+	break;
       case 'h':
       case 'H':
       case '?':
@@ -251,7 +268,13 @@ int main(int argc, char ** argv)
       usage();
     }
 
-  CURR_DEVICE = open(device_name,O_RDONLY);
+#ifndef PARANOID
+  if (!paranoid)
+    CURR_DEVICE = open(device_name,O_RDWR);
+  else
+#endif
+    CURR_DEVICE = open(device_name,O_RDONLY);
+  
   if (CURR_DEVICE < 0)
     die("unable to open '%s'");
   for (count=0 ; count<3 ; count++)

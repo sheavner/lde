@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.2 1994/03/19 20:00:25 sdh Exp $
+ *  $Id: nc_lde.c,v 1.3 1994/03/21 06:00:29 sdh Exp $
  */
 
 #include "lde.h"
@@ -124,8 +124,26 @@ void restore_header()
 #endif
 }
 
+/* Redraw everything -- ^L */
+void refresh_all()
+{
+  touchwin(stdscr);
+  refresh();
+#if TRAILER_SIZE>0
+  touchwin(trailer);
+  wrefresh(trailer);
+#endif
+  touchwin(workspace);
+  wrefresh(workspace);
+#if HEADER_SIZE>0
+  restore_header();
+  update_header();
+#endif
+}
+
 void nc_warn(char * echo_string)
 {
+  if (!quiet) beep();
 #if TRAILER_SIZE>0
   mvwaddstr(trailer,TRAILER_SIZE-1,(COLS-strlen(echo_string))/2-1,
 	    echo_string);
@@ -143,7 +161,7 @@ void do_help(void)
 {
   WINDOW *win;
 
-  win = newwin(13,80,(VERT-13)/2,HOFF);
+  win = newwin(13,80,((VERT-13)/2+HEADER_SIZE),HOFF);
   wclear(win);
   box(win,0,0);
   mvwprintw(win,1,16,"Program name : Filesystem type : Device name");
@@ -158,11 +176,11 @@ void do_help(void)
   wrefresh(win);
   getch();
   delwin(win);
-  touchwin(stdscr);
-  refresh();
+  refresh_all();
 
   return;
 }
+
 /*
  * Display some help in a separate window
  */
@@ -170,7 +188,7 @@ void do_block_help(void)
 {
   WINDOW *win;
 
-  win = newwin(17,80,(VERT-17)/2,HOFF);
+  win = newwin(17,80,((VERT-17)/2+HEADER_SIZE),HOFF);
   wclear(win);
   box(win,0,0);
   mvwprintw(win,1,16,"Program name : Filesystem type : Device name");
@@ -191,16 +209,16 @@ void do_block_help(void)
   wrefresh(win);
   getch();
   delwin(win);
-  touchwin(stdscr);
-  refresh();
+  refresh_all();
 
   return;
 }
+
 void do_inode_help(void)
 {
   WINDOW *win;
 
-  win = newwin(16,80,(VERT-16)/2,HOFF);
+  win = newwin(16,80,((VERT-16)/2+HEADER_SIZE),HOFF);
   wclear(win);
   box(win,0,0);
   mvwprintw(win,1,16,"Program name : Filesystem type : Device name");
@@ -219,27 +237,9 @@ void do_inode_help(void)
   wrefresh(win);
   getch();
   delwin(win);
-  touchwin(stdscr);
-  refresh();
+  refresh_all();
 
   return;
-}
-
-/* Redraw everything -- ^L */
-void refresh_all()
-{
-  touchwin(stdscr);
-  refresh();
-#if TRAILER_SIZE>0
-  touchwin(trailer);
-  wrefresh(trailer);
-#endif
-  touchwin(workspace);
-  wrefresh(workspace);
-#if HEADER_SIZE>0
-  restore_header();
-  update_header();
-#endif
 }
 
 /* Format the super block for curses */
@@ -301,6 +301,31 @@ int win_start, win_size;
   return dind;
 }
 
+void cwrite_block(unsigned long block_nr, char *data_buffer, int modified)
+{
+  WINDOW *win;
+  int c, flag;
+
+  flag = 1;
+  if ((modified)&&(write_ok)) {
+    win = newwin(5,80,((VERT-5)/2+HEADER_SIZE),HOFF);
+    wclear(win);
+    box(win,0,0);
+    mvwprintw(win,2,16,"WRITE OUT BLOCK DATA TO DISK [Y/N]?");
+    wrefresh(win);
+    while (flag) {
+      c = tolower(getch());
+      if ((c == 'y')||(c =='n')) {
+	flag = 0;
+	delwin(win);
+	refresh_all(); /* Have to refresh screen before write or errors will be lost */
+	if (c == 'y') 
+	  write_block(block_nr, data_buffer);
+      }
+    }
+  }
+}
+
 void highlight_block(int cur_row,int cur_col,int win_start,unsigned char *block_buffer)
 /* int cur_row, cur_col, win_start; */
 {
@@ -311,7 +336,7 @@ void highlight_block(int cur_row,int cur_col,int win_start,unsigned char *block_
     s_col = 9 + cur_col*3;
   else
     s_col = 13 + cur_col*3;
-  mvwprintw(workspace,cur_row,s_col,"%2.2x",block_buffer[cur_row*16+cur_col+win_start]);
+  mvwprintw(workspace,cur_row,s_col,"%2.2X",block_buffer[cur_row*16+cur_col+win_start]);
   c = block_buffer[cur_row*16+cur_col+win_start];
   c = ((c>31)&&(c<127)) ? c : '.';
   mvwprintw(workspace,cur_row,cur_col+63,"%c",c);
@@ -329,6 +354,9 @@ int block_mode() {
   unsigned char *block_buffer = NULL;
   unsigned long temp_ptr;
 
+  int edit_block, highlight, val, v1, icount, modified = 0;
+  char *HEX_PTR, *HEX_NOS = "0123456789ABCDEF";
+
 #if TRAILER_SIZE>0
   werase(trailer);
   strncpy(echo_string,"PG_UP/DOWN = previous/next block, or '#' to enter block number",150);
@@ -339,17 +367,90 @@ int block_mode() {
 #endif
 
   flag = 1; c = ' ';
+  edit_block = 0; icount=0; v1=0; modified = 0;
   cur_row = cur_col = 0;
   while (flag||(c = getch())) {
     flag = 0;
     redraw = 1;
+    highlight = 1;
+    if (edit_block) {
+      HEX_PTR = strchr(HEX_NOS, toupper(c));
+      if (HEX_PTR != NULL) {
+	val = HEX_PTR - HEX_NOS;
+	if (icount == 0) {
+	  icount++;
+	  v1 = val;
+	  wattron(workspace,HIGHLIGHT_1);
+	  waddch(workspace,HEX_NOS[val]);
+	  wattroff(workspace,HIGHLIGHT_1);
+	  highlight = 0;
+	} else {
+	  icount = 0;
+	  v1 = v1*16 + val;
+	  block_buffer[cur_row*16+cur_col+win_start] = v1;
+	  modified = 1;
+	  c = KEY_RIGHT; /* Advance the cursor */
+	}
+      } else {
+	if (c == ('W'-'A'+1)) {
+	  edit_block = 0;
+	  cwrite_block(current_block, block_buffer, modified);
+	}
+      }
+    } else {
+      /* These keys will be deactivated in edit mode */
+      switch(c) {
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+        case ':':
+        case ';':
+        case '<':
+        case '=':
+        case '>':
+	  fake_inode_zones[c-'0'] = current_block;
+	  break;
+        case 'E':
+	case 'e':
+	  if (write_ok) {
+	    edit_block = 1;
+	    icount = 0;
+	  } else
+	    warn("Disk not writeable, change status flags with (F)");
+	  break;
+        case 'B':
+	  temp_ptr = block_pointer(&block_buffer[cur_row*16+cur_col+win_start],(unsigned long) 0, fsc->ZONE_ENTRY_SIZE);
+	  if (temp_ptr <= sb->nzones) {
+	    current_block = temp_ptr;
+	    return c;
+	  }
+	  break;
+	case 'F':
+	case 'f':
+	  return c;
+	  break;
+      }
+    }
+    
+    /* These keys are valid in both modes */
     switch(c) {
       case 'F'-'A'+1: /* ^F */
       case KEY_RIGHT:
 	redraw = 0;
+	icount = 0;
 	if (++cur_col > 15) {
 	  cur_col = 0;
-	  if (++cur_row >= VERT) {
+	  if ((++cur_row)*16+win_start>=sb->blocksize) {
+	    cur_col = 15;
+	    cur_row--;
+	  } else if (cur_row >= VERT) {
 	    if ( win_start + VERT*16 < sb->blocksize) win_start += VERT*16;
 	    prev_row = prev_col = cur_row = 0;
 	    redraw = 1;
@@ -359,20 +460,28 @@ int block_mode() {
       case '+':
       case KEY_SRIGHT:
         if ( win_start + VERT*16 < sb->blocksize) win_start += VERT*16;
+	icount = 0;
 	break;
       case 'B'-'A'+1: /* ^B */
       case KEY_LEFT:
+	icount = 0;
+	redraw = 0;
 	if (--cur_col < 0) {
 	  cur_col = 15;
 	  if (--cur_row < 0) {
-	    cur_row = cur_col = 0;
+	    if (win_start - VERT*16 >= 0) {
+	      win_start -= VERT*16;
+	      cur_row = VERT - 1;
+	      redraw = 1;
+	    } else
+	      cur_row = cur_col = 0;
 	  }
 	}
-	redraw = 0;
 	break;
       case '-':
       case KEY_SLEFT:
 	if (win_start - VERT*16 >= 0)  win_start -= VERT*16;
+	icount = 0;
 	break;
       case 'N'-'A'+1: /* ^N */
       case KEY_DOWN:
@@ -381,14 +490,17 @@ int block_mode() {
 	  prev_row = prev_col = cur_row = 0;
 	} else
 	  redraw = 0;
+	icount = 0;
 	break;
       case 'V'-'A'+1: /* ^V */
       case KEY_NPAGE:
 	current_block++;
 	win_start = prev_col = prev_row = cur_col = cur_row = 0;
+        cwrite_block(current_block, block_buffer, modified);
 	break;
       case 'P'-'A'+1: /* ^P */
       case KEY_UP:
+	icount = 0;
 	if (--cur_row<0) {
 	  if (win_start - VERT*16 >= 0) {
 	    win_start -= VERT*16;
@@ -402,23 +514,7 @@ int block_mode() {
       case KEY_PPAGE:
 	if (current_block!=0) current_block--;
 	win_start = prev_col = prev_row = cur_col = cur_row = 0;
-	break;
-      case '0':
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9':
-      case ':':
-      case ';':
-      case '<':
-      case '=':
-      case '>':
-	fake_inode_zones[c-'0'] = current_block;
+        cwrite_block(current_block, block_buffer, modified);
 	break;
       case 'l':
       case 'L':
@@ -431,19 +527,14 @@ int block_mode() {
 	    sprintf(echo_string, "Unable to find inode referenece try activating the --all option.\n");
 	warn(echo_string);
 	break;
-      case 'B':
-	temp_ptr = block_pointer(&block_buffer[cur_row*16+cur_col+win_start],(unsigned long) 0, fsc->ZONE_ENTRY_SIZE);
-	if (temp_ptr <= sb->nzones) {
-	  current_block = temp_ptr;
-	  return c;
-	}
-	break;
       case 'I':
 	temp_ptr = block_pointer(&block_buffer[cur_row*16+cur_col+win_start],(unsigned long) 0, fsc->INODE_ENTRY_SIZE);
 	if (temp_ptr <= sb->ninodes) {
 	  current_inode = temp_ptr;
+	  cwrite_block(current_block, block_buffer, modified);
 	  return c;
-	}
+	} else
+	  warn("Inode out of range.");
 	break;
       case 'q':
       case 'Q':
@@ -452,18 +543,26 @@ int block_mode() {
       case 'i':
       case 'R':
       case 'r':
+      case 'F':
+      case 'f':
+        cwrite_block(current_block, block_buffer, modified);
 	return c;
 	break;
       case '#':
+        cwrite_block(current_block, block_buffer, modified);
 	current_block = cread_num("Enter block number (leading 0x or $ indicates hex):");
-	prev_col = prev_row = cur_col = cur_row = 0;
+	win_start = prev_col = prev_row = cur_col = cur_row = 0;
+	edit_block = 0;
 	break;
       case 'h':
       case 'H':
       case '?':
       case 'H'-'A'+1: /* ^H */
         do_block_help();
+	redraw = 0;
+	break;
       case 'L'-'A'+1: /* ^L */
+	icount = 0;  /* We want to see actual values? */
 	refresh_all();
 	break;
       case ' ':
@@ -481,18 +580,20 @@ int block_mode() {
       cur_row = (sb->blocksize-win_start)/16 - 1;
     }
 
-    if (redraw)
-      block_buffer = cdump_block(current_block,win_start,VERT);
+    if (highlight) {
+      if (redraw)
+	block_buffer = cdump_block(current_block,win_start,VERT);
 
-    /* Highlight current cursor position */
-    /* First turn off last position */
-    highlight_block(prev_row,prev_col,win_start,block_buffer);
-    /* Now highlight current */
-    wattron(workspace,HIGHLIGHT_1);
-    prev_col = cur_col;
-    prev_row = cur_row;
-    highlight_block(cur_row,cur_col,win_start,block_buffer);
-    wattroff(workspace,HIGHLIGHT_1);
+      /* Highlight current cursor position */
+      /* First turn off last position */
+      highlight_block(prev_row,prev_col,win_start,block_buffer);
+      /* Now highlight current */
+      wattron(workspace,HIGHLIGHT_1);
+      prev_col = cur_col;
+      prev_row = cur_row;
+      highlight_block(cur_row,cur_col,win_start,block_buffer);
+      wattroff(workspace,HIGHLIGHT_1);
+    }
 
     wrefresh(workspace);
   }
@@ -634,6 +735,8 @@ int inode_mode() {
 	  current_block = DInode.i_zone(current_inode,highlight_izone);
       case 'b':
       case 'q':
+      case 'F':
+      case 'f':
       case 'Q':
       case 'S':
       case 's':
@@ -770,6 +873,70 @@ int recover_mode()
   return 0;
 }
 
+int flag_mode()
+{
+  int c, redraw;
+  static int flag;
+
+  clobber_workspace(); 
+  workspace = newwin(10,(COLS-HOFF),((VERT-10)/2+HEADER_SIZE),HOFFPLUS);
+
+#if TRAILER_SIZE>0
+  werase(trailer);
+  strncpy(echo_string,"I)node, B)locks, R)ecover File, S)uper Block",150);
+  mvwaddstr(trailer,0, (COLS-strlen(echo_string))/2-1,echo_string);
+  wrefresh(trailer);
+#endif
+
+  flag=1; c = ' ';
+  while (flag||(c = getch())) {
+    flag = 0;
+    redraw = 0;
+    switch (c) {
+      case 'B':
+      case 'b':
+      case 'I':
+      case 'i':
+      case 'R':
+      case 'r':
+      case 'q':
+      case 'Q':
+      case 'S':
+      case 's':
+        return c;
+	break;
+      case 'W':
+      case 'w':
+        write_ok = 1 - write_ok;
+	redraw = 1;
+        break;
+      case 'A':
+      case 'a':
+        rec_flags.search_all = 1 - rec_flags.search_all;
+	redraw = 1;
+        break;
+      case 'N':
+      case 'n':
+        quiet = 1 - quiet;
+	redraw = 1;
+        break;
+      case 'L'-'A'+1: /* ^L */
+        refresh_all();
+        break;
+      case ' ':
+	redraw = 1;
+	break;
+    }
+
+    wclear(workspace);
+    mvwprintw(workspace,1,1,"A: Search all blocks (%s)",rec_flags.search_all ? "YES" : "NO");
+    mvwprintw(workspace,2,1,"N: Noise is off -- i.e. quiet (%s)",quiet ? "YES" : "NO");
+    mvwprintw(workspace,3,1,"W: OK to write to file system (%s)",write_ok ? "YES" : "NO");
+    wrefresh(workspace);
+  }
+  return 0;
+}
+
 /* Not too exciting main parser with superblock on screen */
 void interactive_main()
 {
@@ -830,6 +997,10 @@ while (flag || (c = getch())) {
     case 'r':
       c = flag = recover_mode();
       break;
+    case 'F':
+    case 'f':
+      c = flag = flag_mode();
+      break;
     case 'h':
     case 'H':
     case '?':
@@ -852,7 +1023,7 @@ while (flag || (c = getch())) {
   update_header();
 #if TRAILER_SIZE>0
   werase(trailer);
-  strncpy(echo_string,"I)node, B)locks, R)ecover File",150);
+  strncpy(echo_string,"F)lags, I)node, B)locks, R)ecover File",150);
   mvwaddstr(trailer,0, (COLS-strlen(echo_string))/2-1,echo_string);
   wrefresh(trailer);
 #endif

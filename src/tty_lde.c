@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.2 1994/03/19 20:02:36 sdh Exp $
+ *  $Id: tty_lde.c,v 1.3 1994/03/21 06:01:00 sdh Exp $
  */
 
 #include "lde.h"
@@ -59,6 +59,22 @@ char * cache_read_block (unsigned long block_nr)
     }
   return cache;
 }
+
+int write_block (unsigned long block_nr, char *data_buffer)
+{
+#ifndef PARANOID
+  if (lseek (CURR_DEVICE, block_nr * sb->blocksize, SEEK_SET) !=
+      block_nr * sb->blocksize) {
+    warn("Write error: unable to seek to block in write_block ");
+    return -1;
+  } else if (write (CURR_DEVICE, data_buffer, sb->blocksize) != sb->blocksize) {
+    warn("write failed in write_block");
+    return -1;
+  }
+#endif
+  return 0;
+}
+
 
 void ddump_block(nr)
 unsigned long nr;

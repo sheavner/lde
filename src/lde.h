@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.3 1994/03/19 20:53:08 sdh Exp $
+ *  $Id: lde.h,v 1.4 1994/03/21 06:00:50 sdh Exp $
  */
 
 #include <stdio.h>
@@ -37,6 +37,7 @@ void (*warn)();
 void tty_warn();
 long read_num();
 char *cache_read_block();
+int write_block();
 void ddump_block();
 void dump_block();
 void dump_inode();
@@ -181,7 +182,7 @@ extern unsigned char *inode_count;
 extern unsigned char *zone_count;
 
 extern int CURR_DEVICE;
-extern int verbose, list;  
+extern int verbose, list, write_ok, quiet;  
 
 /* The rest is all straight out of the original fsck code for the minix fs. */
 #define bitop(name,op) \
