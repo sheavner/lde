@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.12 1996/10/12 21:13:15 sdh Exp $
+ *  $Id: nc_dir.c,v 1.13 1996/10/13 01:42:16 sdh Exp $
  */
 
 #include <strings.h>
@@ -16,6 +16,7 @@
 #include "nc_lde.h"
 #include "nc_dir.h"
 #include "keymap.h"
+#include "recover.h"
 #include "swiped.h"
 
 static int dump_dir_entry(WINDOW *win, int i, int off, unsigned long bnr, int highlight);
@@ -24,53 +25,32 @@ static void redraw_dir_window(WINDOW *win,int max_entries, int screen_off, unsig
 static int reread_dir(void *block_buffer, unsigned long bnr);
 
 /* Help for directory_popup() function */
-#ifndef USE_OLD_HELP_FORMAT
 static lde_menu dp_help[] = {
   { CMD_EXPAND_SUBDIR,"expand directory under cursor"},
   { CMD_EXPAND_SUBDIR_MC,"expand directory under cursor and make it the current inode"},
   { CMD_INODE_MODE,"make inode under cursor the current inode"},
   { CMD_INODE_MODE_MC,"make inode under cursor the current inode and view it"},
-  { CMD_NEXT_DIR_BLOCK,"view next block in directory (if called from inode mode)"} ,
+  { CMD_NEXT_IND_BLOCK,"view next block in directory (if called from inode mode)"} ,
+  { CMD_PREV_IND_BLOCK,"view previous block in directory (if called from inode mode)"} ,
   { 0, NULL }
 };
-#else
-static char *dp_help[] = {
-  "d      : expand directory under cursor",
-  "D      : expand directory under cursor and make it the current inode.",
-  "i      : make inode under cursor the current inode.",
-  "I      : make inode under cursor the current inode and view it.",
-  "n      : view next block in directory (if called from inode mode).",
-  NULL
-};
-#endif
 
 /* default keymap for directory mode */
 static lde_keymap dirmode_keymap[] = {
   { 'i', CMD_SET_CURRENT_INODE },
   { 'I', CMD_INODE_MODE_MC },
-  { 'N', CMD_NEXT_DIR_BLOCK },
-  { 'n', CMD_NEXT_DIR_BLOCK },
   { 'Q', CMD_EXIT },
-  { 'q', CMD_EXIT },
   { ESC, CMD_EXIT },
   { 'd', CMD_EXPAND_SUBDIR },
   { CTRL('J'), CMD_EXPAND_SUBDIR },
   { CTRL('M'), CMD_EXPAND_SUBDIR },
   { 'D', CMD_EXPAND_SUBDIR_MC },
-  { CTRL('L'), CMD_REFRESH },
-  { CTRL('N'), CMD_NEXT_LINE },
-  { KEY_DOWN, CMD_NEXT_LINE },
-  { 'J', CMD_NEXT_LINE },
-  { 'j', CMD_NEXT_LINE },
-  { CTRL('P'), CMD_PREV_LINE },
-  { KEY_UP, CMD_PREV_LINE },
-  { 'K', CMD_PREV_LINE },
-  { 'k', CMD_PREV_LINE },
-  { '?', CMD_HELP },
-  { KEY_F(1), CMD_HELP },
-  { CTRL('H'), CMD_HELP },
-  { META('H'), CMD_HELP },
-  { META('h'), CMD_HELP },
+  { CTRL('V'), CMD_NEXT_IND_BLOCK },
+  { CTRL('D'), CMD_NEXT_IND_BLOCK },
+  { KEY_NPAGE, CMD_NEXT_IND_BLOCK },
+  { CTRL('U'), CMD_PREV_IND_BLOCK },
+  { META('v'), CMD_PREV_IND_BLOCK },
+  { KEY_PPAGE, CMD_PREV_IND_BLOCK },
   { 0, 0 }
 };
 
@@ -174,10 +154,9 @@ static int reread_dir(void *block_buffer, unsigned long bnr)
 /* Display a scrollable directory window.  It only displays info on the current
  * block, if there are fs's which have directory entries which span more than one
  * block, they may run into trouble. */
-int directory_popup(unsigned long bnr)
+int directory_popup(unsigned long bnr, unsigned long inode_nr, unsigned long ipointer)
 {
   int c, max_entries, screen_off, current, last;
-  unsigned long inode_nr;
   char *block_buffer = NULL;
   struct Generic_Inode *GInode;
   WINDOW *win;
@@ -186,6 +165,12 @@ int directory_popup(unsigned long bnr)
   werase(win);
   scrollok(win, TRUE);
   screen_off = current = last = 0;
+
+  if (!bnr) {
+    GInode = FS_cmd.read_inode(inode_nr);
+    map_block(GInode->i_zone,ipointer,&bnr);
+  }
+
   max_entries = reread_dir(block_buffer, bnr);
   redraw_dir_window(win, max_entries, screen_off, bnr);
   highlight_dir_entry(win,current,&last,screen_off,bnr);
@@ -207,9 +192,19 @@ int directory_popup(unsigned long bnr)
 	break;
 
       case CMD_EXIT: /* Exit popup */
-      case CMD_NEXT_DIR_BLOCK:
         clobber_window(win);
-        return (c==CMD_NEXT_DIR_BLOCK?c:CMD_NO_ACTION);
+        return CMD_NO_ACTION;
+	break;
+
+      case CMD_NEXT_IND_BLOCK: /* Go to next block in this directory */
+      case CMD_PREV_IND_BLOCK: /* Go to next block in this directory */
+	if (!inode_nr)  /* see if we've changed the inode */
+	  inode_nr = current_inode;
+ 	GInode = FS_cmd.read_inode(inode_nr);
+	advance_zone_pointer(GInode->i_zone,&bnr,&ipointer,(c==CMD_NEXT_IND_BLOCK)?+1L:-1L);
+	current = screen_off = last = 0;
+	max_entries = reread_dir(block_buffer, bnr);
+	redraw_dir_window(win, max_entries, screen_off, bnr);
 	break;
 
       case CMD_EXPAND_SUBDIR: /* Expand this subdirectory - 'D' also sets current inode to be this subdir */
