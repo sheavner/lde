@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.26 1998/06/14 21:12:46 sdh Exp $
+ *  $Id: nc_block.c,v 1.27 1998/08/11 07:22:27 sdh Exp $
  */
 
 #include <stdio.h>
@@ -53,7 +53,7 @@ static inline int calc_offset(bm_cursor *curs)
  * hex mode with ASCII printables off to the right. */
 static void cdump_block(unsigned long nr, bm_cursor *curs)
 {
-  int i,j;
+  int i,j,offset;
   unsigned char c;
   const char *block_status;
   const char block_is_used[10]  = "::::::::::";
@@ -72,8 +72,14 @@ static void cdump_block(unsigned long nr, bm_cursor *curs)
 
     /* When rowsize is 16, display hex and ASCII */
     if (curs->rs==16) {
-      mvwprintw(workspace,j,0,"%08X ",j*16+curs->sow-curs->sob
-		+nr*sb->blocksize);
+      offset = j*16+curs->sow-curs->sob + nr*sb->blocksize;
+      if (offset%sb->blocksize < 16 ) {
+	wattron(workspace,WHITE_ON_BLUE);
+	mvwprintw(workspace,j,0,"%08X ",offset);
+	wattroff(workspace,WHITE_ON_BLUE);
+      } else {
+	mvwprintw(workspace,j,0,"%08X ",offset);
+      }
       for (i=0;((i<8)&&((j*16+i+curs->sow)<curs->eod));i++)
 	mvwprintw(workspace,j,10+i*3,"%2.2X",curs->data[j*16+i+curs->sow]);
       mvwprintw(workspace,j,35,"%c",block_status[j%10]);
