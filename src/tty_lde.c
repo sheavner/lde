@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.11 1994/09/06 01:29:36 sdh Exp $
+ *  $Id: tty_lde.c,v 1.12 1995/06/02 14:53:43 sdh Exp $
  */
 
 #include <stdio.h>
@@ -182,7 +182,7 @@ void dump_inode(unsigned long nr)
   GInode = FS_cmd.read_inode(nr);
 
   /* Print inode number and file type */
-  printf("\nINODE: %-6lu (0x%5.5lX) TYPE: ",nr,nr);
+  printf("\nINODE: %-6lu (0x%8.8lX) TYPE: ",nr,nr);
   printf("%14s",entry_type(GInode->i_mode));
 
   if (FS_cmd.inode_in_use(nr)) 
@@ -220,7 +220,7 @@ void dump_inode(unsigned long nr)
       } else if ((fsc->X3_INDIRECT)&&(j == fsc->X3_INDIRECT )) {
 	printf("\nTRIPLE INDIRECT BLOCK: ");
       }
-      printf("0x%7.7lX ",GInode->i_zone[j]);
+      printf("0x%8.8lX ",GInode->i_zone[j]);
     }
   }
   

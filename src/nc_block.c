@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.8 1995/06/02 14:22:08 sdh Exp $
+ *  $Id: nc_block.c,v 1.9 1995/06/02 14:54:02 sdh Exp $
  */
 
 #include <stdio.h>
@@ -454,7 +454,8 @@ int block_mode(void) {
 	  flags.edit_block = win_start = prev_col = prev_row =
 	    cur_col = cur_row = 0;
 	  flags.redraw = 1;
-	}
+	} else
+	  warn("Block (0x%lX) out of range in block_mode().",temp_ptr);
 	break;
 
       case CMD_FLAG_ADJUST: /* Popup menu of user adjustable flags */
@@ -470,7 +471,7 @@ int block_mode(void) {
 	  current_inode = temp_ptr;
 	  return CMD_INODE_MODE;
 	} else
-	  warn("Inode (%lu) out of range in block_mode().",temp_ptr);
+	  warn("Inode (%lX) out of range in block_mode().",temp_ptr);
 	break;
 
       case CMD_EXIT_PROG: /* Switch to another mode */

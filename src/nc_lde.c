@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.12 1995/06/02 14:22:37 sdh Exp $
+ *  $Id: nc_lde.c,v 1.13 1995/06/02 14:53:48 sdh Exp $
  */
 
 #include <stdio.h>
@@ -206,20 +206,20 @@ void update_header(void)
 #if HEADER_SIZE>0
   int i,j;
 
-  mvwprintw(header,HEADER_SIZE-1,HOFF,"Inode: %lu (0x%5.5lX)       ",current_inode,current_inode);
-  mvwprintw(header,HEADER_SIZE-1,HOFF+25,"Block: %lu (0x%5.5lX)          ",current_block,current_block);
+  mvwprintw(header,HEADER_SIZE-1,HOFF,"Inode: %10lu (0x%8.8lX) ",current_inode,current_inode);
+  mvwprintw(header,HEADER_SIZE-1,HOFF+32,"Block: %10lu (0x%8.8lX) ",current_block,current_block);
   for (j=0;j<fsc->N_BLOCKS;j++) {
     if (fake_inode_zones[j]) { 
-      mvwaddch(header,HEADER_SIZE-1,HOFF+60+j,'-');
+      mvwaddch(header,HEADER_SIZE-1,HOFF+64+j,'-');
     } else {
       for (i=0;recover_keymap[i].action_code;i++)
         if ((j+REC_FILE0)==recover_keymap[i].action_code) {
-          mvwaddch(header,HEADER_SIZE-1,HOFF+60+j,recover_keymap[i].key_code);
+          mvwaddch(header,HEADER_SIZE-1,HOFF+64+j,recover_keymap[i].key_code);
           break;
         }
       
       if (!recover_keymap[i].key_code) {
-        mvwaddch(header,HEADER_SIZE-1,HOFF+60+j,'?');
+        mvwaddch(header,HEADER_SIZE-1,HOFF+64+j,'?');
         continue;
       }
     }

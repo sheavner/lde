@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.7 1995/06/02 14:33:57 sdh Exp $
+ *  $Id: nc_inode.c,v 1.8 1995/06/02 14:53:55 sdh Exp $
  */
 
 #include <ctype.h>
@@ -356,7 +356,7 @@ static void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, i
 	park_x = 65;
       }
       if (GInode->i_zone[j]) {
-	mvwprintw(workspace,2+j,65,"0x%7.7lX",GInode->i_zone[j]);
+	mvwprintw(workspace,2+j,65,"0x%8.8lX",GInode->i_zone[j]);
       } else {
 	mvwprintw(workspace,2+j,65,"         ");
       }
