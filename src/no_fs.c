@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.11 1998/01/17 17:45:34 sdh Exp $
+ *  $Id: no_fs.c,v 1.12 1998/01/23 04:07:27 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -23,6 +23,11 @@
 static struct Generic_Inode *NOFS_read_inode(unsigned long nr);
 static char* NOFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
 static void NOFS_sb_init(char * sb_buffer);
+static int NOFS_write_inode_NOT(unsigned long ino,
+				struct Generic_Inode *GInode);
+static int NOFS_one_i__ul(unsigned long nr);
+static unsigned long NOFS_one_ul__ul(unsigned long nr);
+static int NOFS_zero_i__ul(unsigned long nr);
 
 static struct inode_fields NOFS_inode_fields = {
   0, /*   unsigned short i_mode; */
@@ -105,18 +110,34 @@ static struct Generic_Inode *NOFS_read_inode(unsigned long nr)
   return &NOFS_junk_inode;
 }
 
-int NOFS_null_call(void)
+/* Always returns 0 */
+static int NOFS_write_inode_NOT(unsigned long ino,
+				struct Generic_Inode *GInode)
 {
   return 0;
 }
 
 /* Returns 1 always */
-int NOFS_one(unsigned long nr)
+static int NOFS_one_i__ul(unsigned long nr)
 {
   return 1;
 }
 
-static char* NOFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr)
+/* Returns 1 always */
+static unsigned long NOFS_one_ul__ul(unsigned long nr)
+{
+  return 1;
+}
+
+/* Returns 0 always */
+static int NOFS_zero_i__ul(unsigned long nr)
+{
+  return 0;
+}
+
+/* Returns an empty string */
+static char* NOFS_dir_entry(int i, lde_buffer *block_buffer, 
+			    unsigned long *inode_nr)
 {
   *inode_nr = 1UL;
   return ( (char *) "" );
@@ -133,7 +154,8 @@ static void NOFS_sb_init(char * sb_buffer)
   sb->blocksize = 1024;
 
   /* Try to look up the size of the file/device */
-  sb->nzones = ((unsigned long)statbuf.st_size+(sb->blocksize-1UL))/sb->blocksize;
+  sb->nzones = ((unsigned long)statbuf.st_size+(sb->blocksize-1UL))/
+               sb->blocksize;
 
   /* If we are operating on a file, figure the size of the last block */
   sb->last_block_size = (unsigned long)statbuf.st_size % sb->blocksize;
@@ -179,13 +201,15 @@ void NOFS_init(char * sb_buffer)
   sb->namelen = 1;
   sb->dirsize = 1;
 
-  FS_cmd.inode_in_use = (int (*)(unsigned long n)) NOFS_one;
-  FS_cmd.zone_in_use = (int (*)(unsigned long n)) NOFS_one;
-  FS_cmd.zone_is_bad = (int (*)(unsigned long n)) NOFS_null_call;
+  FS_cmd.inode_in_use = NOFS_one_i__ul;
+  FS_cmd.zone_in_use = NOFS_one_i__ul;
+  FS_cmd.zone_is_bad = NOFS_zero_i__ul;
+  FS_cmd.is_system_block = NOFS_zero_i__ul;
+  
   FS_cmd.dir_entry = NOFS_dir_entry;
   FS_cmd.read_inode = NOFS_read_inode;
-  FS_cmd.write_inode = (int (*)(unsigned long inode_nr, struct Generic_Inode *GInode)) NOFS_null_call;
-  FS_cmd.map_inode = (unsigned long (*)(unsigned long n)) NOFS_one;
+  FS_cmd.write_inode = NOFS_write_inode_NOT;
+  FS_cmd.map_inode = NOFS_one_ul__ul;
 }
 
 static int valid_offset (int fd, unsigned long offset)
