@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.51 2003/12/03 18:33:10 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.52 2003/12/06 07:01:37 scottheavner Exp $
  */
 
 #include <signal.h>
@@ -249,12 +249,12 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       {"quiet", 0, 0, 'q'},
       {"offset",1,0,'O'},
       {"length",1,0,'L'},
-      {"indirects",0,0,'!'},
-      {"blanked-indirects", 0, 0, '0'},
-      {"ilookup",0,0,'@'},
-      {"recoverable",0,0,'#'},
-      {"append",0,0,'%'},
-      {"nosymbolic",0,0,'^'},
+      {"indirects",0,0,'j'},
+      {"blanked-indirects", 0, 0, 'J'},
+      {"ilookup",0,0,'k'},
+      {"recoverable",0,0,'R'},
+      {"append",0,0,'A'},
+      {"nosymbolic",0,0,'y'},
       {"file",1,0,'f'},
       {"logtofile",0,0,'F'},
       {"superscan",0,0,'P'},
@@ -270,11 +270,12 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
   while (1) {
     option_index = 0;
 
+#define ALLOPTS "AaB:b:D:d:Ff:gHhI:i:JjkL:l:N:n:O:PpqrRS:s:T:t:vwX:y?"
 #if HAVE_GETOPT_LONG
-    c = getopt_long (argc, argv, "avFf:I:i:n:N:B:b:D:d:gpPqs:S:t:T:X:whH?O:L:",
+    c = getopt_long (argc, argv, ALLOPTS,
 		     long_options, &option_index);
 #else
-    c = getopt (argc, argv, "avFf:I:i:n:N:B:b:D:d:gpPqs:S:t:T:X:whH?O:L:");
+    c = getopt (argc, argv, ALLOPTS);
 #endif
 
     if (c == -1)
@@ -300,7 +301,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       case 'a': /* Search disk space marked in use as well as unused */
 	lde_flags.search_all = 1;
 	break;
-      case '0': /* Linux 2.0 blanked indirect workaround */
+      case 'J': /* Linux 2.0 blanked indirect workaround */
 	lde_flags.blanked_indirects = 1;
 	break;
       case 'g': /* Search for an inode which contains the specified block */
@@ -410,21 +411,21 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       case 'w': /* Set FS writable */
 	lde_flags.write_ok = 1;
 	break;
-      case '!': /* Search for indirect blocks. */
+      case 'j': /* Search for indirect blocks. */
 	lde_flags.indirect_search = 1;
 	opts->search_string = "";
 	opts->search_len = 0;
 	break;
-      case '@': /* Lookup inodes on search matches. */
+      case 'k': /* Lookup inodes on search matches. */
 	lde_flags.inode_lookup = 1;
 	break;
-      case '#': /* Check for recoverablilty on search matches. */
+      case 'R': /* Check for recoverablilty on search matches. */
 	lde_flags.check_recover = 1;
 	break;
-      case '%': /* Always append data when recovery file exists */
+      case 'A': /* Always append data when recovery file exists */
 	lde_flags.always_append = 1;
 	break;
-      case '^': /* Don't do symbolic uid/gid lookups */
+      case 'y': /* Don't do symbolic uid/gid lookups */
         lde_flags.nosymbolic_guid = 1;
         break;
       case 'f': /* Specify name of recovery file */
