@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.35 2002/01/12 03:50:09 scottheavner Exp $
+ *  $Id: recover.c,v 1.36 2002/01/12 05:42:53 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -703,7 +703,7 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 	match_count[0] = match_count[1] = match_count[2] = match_count[3] =
 	  match_count[4] = largest_match = 0;
 	match[0] = dind[1];
-	for (i=3;i<sb->blocksize/4;i+=fsc->ZONE_ENTRY_SIZE) {
+	for (i=(fsc->ZONE_ENTRY_SIZE-1);i<sb->blocksize/4;i+=fsc->ZONE_ENTRY_SIZE) {
 	  no_match_flag = 1;
 	  for (j=-1;j++<largest_match;)
 	    if (dind[i]==match[j]) {
@@ -719,30 +719,30 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 	}
 	
 	i = 0;
-	for (j=0;j<largest_match;j++)
+	for (j=-1;j++<largest_match;)
 	  i+=match_count[j];
 	
-	/* A perfect match is 128, so maybe 100 is a little outrageous */
-	if (i>HB_COUNT) {
+	/* If we get a hit rate greater than 65%, lets run with it */
+	if (i>sb->blocksize/fsc->ZONE_ENTRY_SIZE/4*65/100) {
 	  /* The next block of code will search the low bytes for sequences.
 	   * Hopefully, a fair number of the low bytes will be in order.
 	   */ 
 	  match[0] = dind[0]; /* number in sequence 0,1,2,etc */
-	  match[1] = 0;       /* Length of current sequence */
-	  match[2] = 0;       /* Number of sequences longer than 3  */
-	  for (i=2;i<sb->blocksize/4;i+=fsc->ZONE_ENTRY_SIZE) {
+	  match_count[1] = 0; /* Length of current sequence */
+	  match_count[2] = 0; /* Number of sequences longer than 3  */
+	  for (i=0;i<sb->blocksize/4;i+=fsc->ZONE_ENTRY_SIZE) {
 	    if (dind[i]==(++match[0]))
-	      match[1]++;
+	      match_count[1]++;
 	    else {
-	      if (match[1]>3) match[2]+=match[1];
-	      match[1] = 0;
+	      if (match_count[1]>3) match_count[2]+=match_count[1];
+	      match_count[1] = 0;
 	      match[0] = dind[i];
 	    }
 	  }
 	  
-	  if (match[2]>SEQ_COUNT) {
+	  if (match_count[2]>SEQ_COUNT) {
 	    fprintf(stderr,"%d hits on possible indirect block at 0x%lX\n",
-		    match[2],nr);
+		    match_count[2],nr);
 	    match_total++;
 	  }
 	}      
