@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1995  Scott D. Heavner
  *
- *  $Id: keymap.h,v 1.5 1996/09/15 04:10:33 sdh Exp $
+ *  $Id: keymap.h,v 1.6 1996/10/13 00:57:06 sdh Exp $
  *
  */
 #ifndef KEYMAP_H
@@ -35,7 +35,8 @@ enum lde_actions {
   CMD_PREV_SCREEN,          /* Goto previous screen */
   CMD_EXPAND_SUBDIR,        /* Expand the current subdirectory */
   CMD_EXPAND_SUBDIR_MC,     /* Expand the current subdirectory, set inode to point to new directory */
-  CMD_NEXT_DIR_BLOCK,       /* Pop up a level and find the next block in the directory chain, then come back */
+  CMD_NEXT_IND_BLOCK,       /* Find the next block in the directory/file chain */
+  CMD_PREV_IND_BLOCK,       /* Find the next block in the directory/file chain */
   CMD_CALL_MENU,            /* Display popup menu with submenus of all 
 			     * avaliable commands */
   CMD_NUMERIC_REF,          /* Prompt user to enter a number, then display that block or inode */
