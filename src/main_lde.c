@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.39 2002/01/11 17:59:35 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.40 2002/01/12 01:51:57 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -137,7 +137,7 @@ int check_root(void)
   return 0;
 }
   
-void read_tables(int fs_type)
+void read_tables(int fs_type, unsigned long blocksize)
 {
   char super_block_buffer[17*2048];
   sb->blocksize = 17*2048; /* Want to read in two blocks */
@@ -151,7 +151,7 @@ void read_tables(int fs_type)
   lde_warn("User requested %s filesystem. Checking device . . .",lde_typedata[fs_type].name);
 
   if ( fs_type == AUTODETECT ) {
-    for ( fs_type = NONE+1 ; fs_type<LAST_FSTYPE; fs_type++) {
+    for ( ++fs_type ; fs_type<LAST_FSTYPE; fs_type++) {
       if (lde_typedata[fs_type].test(super_block_buffer,1)) {
 	break;
       }
@@ -162,7 +162,7 @@ void read_tables(int fs_type)
     lde_typedata[fs_type].init(super_block_buffer);
   } else {
     lde_warn("No file system found on device");
-    lde_typedata[NONE].init(super_block_buffer);
+    NOFS_init(super_block_buffer, blocksize);
   }
 }
 
@@ -494,11 +494,11 @@ int main(int argc, char ** argv)
 
   NOFS_init(NULL,0);
 
-  if (main_opts.skiptableread==0)
-    read_tables(main_opts.fs_type);
+  if (main_opts.skiptableread==0) {
+    read_tables(main_opts.fs_type, main_opts.blocksize);
 
   /* Override blocksize, if desired */
-  if (main_opts.blocksize) {
+  } else if (main_opts.blocksize) {
     sb->blocksize = main_opts.blocksize;
   }
 

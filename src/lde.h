@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.31 2002/01/10 19:39:03 scottheavner Exp $
+ *  $Id: lde.h,v 1.32 2002/01/12 01:51:57 scottheavner Exp $
  */
 
 #ifndef LDE_H
@@ -22,7 +22,7 @@ extern char *device_name;
 
 /* main_lde.c */
 extern void die(char *msg);
-extern void read_tables(int fs_type);
+extern void read_tables(int fs_type, unsigned long blocksize);
 extern int check_root(void);
 extern void (*lde_warn)(char *fmt, ...);
 extern int  (*mgetch)(void);

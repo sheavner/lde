@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.33 2002/01/11 18:30:41 scottheavner Exp $
+ *  $Id: recover.c,v 1.34 2002/01/12 01:51:57 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -835,12 +835,12 @@ int search_for_superblocks(int fs_type) {
   /* Want to do all searches on 512 byte boundries, in case something has gotten screwed up */
   NOFS_init(NULL,512);
 
-  if ( fs_type >= LAST_FSTYPE || fs_type == NONE || fs_type < AUTODETECT ) {
+  if ( fs_type >= LAST_FSTYPE || fs_type < AUTODETECT ) {
     lde_warn("Bad filetype specified (i.e. why would \"no\" have a superblock) . . . Aborting.");
     return -1;
   }
 
-  lde_warn("Searching disk for %s superblocks . . .",(fs_type==AUTODETECT)?"":lde_typedata[fs_type].name);
+  lde_warn("Searching disk for %s superblocks . . .",(fs_type==AUTODETECT)?"any":lde_typedata[fs_type].name);
 
   for ( ; sbnr<sb->nzones; ++sbnr) {
     bytesread = nocache_read_block(sbnr, buffer, 512);
@@ -848,14 +848,14 @@ int search_for_superblocks(int fs_type) {
       break;
 
     if ( fs_type == AUTODETECT ) {
-      for ( i = NONE+1 ; i<LAST_FSTYPE; i++) {
+      for ( i = AUTODETECT+1 ; i<LAST_FSTYPE; i++) {
 	if (lde_typedata[i].test(buffer,0)) {
-	  lde_warn("Found %s superblock at 0x%lx",lde_typedata[i],sbnr);
+	  lde_warn("Found %s superblock at 0x%lx",lde_typedata[i].name,sbnr);
 	}
       }
     } else {
       if (lde_typedata[fs_type].test(buffer,0)) {
-	lde_warn("Found %s superblock at 0x%lx",lde_typedata[fs_type],sbnr);
+	lde_warn("Found %s superblock at 0x%lx",lde_typedata[fs_type].name,sbnr);
       }
     }
     
