@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.2 1994/03/19 19:29:46 sdh Exp $
+ *  $Id: ext2fs.c,v 1.3 1994/03/19 20:46:02 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -130,15 +130,22 @@ unsigned long EXT2_zoneindex(unsigned long nr, unsigned long znr)
   return inode->i_block[znr];
 }
 
+#ifndef READ_FULL_TABLES
 static int inode_cache = -1;
+static int block_cache = -1;
+#endif
+
 static void EXT2_read_inode_bitmap (unsigned long nr)
 {
   int i;
   
+#ifdef READ_FULL_TABLES
+  for (i = 0; i < group_desc_count; i++) {
+#else  
   i = nr / sb->s_inodes_per_group;
-
   if ( i != inode_cache ) {
     inode_cache = i;
+#endif
     if (lseek (CURR_DEVICE, group_desc[i].bg_inode_bitmap * sb->blocksize,
 	       SEEK_SET) !=
 	group_desc[i].bg_inode_bitmap * sb->blocksize)
@@ -152,7 +159,9 @@ static void EXT2_read_inode_bitmap (unsigned long nr)
 int EXT2_inode_in_use(unsigned long nr)
 {
   nr--;
+#ifndef READ_FULL_TABLES
   EXT2_read_inode_bitmap(nr);
+#endif
   return bit(inode_map,nr%sb->s_inodes_per_group);
 }
 
@@ -160,11 +169,14 @@ static int block_cache = -1;
 static void EXT2_read_block_bitmap(unsigned long nr)
 {
   int i;
-  
-  i = nr / sb->s_blocks_per_group;
 
+#ifdef READ_FULL_TABLES
+  for (i = 0; i < group_desc_count; i++) {
+#else  
+  i = nr / sb->s_blocks_per_group;
   if ( i != block_cache ) {
     block_cache = i;
+#endif
     if (lseek (CURR_DEVICE, group_desc[i].bg_block_bitmap * sb->blocksize,
 	       SEEK_SET) !=
 	group_desc[i].bg_block_bitmap * sb->blocksize)
@@ -179,13 +191,15 @@ int EXT2_zone_in_use(unsigned long nr)
 {
   if (nr < sb->first_data_zone) return 1;
   nr -= sb->first_data_zone;
+#ifndef READ_FULL_TABLES
   EXT2_read_block_bitmap(nr);
+#endif
   return bit(zone_map,nr%sb->s_blocks_per_group);
 }
                                                                                                                                 
 void EXT2_read_tables()
 {
-  int i, addr_per_block, inode_blocks_per_group;
+  int isize, addr_per_block, inode_blocks_per_group;
   unsigned long group_desc_size;
   unsigned long desc_blocks;
   char notify[100];
@@ -215,19 +229,28 @@ void EXT2_read_tables()
   if (read (CURR_DEVICE, group_desc, group_desc_size) != group_desc_size)
     die ("Unable to read group descriptors");
 
-  inode_map = malloc ((sb->s_blocks_per_group / 8) + 1);
-  sb->imap_blocks = sb->ninodes / 8 / sb->blocksize + 1;
+#ifdef READ_FULL_TABLES
+  isize = (sb->ninodes / 8) + 1;
+#else
+  isize = (sb->s_inodes_per_group / 8) + 1;
+#endif
+  sb->imap_blocks = (sb->ninodes / 8 / sb->blocksize) + 1;
+  inode_map = malloc (isize);
   if (!inode_map)
     die ("Unable to allocate inodes bitmap");
-  memset (inode_map, 0, (sb->s_blocks_per_group / 8) + 1);
+  memset (inode_map, 0, isize);
   EXT2_read_inode_bitmap((unsigned long) 1);
 
-  i = sb->nzones * group_desc_count;
-  sb->zmap_blocks = i/sb->blocksize;
-  zone_map = malloc((sb->s_blocks_per_group/8) +1 );
+#ifdef READ_FULL_TABLES
+  isize = (sb->nzones / 8) + 1;
+#else
+  isize = (sb->s_blocks_per_group / 8) + 1;
+#endif
+  sb->zmap_blocks = sb->nzones / 8 / sb->blocksize + 1;
+  zone_map = malloc(isize);
   if (!zone_map)
     die ("Unable to allocate blocks bitmap");
-  memset (zone_map, 0,(sb->s_blocks_per_group/8) +1 );
+  memset (zone_map, 0, isize);
   EXT2_read_block_bitmap((unsigned long) 1);
 
 /*
