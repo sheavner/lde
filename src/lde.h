@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.24 1998/01/23 04:09:31 sdh Exp $
+ *  $Id: lde.h,v 1.25 1998/06/15 00:48:15 sdh Exp $
  */
 
 #ifndef LDE_H
@@ -112,7 +112,8 @@ struct Generic_Inode {
 
 /* These are the fields which might someday be recognized by inode
  * mode, if both the file system and inode mode support the field you
- * may define the field to be one, otherwise it should be zero. */
+ * may define the field to be one, otherwise it should be zero. 
+ * (Can't use bitfields here because of i_zone[], so use chars) */
 struct inode_fields {
   char i_mode;
   char i_uid;
