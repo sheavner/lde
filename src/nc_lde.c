@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.20 1996/09/15 04:57:49 sdh Exp $
+ *  $Id: nc_lde.c,v 1.21 1996/09/15 05:11:52 sdh Exp $
  */
 
 #include <stdio.h>
@@ -929,10 +929,10 @@ void interactive_main(void)
   }
 
   /* First check to see that our screen is big enough */
-  if ((LINES<(HEADER_SIZE+TRAILER_SIZE))||(COLS<WIN_COL)) {
+  if ((LINES<(4+HEADER_SIZE+TRAILER_SIZE))||(COLS<WIN_COL)) {
     endwin();
     printf("Screen is too small: need %d x %d, have %d x %d\n",
-	   WIN_COL,(HEADER_SIZE+TRAILER_SIZE),
+	   WIN_COL,(4+HEADER_SIZE+TRAILER_SIZE),
 	   COLS,LINES);
     return;
   }
