@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: bitops.h,v 1.8 2002/01/10 20:59:15 scottheavner Exp $
+ *  $Id: bitops.h,v 1.9 2002/01/14 20:58:20 scottheavner Exp $
  *
  */
 
@@ -17,4 +17,14 @@ extern int test_bit(int nr,void * addr);
 
 #include <asm/bitops.h>
 
+#endif
+
+#if HAVE_EXT2_TEST_BIT
+#defibe lde_test_bit ext2_test_bit
+#else
+#if HAVE_TEST_LE_BIT
+#define lde_test_bit test_le_bit
+#else
+#define lde_test_bit test_bit
+#endif
 #endif

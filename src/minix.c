@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.21 2001/11/26 03:10:41 scottheavner Exp $
+ *  $Id: minix.c,v 1.22 2002/01/14 20:58:20 scottheavner Exp $
  */
 
 /* 
@@ -104,18 +104,18 @@ static struct Generic_Inode* MINIX_read_inode(unsigned long inode_nr)
 
   Inode = ((struct minix_inode *) inode_buffer)-1+inode_nr;
 
-  GInode.i_mode        = (unsigned short) Inode->i_mode;
-  GInode.i_uid         = (unsigned short) Inode->i_uid;
-  GInode.i_size        = (unsigned long)  Inode->i_size;
-  GInode.i_atime       = (unsigned long)  Inode->i_time;
-  GInode.i_ctime       = (unsigned long)  Inode->i_time;
-  GInode.i_dtime       = (unsigned long)  Inode->i_time;
-  GInode.i_mtime       = (unsigned long)  Inode->i_time;
+  GInode.i_mode        = (unsigned short) ldeswab16(Inode->i_mode);
+  GInode.i_uid         = (unsigned short) ldeswab16(Inode->i_uid);
+  GInode.i_size        = (unsigned long)  ldeswab32(Inode->i_size);
+  GInode.i_atime       = (unsigned long)  ldeswab32(Inode->i_time);
+  GInode.i_ctime       = GInode.i_atime;
+  GInode.i_dtime       = GInode.i_atime;
+  GInode.i_mtime       = GInode.i_atime;
   GInode.i_gid         = (unsigned short) Inode->i_gid;
   GInode.i_links_count = (unsigned short) Inode->i_nlinks;
   
   for (i=0; i<MINIX_constants.N_BLOCKS; i++)
-    GInode.i_zone[i] = (unsigned short) Inode->i_zone[i];
+    GInode.i_zone[i] = (unsigned short) ldeswab16(Inode->i_zone[i]);
   for (i=MINIX_constants.N_BLOCKS; i<INODE_BLKS; i++)
     GInode.i_zone[i] = 0UL;
 
@@ -127,6 +127,11 @@ static int MINIX_write_inode(unsigned long inode_nr, struct Generic_Inode *GInod
   unsigned long bnr;
   int i;
   struct minix_inode *Inode;
+
+  if (lde_flags.byteswap) {
+        lde_warn("INODE WRITES NOT WORKING ON BIG_ENDIAN SYSTEMS!");
+        return -1;
+  }
 
   Inode = ((struct minix_inode *) inode_buffer)-1+inode_nr;
 
@@ -148,7 +153,7 @@ static int MINIX_write_inode(unsigned long inode_nr, struct Generic_Inode *GInod
 int MINIX_inode_in_use(unsigned long inode_nr)
 {
   if ((!inode_nr)||(inode_nr>sb->ninodes)) inode_nr = 1;
-  return test_bit(inode_nr,inode_map);
+  return lde_test_bit(inode_nr,inode_map);
 }
 
 int MINIX_zone_in_use(unsigned long inode_nr)
@@ -157,7 +162,7 @@ int MINIX_zone_in_use(unsigned long inode_nr)
     return 1;
   else if ( inode_nr > sb->nzones )
     return 0;
-  return test_bit((inode_nr-sb->first_data_zone+1),zone_map);
+  return lde_test_bit((inode_nr-sb->first_data_zone+1),zone_map);
 }
 
 /* Checks if a data block is part of the ext2 system (i.e. not a data block) */
@@ -196,16 +201,16 @@ static void MINIX_sb_init(void *sb_buffer)
   struct minix_super_block *Super;
   Super =(void *)(sb_buffer + 1024);
 
-  sb->ninodes         = Super->s_ninodes;
-  sb->nzones          = Super->s_nzones;
-  sb->imap_blocks     = Super->s_imap_blocks;
-  sb->zmap_blocks     = Super->s_zmap_blocks;
-  sb->first_data_zone = Super->s_firstdatazone;
-  sb->max_size        = Super->s_max_size;
-  sb->zonesize        = Super->s_log_zone_size;
+  sb->ninodes         = ldeswab16(Super->s_ninodes);
+  sb->nzones          = ldeswab16(Super->s_nzones);
+  sb->imap_blocks     = ldeswab16(Super->s_imap_blocks);
+  sb->zmap_blocks     = ldeswab16(Super->s_zmap_blocks);
+  sb->first_data_zone = ldeswab16(Super->s_firstdatazone);
+  sb->max_size        = ldeswab32(Super->s_max_size);
+  sb->zonesize        = ldeswab16(Super->s_log_zone_size);
   sb->blocksize       = 1024;
   sb->last_block_size = sb->blocksize;
-  sb->magic           = Super->s_magic;
+  sb->magic           = ldeswab16(Super->s_magic);
 
   sb->I_MAP_SLOTS = MINIX_I_MAP_SLOTS;
   sb->Z_MAP_SLOTS = MINIX_Z_MAP_SLOTS;
@@ -299,7 +304,8 @@ int MINIX_test(void *buffer, int use_offset)
   else
 	Super = (void *) (buffer);
 
-  if ( (Super->s_magic == MINIX_SUPER_MAGIC) || (Super->s_magic == MINIX_SUPER_MAGIC2) ) {
+  if ( (Super->s_magic == ldeswab16(MINIX_SUPER_MAGIC)) || 
+       (Super->s_magic == ldeswab16(MINIX_SUPER_MAGIC2)) ) {
     if (use_offset) lde_warn("Found a minixfs on device.");
     return 1;
   }
