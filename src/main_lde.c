@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.43 2002/01/13 04:17:13 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.44 2002/01/13 04:32:22 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -332,7 +332,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	opts->superscan = 1;
 	opts->skiptableread = 1;
 	break;
-      case 'q': /* no audio -- well nop beeps */
+      case 'q': /* no audio -- well no beeps */
 	lde_flags.quiet = 1;
 	break;
       case 's': /* Override blocksize */
@@ -393,7 +393,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       case 'O': /* Set offset for search string */
 	opts->search_off = read_num(optarg);
 	break;
-	  case 'F': /* Log all errors/messages to /tmp/ldeerrors */
+      case 'F': /* Log all errors/messages to /tmp/ldeerrors */
 	lde_flags.logtofile = 1;
 	break;
       case 'L': /* Set length for search string */
