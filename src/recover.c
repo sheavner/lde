@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.15 1996/10/13 02:05:16 sdh Exp $
+ *  $Id: recover.c,v 1.16 1996/10/13 17:00:20 sdh Exp $
  */
 
 #include <stdio.h>
@@ -41,7 +41,6 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
 {
   unsigned char *ind = NULL;
   unsigned long block;
-  static char warn_once=0;     /* Only warn once about not using 3x indirects */
 
   /* Direct blocks */
   if (fsc->N_DIRECT) {
@@ -58,14 +57,17 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
     blknr -= fsc->N_DIRECT;
   }
 
+
   /* Ok, it wasn't a direct block.  Move on to indirect block(s) */
   if (fsc->INDIRECT) {
     if (blknr<ZONES_PER_BLOCK) {
+      /* Check value for indirect block */
       block = zone_index[fsc->INDIRECT];
       if (block==0UL) {
 	*mapped_block = ZONES_PER_BLOCK + fsc->N_DIRECT;
 	return (EMB_IND_ZERO);
       } else if (block<sb->nzones) {
+	/* Indirect block is in fs range, now read it in */
 	ind = cache_read_block(block,CACHEABLE);
 	*mapped_block = block_pointer(ind,blknr,fsc->ZONE_ENTRY_SIZE);
 	if (*mapped_block >= sb->nzones) {
@@ -93,7 +95,8 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
 	block = block_pointer(ind,(unsigned long)(blknr/ZONES_PER_BLOCK),fsc->ZONE_ENTRY_SIZE);
 	if (block==0UL) {
                                                          /* 2 here, 1 for indirect block, 1 for current 2xindirect */
-	  *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(2+blknr/ZONES_PER_BLOCK);
+	  *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(2+blknr/ZONES_PER_BLOCK); 
+	  /* *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*2 + blknr; */
 	  return (EMB_2IND_L1_ZERO);
 	} else if (block<sb->nzones) {
 	  ind = cache_read_block(block,CACHEABLE);
@@ -106,6 +109,7 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
 	  }
 	} else {
 	  *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(2+blknr/ZONES_PER_BLOCK);
+	  /* *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*2 + blknr; */
 	  return (EMB_2IND_L1_RANGE);
 	}
       } else {
@@ -123,21 +127,68 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
     if (blknr<(ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK)) {
       block = zone_index[fsc->X3_INDIRECT];
       if (block==0UL) {
-	*mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(ZONES_PER_BLOCK+1) + ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK;
+	*mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(ZONES_PER_BLOCK+1) +
+	  ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK;
 	return (EMB_3IND_ZERO);
-      } else {
-	*mapped_block = 0UL;
-	if (!warn_once) {
-	  lde_warn("Teach me how to handle triple indirect blocks :)");
-	  warn_once = 1;
+      } else if (block<sb->nzones) {
+	/* Read in the triple indirect block */
+	ind = cache_read_block(block,CACHEABLE);
+	block = block_pointer(ind,(unsigned long)(blknr/(ZONES_PER_BLOCK*ZONES_PER_BLOCK)),
+			      fsc->ZONE_ENTRY_SIZE);
+	/* Block is now a pointer to a 2x indirect */
+	if (block==0UL) {
+	  /* Add extra 2x indirect block to *mapped block */
+	  *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK +  
+	    ZONES_PER_BLOCK*ZONES_PER_BLOCK*(2 + blknr/(ZONES_PER_BLOCK*ZONES_PER_BLOCK));
+	  return (EMB_3IND_L1_ZERO);
+	} else if (block<sb->nzones) {
+	  /* Read in a 2x indirect */
+	  ind = cache_read_block(block,CACHEABLE);
+	  block = block_pointer(ind,  (unsigned long)
+				((blknr%(ZONES_PER_BLOCK*ZONES_PER_BLOCK))/ZONES_PER_BLOCK),
+				fsc->ZONE_ENTRY_SIZE);
+	  /* block now points to a 1x indirect */
+	  if (block==0UL) {
+	    /* Add extra indirect block to *mapped block */
+	    *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(2 + blknr/ZONES_PER_BLOCK) +  
+	      ZONES_PER_BLOCK*ZONES_PER_BLOCK;
+	    return (EMB_3IND_L2_ZERO);
+	  } else if (block<sb->nzones) {
+	    /* Read in 1x indirect */
+	    ind = cache_read_block(block,CACHEABLE);
+	    *mapped_block = block_pointer(ind,(unsigned long)
+					  ((blknr%(ZONES_PER_BLOCK*ZONES_PER_BLOCK))%ZONES_PER_BLOCK),
+					  fsc->ZONE_ENTRY_SIZE);
+	    /* *mapped block now points to the block we want */
+	    if (*mapped_block >= sb->nzones) {
+	      *mapped_block = 0UL;
+	      return (EMB_3IND_LOOKED_RANGE);
+	    } else {
+	      return (EMB_NO_ERROR);
+	    }
+	  } else {
+	    *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(2 + blknr/ZONES_PER_BLOCK) +  
+	      ZONES_PER_BLOCK*ZONES_PER_BLOCK;
+	    return (EMB_3IND_L2_RANGE);
+	  }
+	  
+	} else {
+	  *mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK +  
+	    ZONES_PER_BLOCK*ZONES_PER_BLOCK*(2 + blknr/(ZONES_PER_BLOCK*ZONES_PER_BLOCK));
+	  return (EMB_3IND_L1_RANGE);
 	}
-	return (EMB_3IND_NOT_YET);
+	
+      } else {
+	*mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(ZONES_PER_BLOCK+1) +
+	  ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK;
+	return (EMB_3IND_RANGE);
       }
     }
     blknr -= (ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK);
   }
 
   return (EMB_WAY_OUT_OF_RANGE);
+
 }
 
 int advance_zone_pointer(unsigned long zone_index[], unsigned long *currblk, 
