@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.6 1995/06/02 14:24:03 sdh Exp $
+ *  $Id: nc_inode.c,v 1.7 1995/06/02 14:33:57 sdh Exp $
  */
 
 #include <ctype.h>
@@ -637,6 +637,7 @@ int inode_mode() {
 	if (cread_num("Enter inode number (leading 0x or $ indicates hex):",&a)) {
 	  current_inode = a;
 	  limit_inode(&current_inode, sb);
+	  GInode = FS_cmd.read_inode(current_inode);
 	  cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
 	}
 	break;
