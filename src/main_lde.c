@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.45 2002/01/14 18:14:11 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.46 2002/01/14 18:53:35 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -80,7 +80,7 @@ char *badblocks_directory = NULL;
 
 int CURR_DEVICE = 0;
 volatile struct _lde_flags lde_flags = 
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 } ;
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } ;
 
 void (*lde_warn)(char *fmt, ...) = tty_warn;
 int  (*mgetch)(void) = tty_mgetch;
@@ -454,6 +454,7 @@ int main(int argc, char ** argv)
   int i, hasdata, fp;
   unsigned long nr, inode_nr;
   char *thispointer;
+  volatile long endian = 0L;
 
   struct Generic_Inode *GInode = NULL;
 
@@ -468,6 +469,13 @@ int main(int argc, char ** argv)
   intaction.sa_mask = sa_mask;
   intaction.sa_flags = SA_RESTART;
   sigaction(SIGINT,&intaction,NULL);
+
+  /* quick test for endianness, blindly assuming sizeof(char) != sizeof(long) */
+  *(char *)&endian = 1;
+  if ( endian != 1L ) {
+    /* lde_warn("Detected big endian system, assuming fs is little endian"); */
+    lde_flags.byteswap = 1;
+  }
 
   parse_cmdline(argc, argv, &main_opts);
 

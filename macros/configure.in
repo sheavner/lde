@@ -34,8 +34,7 @@ AC_CHECK_PROG(system,uname,`uname`,unknown)
 
 dnl Checks for header files.
 AC_HEADER_STDC
-dnl errno.h stdlib.h string.h sys/timeb.h
-AC_CHECK_HEADERS(fcntl.h unistd.h getopt.h pwd.h grp.h sys/timeb.h)
+AC_CHECK_HEADERS(fcntl.h unistd.h getopt.h pwd.h grp.h sys/timeb.h errno.h)
 
 dnl Determine variable sizes
 ACLDE_SETVARSIZES
@@ -246,12 +245,12 @@ AC_STRUCT_TM
 
 
 dnl Checks for library functions.
-dnl AC_CHECK_FUNCS(bzero memset strchr strstr strtol uname)
+dnl AC_CHECK_FUNCS(memset strchr strstr strtol)
 
 dnl ************************************************************************
 
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS(uname memmem)
+AC_CHECK_FUNCS(uname memmem bzero)
 
 
 AC_OUTPUT(../Makefile:./Makefile.in)

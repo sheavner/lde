@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.35 2002/01/14 18:14:11 scottheavner Exp $
+ *  $Id: lde.h,v 1.36 2002/01/14 18:53:35 scottheavner Exp $
  */
 
 #ifndef LDE_H
@@ -15,6 +15,11 @@
 
 #ifndef O_BINARY
 #define O_BINARY 0
+#endif
+
+#if HAVE_BZERO
+#else
+#define bzero(a,b) memset((a),0,(b))
 #endif
 
 extern char *program_name;

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.20 2001/11/26 03:10:41 scottheavner Exp $
+ *  $Id: msdos_fs.c,v 1.21 2002/01/14 18:53:35 scottheavner Exp $
  */
 
 /* 
@@ -253,7 +253,7 @@ static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode
       cname[12] = slot->name11_12[2];
       cname[13] = 0;
     } else {
-      memset(cname,MSDOS_NAME+2,' ');
+      memset(cname,' ',MSDOS_NAME+2);
       strncpy(cname, dir->name, 8); /* File name */
       cname[8] = '.';
       strncpy(&cname[9], dir->ext, 3);  /* File extension */

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.30 2002/01/13 04:17:13 scottheavner Exp $
+ *  $Id: tty_lde.c,v 1.31 2002/01/14 18:53:35 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -23,7 +23,9 @@
 #if HAVE_GRP_H
 #include <grp.h>
 #endif
+#if HAVE_ERRNO_H
 #include <errno.h>
+#endif
 #include <sys/stat.h>
 #include <time.h>
 
@@ -255,7 +257,7 @@ void * cache_read_block (unsigned long block_nr, void *dest, int force)
     int read_size;
 
     cache_block_nr = block_nr;
-    memset(bp->data,0,sb->blocksize);
+    bzero(bp->data,sb->blocksize);
 
     /* Lookup size of block (if it's the last block in a file,
      * it may be less than the blocksize of the device */

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.40 2002/01/11 18:30:41 scottheavner Exp $
+ *  $Id: nc_lde.c,v 1.41 2002/01/14 18:53:35 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -981,7 +981,7 @@ char *text_key(int c, lde_keymap *kmap, int skip)
 	return return_string;
       
       return_string = stat_return_string;
-      memset(return_string,0,5);
+      bzero(return_string,5);
 
       /* Look for meta and ctrl keys */
       if (IS_LDE_META(c)) {
