@@ -3,7 +3,12 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.9 1996/10/11 02:40:04 sdh Exp $
+ *  $Id: no_fs.c,v 1.10 1996/10/12 21:08:20 sdh Exp $
+ *
+ *  The following routines were taken almost verbatim from
+ *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
+ *       NOFS_get_device_size()
+ *       valid_offset()
  */
 
 /* 
@@ -117,8 +122,10 @@ static char* NOFS_dir_entry(int i, void *block_buffer, unsigned long *inode_nr)
   return ( (char *) "" );
 }
 
+
 static void NOFS_sb_init(char * sb_buffer)
 {
+  static int firsttime=0;
   struct stat statbuf;
 
   fstat(CURR_DEVICE, &statbuf);
@@ -127,10 +134,19 @@ static void NOFS_sb_init(char * sb_buffer)
 
   /* Try to look up the size of the file/device */
   sb->nzones = ((unsigned long)statbuf.st_size+(sb->blocksize-1UL))/sb->blocksize;
+
+  /* If we are operating on a file, figure the size of the last block */
+  sb->last_block_size = (unsigned long)statbuf.st_size % sb->blocksize;
+
+  /* If it is a partition, look it up with the slow NOFS_get_device_size().  Don't want
+   * to do this the first time through because the partition will most likely have a
+   * file system on it and we won't have to resort to this */
+  if ((!sb->nzones)||(firsttime))
+    sb->nzones = NOFS_get_device_size(CURR_DEVICE, sb->blocksize);
+
+  /* Both methods of size detection failed, just set it big */
   if (!sb->nzones)
     sb->nzones = -1UL;
-
-  sb->last_block_size = (unsigned long)statbuf.st_size % sb->blocksize;
 
   /* In order to prevent division by zeroes, set junk entries to 1 */
   sb->ninodes = 1UL;
@@ -145,6 +161,8 @@ static void NOFS_sb_init(char * sb_buffer)
   sb->Z_MAP_SLOTS = 1;
   sb->INODES_PER_BLOCK = 1;
   sb->norm_first_data_zone = 0UL;
+
+  firsttime = 1;
 }
 
 void NOFS_init(char * sb_buffer)
@@ -167,3 +185,35 @@ void NOFS_init(char * sb_buffer)
   FS_cmd.map_inode = (unsigned long (*)(unsigned long n)) NOFS_one;
 }
 
+static int valid_offset (int fd, unsigned long offset)
+{
+  char ch;
+  
+  if (lseek (fd, offset, SEEK_SET) < 0)
+    return 0;
+  if (read (fd, &ch, 1) < 1)
+    return 0;
+  return 1;
+}
+
+/* Returns the number of blocks in a partition */
+unsigned long NOFS_get_device_size(int fd, unsigned long blocksize)
+{
+  unsigned long high, low;
+
+  /* Do binary search to find the size of the partition.  */
+  low = 0;
+  for (high = 1024; valid_offset (fd, high); high *= 2)
+    low = high;
+  while (low < high - 1)
+    {
+      const unsigned long mid = (low + high) / 2;
+      
+      if (valid_offset (fd, mid))
+	low = mid;
+      else
+	high = mid;
+    }
+  valid_offset (fd, 0);
+  return ((low + 1) / blocksize);
+}
