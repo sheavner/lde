@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.14 1996/10/11 02:29:04 sdh Exp $
+ *  $Id: ext2fs.c,v 1.15 1998/01/12 01:32:04 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -45,7 +45,7 @@ static struct Generic_Inode *EXT2_read_inode (unsigned long ino);
 static int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode);
 static int EXT2_inode_in_use(unsigned long nr);
 static int EXT2_zone_in_use(unsigned long nr);
-static char* EXT2_dir_entry(int i, void *block_buffer, unsigned long *inode_nr);
+static char* EXT2_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
 static void EXT2_read_tables(void);
 static void EXT2_sb_init(void * sb_buffer);
 
@@ -236,19 +236,19 @@ static int EXT2_zone_in_use(unsigned long nr)
 }
 
 /* Could use some optimization maybe?? */
-static char* EXT2_dir_entry(int i, void *block_buffer, unsigned long *inode_nr)
+static char* EXT2_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr)
 {
   char *bp;
   int j;
   static char EXT2_cname[EXT2_NAME_LEN+1];
 
-  bp = block_buffer;
+  bp = block_buffer->start;
 
   if (i)
     for (j = 0; j < i ; j++) {
       bp += block_pointer(bp,(unsigned long)(fsc->INODE_ENTRY_SIZE/2),2);
     }
-  if ( (void *)bp >= (block_buffer + sb->blocksize) ) {
+  if ( (void *)bp >= (block_buffer->start + block_buffer->size) ) {
     EXT2_cname[0] = 0;
   } else {
     bzero(EXT2_cname,EXT2_NAME_LEN+1);
