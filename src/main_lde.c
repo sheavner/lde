@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.23 1998/05/30 17:24:49 sdh Exp $
+ *  $Id: main_lde.c,v 1.24 1998/06/15 01:00:02 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -63,9 +63,10 @@ char *program_name = "lde";
 char *device_name = NULL;
 char *text_names[] = { "autodetect", "no file system" , "minix", "xiafs", "ext2fs", "msdos" };
 
-char *inode_map;
-char *zone_map;
-char *inode_buffer;
+char *inode_map=NULL;
+char *zone_map=NULL;
+char *bad_map=NULL;
+char *inode_buffer=NULL;
 unsigned char *inode_count = NULL;
 unsigned char *zone_count = NULL;
 
@@ -76,8 +77,8 @@ int CURR_DEVICE = 0;
 volatile struct _lde_flags lde_flags = 
   { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } ;
 
-void (*lde_warn)(char *fmt, ...);
-int  (*mgetch)(void);
+void (*lde_warn)(char *fmt, ...) = tty_warn;
+int  (*mgetch)(void) = tty_mgetch;
 
 
 /* Check if device is mounted, return 1 if is mounted else 0 */
@@ -426,9 +427,6 @@ int main(int argc, char ** argv)
   sigemptyset(&sa_mask);
   sigaction(SIGINT,&intaction,NULL);
 
-  lde_warn = tty_warn;
-  mgetch = tty_mgetch;
-
   parse_cmdline(argc, argv, &main_opts);
 
   if (check_mount(device_name)&&!lde_flags.paranoid)
@@ -438,7 +436,8 @@ int main(int argc, char ** argv)
   if (!lde_flags.paranoid) {
     CURR_DEVICE = open(device_name,O_RDWR);
     if (CURR_DEVICE < 0) {
-      lde_warn("No write access to \"%s\",  attempting to open read-only.",device_name);
+      lde_warn("No write access to \"%s\",  attempting to open read-only.",
+	       device_name);
       CURR_DEVICE = open(device_name,O_RDONLY);
       lde_flags.write_ok = 0;
     }

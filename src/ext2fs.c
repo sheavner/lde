@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.20 1998/05/30 17:43:24 sdh Exp $
+ *  $Id: ext2fs.c,v 1.21 1998/06/15 01:00:49 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -165,25 +165,21 @@ static int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode)
   return write_block( blknr, inode_buffer);
 }
 
-#ifdef READ_PART_TABLES
-static int inode_map_cache = -1;
-static int block_map_cache = -1;
-#endif
 
 /* Reads the table indicating used/unused inodes from disk */
 static void EXT2_read_inode_bitmap (unsigned long nr)
 {
   int i;
-  char *local_map;
+  char *local_map = inode_map;
 
-  local_map = inode_map;
+#ifdef READ_PART_TABLES
+  static int inode_map_cache = -1;
 
-#ifndef READ_PART_TABLES
-  for (i = 0; i < group_desc_count; i++) {
-#else  
   i = nr / sb->s_inodes_per_group;
   if ( i != inode_map_cache ) {
     inode_map_cache = i;
+#else  
+  for (i = 0; i < group_desc_count; i++) {
 #endif
     if (lseek (CURR_DEVICE, group_desc[i].bg_inode_bitmap * sb->blocksize,
 	       SEEK_SET) != group_desc[i].bg_inode_bitmap * sb->blocksize)
@@ -201,7 +197,7 @@ static int EXT2_inode_in_use(unsigned long nr)
   nr--;
 #ifdef READ_PART_TABLES
   EXT2_read_inode_bitmap(nr);
-  return test_bit(nr%sb->s_inodes_per_group,inode_map);
+  nr %= sb->s_inodes_per_group;
 #endif
   return test_bit(nr,inode_map);
 }
@@ -210,16 +206,16 @@ static int EXT2_inode_in_use(unsigned long nr)
 static void EXT2_read_block_bitmap(unsigned long nr)
 {
   int i;
-  char *local_map;
+  char *local_map = zone_map;
 
-  local_map = zone_map;
+#ifdef READ_PART_TABLES
+  static int block_map_cache = -1;
 
-#ifndef READ_PART_TABLES
-  for (i = 0; i < group_desc_count; i++) {
-#else  
   i = nr / sb->s_blocks_per_group;
   if ( i != block_map_cache ) {
     block_map_cache = i;
+#else  
+  for (i = 0; i < group_desc_count; i++) {
 #endif
     if (lseek (CURR_DEVICE, group_desc[i].bg_block_bitmap * sb->blocksize,
 	       SEEK_SET) != group_desc[i].bg_block_bitmap * sb->blocksize)
@@ -273,7 +269,7 @@ static int EXT2_zone_in_use(unsigned long nr)
   nr -= sb->first_data_zone;
 #ifdef READ_PART_TABLES
   EXT2_read_block_bitmap(nr);
-  return test_bit(nr%sb->s_blocks_per_group,zone_map);
+  nr %= sb->s_blocks_per_group;
 #endif
   return test_bit(nr,zone_map);
 }
@@ -310,9 +306,9 @@ static char* EXT2_dir_entry(int i, lde_buffer *block_buffer,
 /* Reads the inode/block in use tables from disk */
 static void EXT2_read_tables()
 {
-  int isize, addr_per_block, inode_blocks_per_group;
+  size_t        isize, addr_per_block, inode_blocks_per_group;
+  off_t         desc_loc;
   unsigned long desc_blocks;
-  long desc_loc;
 
   /* Free up any memory we may have previously allocated 
    *  (I don't think this will ever happen -- EXT2_read_tables is only
@@ -351,46 +347,27 @@ static void EXT2_read_tables()
     die ("seek failed");
   if (read (CURR_DEVICE, group_desc, group_desc_size) != group_desc_size)
     die ("Unable to read group descriptors");
-  
-  /* Read in the inode allocation tables from disk, 
-   * 1) compute the size of the inode_map in memory . . .
-   *    - if reading partial tables, we only read in one group at a time
-   *    - else, read them all
-   * 2) Clear it (why?)
-   * 3) Read it from disk */
+
+  /* Allocate and read in inode map */
+  isize = sb->s_inodes_per_group / 8;
 #ifndef READ_PART_TABLES
-  if (sb->ninodes > sb->s_inodes_per_group) 
-    /* Allocate room for at least one (really 8) block */
-    isize = (group_desc_count * sb->s_inodes_per_group / 8) + 1;
-  else
+  isize *= group_desc_count;
 #endif
-    isize = (sb->s_inodes_per_group / 8) + 1;
-  inode_map = (char *) malloc(isize);
+  inode_map = (char *) calloc(isize+1, 1);
   if (!inode_map)
     die ("Unable to allocate inodes bitmap");
-  memset (inode_map, 0, isize);
   EXT2_read_inode_bitmap(0UL);
   
+  /* Allocate and read in zone/block map */
+  isize = sb->s_blocks_per_group / 8;
 #ifndef READ_PART_TABLES
-  if (sb->nzones > sb->s_blocks_per_group) 
-    /* (+1) Allocate room for at least one (really 8) block */
-    isize = (group_desc_count * sb->s_blocks_per_group / 8) + 1;
-  else
+  isize *= group_desc_count;
 #endif
-    isize = (sb->s_blocks_per_group / 8) + 1;
-  zone_map = (char *) malloc(isize);
+  zone_map = (char *) calloc(isize+1, 1);
   if (!zone_map)
     die ("Unable to allocate blocks bitmap");
-  memset (zone_map, 0, isize);
   EXT2_read_block_bitmap(0UL);
   
-  /*
-     bad_map = malloc (((sb->nzones - sb->first_data_zone) / 8) + 1);
-     if (!bad_map)
-     die ("Unable to allocate bad block bitmap");
-     memset (bad_map, 0, ((sb->nzones - sb->first_data_zone) / 8) + 1);
-   */
-
   /* Why do we warn here? */  
   if (sb->first_data_zone != 1UL) {
     lde_warn("Warning: First block (%lu)"
