@@ -19,96 +19,48 @@
 #define _XIAFS_INODES_PER_BLOCK ((BLOCK_SIZE)/(sizeof(struct xiafs_inode)))
 
 struct xiafs_inode {		/* 64 bytes */
-    mode_t   i_mode;
-    nlink_t  i_nlinks;
-    uid_t    i_uid;
-    gid_t    i_gid;
-    size_t   i_size;		/* 8 */
-    time_t   i_ctime;
-    time_t   i_atime;
-    time_t   i_mtime;
-    daddr_t  i_zone[8];
-    daddr_t  i_ind_zone;
-    daddr_t  i_dind_zone;
+    __u16  i_mode;
+    __u16  i_nlinks;
+    __u16  i_uid;
+    __u16  i_gid;
+    __u32  i_size;		/* 8 */
+    __u32  i_ctime;
+    __u32  i_atime;
+    __u32  i_mtime;
+    __u32  i_zone[8];
+    __u32  i_ind_zone;
+    __u32  i_dind_zone;
 };
 
 /*
  * linux super-block data on disk
  */
 struct xiafs_super_block {
-    u_char  s_boot_segment[512];	/*  1st sector reserved for boot */
-    u_long  s_zone_size;		/*  0: the name says it		 */
-    u_long  s_nzones;			/*  1: volume size, zone aligned */ 
-    u_long  s_ninodes;			/*  2: # of inodes		 */
-    u_long  s_ndatazones;		/*  3: # of data zones		 */
-    u_long  s_imap_zones;		/*  4: # of imap zones           */
-    u_long  s_zmap_zones;		/*  5: # of zmap zones		 */
-    u_long  s_firstdatazone;		/*  6: first data zone           */
-    u_long  s_zone_shift;		/*  7: z size = 1KB << z shift   */
-    u_long  s_max_size;			/*  8: max size of a single file */
-    u_long  s_reserved0;		/*  9: reserved			 */
-    u_long  s_reserved1;		/* 10: 				 */
-    u_long  s_reserved2;		/* 11:				 */
-    u_long  s_reserved3;		/* 12:				 */
-    u_long  s_firstkernzone;		/* 13: first kernel zone	 */
-    u_long  s_kernzones;		/* 14: kernel size in zones	 */
-    u_long  s_magic;			/* 15: magic number for xiafs    */
+    __u8    s_boot_segment[512];	/*  1st sector reserved for boot */
+    __u32  s_zone_size;		/*  0: the name says it		 */
+    __u32  s_nzones;			/*  1: volume size, zone aligned */ 
+    __u32  s_ninodes;			/*  2: # of inodes		 */
+    __u32  s_ndatazones;		/*  3: # of data zones		 */
+    __u32  s_imap_zones;		/*  4: # of imap zones           */
+    __u32  s_zmap_zones;		/*  5: # of zmap zones		 */
+    __u32  s_firstdatazone;		/*  6: first data zone           */
+    __u32  s_zone_shift;		/*  7: z size = 1KB << z shift   */
+    __u32  s_max_size;			/*  8: max size of a single file */
+    __u32  s_reserved0;		/*  9: reserved			 */
+    __u32  s_reserved1;		/* 10: 				 */
+    __u32  s_reserved2;		/* 11:				 */
+    __u32  s_reserved3;		/* 12:				 */
+    __u32  s_firstkernzone;		/* 13: first kernel zone	 */
+    __u32  s_kernzones;		/* 14: kernel size in zones	 */
+    __u32  s_magic;			/* 15: magic number for xiafs    */
 };
 
 struct xiafs_direct {
-    ino_t   d_ino;
-    u_short d_rec_len;
-    u_char  d_name_len;
-    char    d_name[_XIAFS_NAME_LEN+1];
+    __u32  d_ino;
+    __u16  d_rec_len;
+    __u8   d_name_len;
+    __s8   d_name[_XIAFS_NAME_LEN+1];
 };
-
-#ifdef __KERNEL__
-
-extern int xiafs_lookup(struct inode * dir,const char * name, int len, 
-			struct inode ** result);
-extern int xiafs_create(struct inode * dir,const char * name, int len, int mode,
-		      	struct inode ** result);
-extern int xiafs_mkdir(struct inode * dir, const char * name, int len, int mode);
-extern int xiafs_rmdir(struct inode * dir, const char * name, int len);
-extern int xiafs_unlink(struct inode * dir, const char * name, int len);
-extern int xiafs_symlink(struct inode * inode, const char * name, int len,
-		       	const char * symname);
-extern int xiafs_link(struct inode * oldinode, struct inode * dir, 
-		    	const char * name, int len);
-extern int xiafs_mknod(struct inode * dir, const char * name, int len, 
-		     	int mode, int rdev);
-extern int xiafs_rename(struct inode * old_dir, const char * old_name, 
-		      	int old_len, struct inode * new_dir, 
-		      	const char * new_name, int new_len,
-		      	int must_be_dir);
-extern struct inode * xiafs_new_inode(struct inode * dir);
-extern void xiafs_free_inode(struct inode * inode);
-extern unsigned long xiafs_count_free_inodes(struct super_block *sb);
-extern int xiafs_new_zone(struct super_block * sb, u_long prev_addr);
-extern void xiafs_free_zone(struct super_block * sb, int block);
-extern unsigned long xiafs_count_free_zones(struct super_block *sb);
-
-extern int xiafs_bmap(struct inode *,int);
-
-extern struct buffer_head * xiafs_getblk(struct inode *, int, int);
-extern struct buffer_head * xiafs_bread(struct inode *, int, int);
-
-extern void xiafs_truncate(struct inode *);
-extern void xiafs_put_super(struct super_block *);
-extern struct super_block *xiafs_read_super(struct super_block *,void *,int);
-extern int init_xiafs_fs(void);
-extern void xiafs_read_inode(struct inode *);
-extern void xiafs_write_inode(struct inode *);
-extern void xiafs_put_inode(struct inode *);
-extern void xiafs_statfs(struct super_block *, struct statfs *, int);
-extern int xiafs_sync_inode(struct inode *);
-extern int xiafs_sync_file(struct inode *, struct file *);
-
-extern struct inode_operations xiafs_file_inode_operations;
-extern struct inode_operations xiafs_dir_inode_operations;
-extern struct inode_operations xiafs_symlink_inode_operations;
-
-#endif /* __KERNEL__ */
 
 #endif  /* _XIA_FS_H */
 

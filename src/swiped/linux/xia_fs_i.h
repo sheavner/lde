@@ -11,9 +11,9 @@
  */
 
 struct xiafs_inode_info { 		/* for data zone pointers */
-    unsigned long  i_zone[8];
-    unsigned long  i_ind_zone;
-    unsigned long  i_dind_zone;
+    __u32  i_zone[8];
+    __u32  i_ind_zone;
+    __u32  i_dind_zone;
 };
 
 #endif  /* _XIA_FS_I_H */
