@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.16 1998/01/12 04:21:02 sdh Exp $
+ *  $Id: ext2fs.c,v 1.17 1998/01/17 17:42:28 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -136,7 +136,7 @@ static struct Generic_Inode *EXT2_read_inode (unsigned long ino)
     EXT2_last_inode = ino = 1;
   }
 
-  inode_buffer = cache_read_block(EXT2_map_inode(ino),CACHEABLE);
+  inode_buffer = cache_read_block(EXT2_map_inode(ino),NULL,CACHEABLE);
   memcpy (&GInode, 
 	  ((struct ext2_inode *) inode_buffer +
 	   ((ino - 1) % sb->s_inodes_per_group) %
@@ -153,7 +153,7 @@ static int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode)
   unsigned long blknr;
 
   blknr = EXT2_map_inode(ino);
-  inode_buffer = cache_read_block(blknr,CACHEABLE);
+  inode_buffer = cache_read_block(blknr,NULL,CACHEABLE);
   memcpy ( ((struct ext2_inode *) inode_buffer +
 	    ((ino - 1) % sb->s_inodes_per_group) %
 	    (sb->blocksize/fsc->INODE_SIZE)),
