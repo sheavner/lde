@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.25 1998/07/05 18:20:39 sdh Exp $
+ *  $Id: main_lde.c,v 1.26 1998/12/07 20:08:14 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -18,13 +18,25 @@
 #include <sys/stat.h>
 
 #include "lde.h"
-#include "ext2fs.h"
-#include "minix.h"
-#include "msdos_fs.h"
 #include "no_fs.h"
 #include "recover.h"
 #include "tty_lde.h"
+
+#ifdef HAVE_EXT2FS
+#include "ext2fs.h"
+#endif
+
+#ifdef HAVE_MINIXFS
+#include "minix.h"
+#endif
+
+#ifdef HAVE_MSDOSFS
+#include "msdos_fs.h"
+#endif
+
+#ifdef HAVE_XIAFS
 #include "xiafs.h"
+#endif
 
 #ifdef HAS_CURSES
 #  include "curses.h"
@@ -61,7 +73,21 @@ struct _search_types {
 /* Initialize some global variables */
 char *program_name = "lde";
 char *device_name = NULL;
-char *text_names[] = { "autodetect", "no file system" , "minix", "xiafs", "ext2fs", "msdos" };
+char *text_names[] = { "autodetect",
+		       "no file system"
+#ifdef HAVE_MINIXFS
+		       , "minix"
+#endif
+#ifdef HAVE_XIAFS
+		       , "xiafs"
+#endif
+#ifdef HAVE_EXT2FS
+		       , "ext2fs"
+#endif
+#ifdef HAVE_MSDOSFS
+		       , "msdos"
+#endif
+ };
 
 char *inode_map=NULL;
 char *zone_map=NULL;
@@ -142,15 +168,28 @@ void read_tables(int fs_type)
  
   nocache_read_block(0UL,super_block_buffer,sb->blocksize);
   lde_warn("User requested %s filesystem. Checking device . . .",text_names[fs_type]);
+
+#ifdef HAVE_MINIXFS
   if ( ((fs_type==AUTODETECT)&&(MINIX_test(super_block_buffer))) || (fs_type==MINIX) ) {
     MINIX_init(super_block_buffer);
-  } else if ( ((fs_type==AUTODETECT)&&(EXT2_test(super_block_buffer))) || (fs_type==EXT2) ) {
+  } else
+#endif
+#ifdef HAVE_EXT2FS
+  if ( ((fs_type==AUTODETECT)&&(EXT2_test(super_block_buffer))) || (fs_type==EXT2) ) {
     EXT2_init(super_block_buffer);
-  } else if ( ((fs_type==AUTODETECT)&&(XIAFS_test(super_block_buffer))) || (fs_type==XIAFS) ) {
+  } else 
+#endif
+#ifdef HAVE_XIAFS
+  if ( ((fs_type==AUTODETECT)&&(XIAFS_test(super_block_buffer))) || (fs_type==XIAFS) ) {
     XIAFS_init(super_block_buffer);
-  } else if ( ((fs_type==AUTODETECT)&&(DOS_test(super_block_buffer))) || (fs_type==DOS) ) {
+  } else 
+#endif
+#ifdef HAVE_MSDOSFS
+  if ( ((fs_type==AUTODETECT)&&(DOS_test(super_block_buffer))) || (fs_type==DOS) ) {
     DOS_init(super_block_buffer);
-  } else {
+  } else
+#endif
+  {
     lde_warn("No file system found on device");
     NOFS_init(super_block_buffer);
   }
@@ -178,7 +217,7 @@ static void long_usage(void)
                  "   -N {number}          Number of blocks to dump (using -I or -B option)\n"
                  "   -d {number}          Dump block's data to stdout (binary format)\n"
                  "   -S {string}          Search disk for data (questionable usefulness, try grep)\n"
-                 "   -T {type}            Search disk for data. type={gz, tgz, script, {filename}}\n"
+                 "   -T {type}            Search disk for data, type={gz, tgz, script, {filename}}\n"
                  "   -L {number}          Search length (when using specified filename)\n"
                  "   -O {number}          Search offset (when using specified filename)\n"
                  "   -N {number}          Starting search block (defaults to first data zone)\n"
@@ -189,8 +228,7 @@ static void long_usage(void)
                  "                            (requires --ilookup or -i/-I)\n"
                  "   --all                Search entire disk (else just unused portions)\n"
                  "   --blanked-indirects  Work around indirects with useless info (Linux 2.0 bug)\n"
-                 "   -t fstype            Overide the autodetect.\n"
-                 "                            fstype = {no, minix, xiafs, ext2fs, msdos}\n"
+                 "   -t fstype            Overide the autodetect (-t help lists supported fs's)\n"
                  "   --help               Output this screen\n"
                  "   --paranoid           Open the device read only\n"
                  "   --append             Always append to recovery file (if file exists)\n"
@@ -256,6 +294,8 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 
     switch(c)
       {
+
+#ifdef HAVE_XIAFS
       case 0: /* Some XIAFS utils of limited usefulness */
 	switch (option_index)
 	  {
@@ -265,7 +305,9 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	   case 1:
 	     opts->scrubxiafs = -1;
 	     break;
-	   }
+	  }
+	break;
+#endif
 
       case 'V': /* Display version */
       case 'v':
@@ -458,10 +500,12 @@ int main(int argc, char ** argv)
 
   NOFS_init(NULL);
 
+#ifdef HAVE_XIAFS
   if (main_opts.scrubxiafs) {
     XIAFS_scrub(main_opts.scrubxiafs);
     exit(0);
   }
+#endif
 
   read_tables(main_opts.fs_type);
 
