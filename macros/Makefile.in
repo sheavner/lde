@@ -103,6 +103,9 @@ install:	$(program_name)
 	${INSTALL_PROGRAM} $(program_name) $(sbindir)/$(program_name)
 	${INSTALL_DATA} doc/lde.man $(mandir)/$(program_name).$(manext)
 
+test:
+	( cd ../lde-testdata ; ./test.sh )
+
 ###############################################################################
 #                     YOU SHOULD NEVER EVER NEED THESE
 ###############################################################################
