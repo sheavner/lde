@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.35 2001/02/21 20:01:04 sdh Exp $
+ *  $Id: nc_lde.c,v 1.36 2001/02/22 19:48:20 sdh Exp $
  */
 
 #include <stdio.h>
@@ -734,25 +734,25 @@ void crecover_file(unsigned long inode_zones[], unsigned long filesize)
     strncpy(recover_file_name, recover_query, 80);
   }
 
-  if ( (fp = open(recover_file_name,O_RDONLY)) > 0 ) {
+  if ( (fp = open(recover_file_name,O_RDONLY|O_BINARY)) > 0 ) {
     close(fp);
     fp = 0;
     if (lde_flags.always_append) {
-      fp = open(recover_file_name,O_WRONLY|O_APPEND);
+      fp = open(recover_file_name,O_WRONLY|O_APPEND|O_BINARY);
     } else {
       switch (cquery("File exists, append data [Yes/Overwrite/Quit]: ","yoq","")) {
         case 'y':
-	  fp = open(recover_file_name,O_WRONLY|O_APPEND);
+	  fp = open(recover_file_name,O_WRONLY|O_APPEND|O_BINARY);
 	  break;
         case 'o':
-	  fp = open(recover_file_name,O_WRONLY|O_TRUNC);
+	  fp = open(recover_file_name,O_WRONLY|O_TRUNC|O_BINARY);
 	  break;
         default:
 	  return;
 	  break;
       }
     }
-  } else if ( (fp = open(recover_file_name,O_WRONLY|O_CREAT,0644)) < 0 )
+  } else if ( (fp = open(recover_file_name,O_WRONLY|O_CREAT|O_BINARY,0644)) < 0 )
     lde_warn("Cannot open file '%s'",recover_file_name);
 
   if (fp > 0) {
@@ -820,7 +820,7 @@ int recover_mode(void)
 	  fake_inode_zones[INODE_BLKS] = (unsigned long) a;
         break;
       case CMD_CLR_RECOVER:
-	bzero(fake_inode_zones,sizeof(long)*(INODE_BLKS+1));
+	bzero((char *)fake_inode_zones,sizeof(long)*(INODE_BLKS+1));
 	break;
       case CMD_BLOCK_MODE:
       case CMD_VIEW_SUPER:

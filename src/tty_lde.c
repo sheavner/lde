@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.23 2001/02/21 17:11:47 sdh Exp $
+ *  $Id: tty_lde.c,v 1.24 2001/02/22 19:48:20 sdh Exp $
  */
 
 #include <stdio.h>
@@ -16,8 +16,7 @@
 #include <grp.h>
 #include <errno.h>
 #include <sys/stat.h>
-
-#include <linux/fs.h>
+#include <time.h>
 
 #include "lde.h"
 #include "tty_lde.h"
@@ -37,6 +36,14 @@ int current_error = -1;
 /* Stores errors/warnings */
 void log_error(char *echo_string)
 {
+  FILE *fp;
+  time_t t;
+
+  if (lde_flags.logtofile && (fp=fopen("/tmp/ldeerrors","a"))) {
+        time(&t);
+	fprintf(fp,"%s - %s\n",ctime(&t),echo_string);
+	fclose(fp);
+  }
   if ((++current_error)>=ERRORS_SAVED) current_error=0;
   error_save[current_error] = realloc(error_save[current_error],
 				      (strlen(echo_string)+1));
@@ -154,7 +161,7 @@ unsigned long lde_seek_block(unsigned long block_nr)
     
   b *= sb->blocksize;
 
-  if (lseek(CURR_DEVICE, b, whence)==b)
+  if (lseek(CURR_DEVICE, (off_t)b, whence)==b)
     return block_nr;
 #endif
 #endif /* HAVE_LSEEK64 */

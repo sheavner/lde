@@ -2,10 +2,10 @@
 # YOU SHOULD NOT EDIT THIS FILE, EDIT THE MAIN MAKEFILE INSTEAD #
 #################################################################
 
-SRCS = $(FS_SRCS) no_fs.c recover.c \
+SRCS = ext2fs.c msdos_fs.c minix.c xiafs.c no_fs.c recover.c \
        main_lde.c $(LDE_CURSES_SRC) tty_lde.c bitops.c iso9660.c
 
-OBJS = $(FS_OBJS) no_fs.o recover.o \
+OBJS = ext2fs.o msdos_fs.o minix.o xiafs.o no_fs.o recover.o \
        main_lde.o $(LDE_CURSES_OBJ) tty_lde.o bitops.o iso9660.o swiped.a
 
 HEADERS = lde.h nc_lde.h bitops.h nc_block_help.h nc_inode_help.h \

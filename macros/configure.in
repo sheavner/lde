@@ -27,16 +27,6 @@ AC_PATH_PROG(AR, ar, ar)
 
 AC_CHECK_PROG(system,uname,`uname`,unknown)
 
-dnl Make sure linux include links are properly installed
-AC_CHECK_HEADER(linux/fs.h,,
-  AC_MSG_ERROR( 
-  [ Missing include file <linux/fs.h>.  
-  Is there a symlink from your source tree to /usr/include/linux?
-  See README in the linux kernel source directory.  You should have
-  links from the kernel tree to /usr/include/(linux,asm,scsi)]
-  )
-)
-
 dnl Check that <asm/bitops.h> exists and works
 AC_CHECK_KERNEL_BITOPS
 
@@ -56,37 +46,6 @@ AC_CHECK_FUNCS(lseek64)
 
 dnl Can we override -Wall on swiped code. 
 AC_CC_NOWARN
-
-dnl ------------------------------------------------------------------
-dnl      C H E C K   S U P P O R T E D   F I L E S Y S T E M S
-dnl ------------------------------------------------------------------
-AC_SUBST(FS_SRCS)
-AC_SUBST(FS_OBJS)
-
-AC_CHECK_HEADER(linux/minix_fs.h,
-	AC_DEFINE(HAVE_MINIXFS)
-	FS_SRCS="minix.c $FS_SRCS"
-	FS_OBJS="minix.o $FS_OBJS"
-)
-
-AC_CHECK_HEADER(linux/msdos_fs.h,
-	AC_DEFINE(HAVE_MSDOSFS)
-	FS_SRCS="msdos_fs.c $FS_SRCS"
-	FS_OBJS="msdos_fs.o $FS_OBJS"
-)
-
-AC_CHECK_HEADER(linux/xia_fs.h,
-	AC_DEFINE(HAVE_XIAFS)
-	FS_SRCS="xiafs.c $FS_SRCS"
-	FS_OBJS="xiafs.o $FS_OBJS"
-)
-
-AC_CHECK_HEADER(linux/ext2_fs.h,
-	AC_DEFINE(HAVE_EXT2FS)
-	FS_SRCS="ext2fs.c $FS_SRCS"
-	FS_OBJS="ext2fs.o $FS_OBJS"
-)
-
 
 dnl ------------------------------------------------------------------
 dnl                U S E R   E N A B L E   F L A G S

@@ -1,9 +1,9 @@
- /*
+/*
  *  lde/msdos_fs.c -- The Linux Disk Editor
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.15 2001/02/21 23:24:58 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.16 2001/02/22 19:48:20 sdh Exp $
  */
 
 /* 
@@ -18,7 +18,9 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <linux/msdos_fs.h>
+
+#include "swiped/linux/msdos_fs.h"
+
 #include "lde.h"
 #include "no_fs.h"
 #include "msdos_fs.h"
@@ -141,7 +143,7 @@ static int date_dos2unix(unsigned short time,unsigned short date)
 }
 /***************** END: STOLEN FROM LINUX KERNEL *******************/
 
-
+#if 1
 static unsigned long DOS_map_inode(unsigned long ino)
 {
   unsigned long block;
@@ -152,6 +154,7 @@ static unsigned long DOS_map_inode(unsigned long ino)
     block = 0;
   return block;
 }
+#endif
 
 struct Generic_Inode *DOS_init_junk_inode(void)
 {
@@ -187,7 +190,7 @@ static unsigned long DOS_dir_inode = 0UL;
 
 static struct Generic_Inode *DOS_read_inode(unsigned long nr)
 {
-  char * inode_buffer;
+  /* char * inode_buffer; */
 
   /* Might have already filled in some of the inode info
    *  from the directory entry we just looked at (nc_dir calls
@@ -206,8 +209,8 @@ static struct Generic_Inode *DOS_read_inode(unsigned long nr)
   /* Compute offset relative to block 0 on disk for data indexed by FAT */
   DOS_junk_inode.i_zone[0] = nr*sb->zonesize + sb->first_data_zone;
 
-  inode_buffer = cache_read_block(DOS_map_inode(nr),NULL,CACHEABLE);
 /*
+  inode_buffer = cache_read_block(DOS_map_inode(nr),NULL,CACHEABLE);
   nr = nr % (sb->blocksize/fsc->INODE_SIZE);
   DOS_junk_inode.i_zone[1] = block_pointer(inode_buffer, nr, fsc->INODE_SIZE) + sb->zmap_blocks + 1UL;
 */
@@ -307,7 +310,7 @@ void DOS_init(void *sb_buffer)
   FS_cmd.dir_entry = DOS_dir_entry;
   FS_cmd.read_inode = DOS_read_inode;
   FS_cmd.write_inode = DOS_write_inode_NOTYET;
-  FS_cmd.map_inode = DOS_map_inode;
+  FS_cmd.map_inode = NULL /* DOS_map_inode */ ;
 }
 
 

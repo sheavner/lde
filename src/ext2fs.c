@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.23 2001/02/07 18:31:13 sdh Exp $
+ *  $Id: ext2fs.c,v 1.24 2001/02/22 19:48:20 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -17,7 +17,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <linux/ext2_fs.h>
+
+#include "swiped/linux/ext2_fs.h"
 
 /* I'm not going to support these until someone cleans up the ext2_fs.h file.
  * The multi-architecture support looks like it was just hacked in, there

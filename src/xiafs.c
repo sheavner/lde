@@ -3,16 +3,16 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.19 2001/02/07 18:31:13 sdh Exp $
+ *  $Id: xiafs.c,v 1.20 2001/02/22 19:48:20 sdh Exp $
  */
 
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <linux/fs.h>
-#include <linux/minix_fs.h>
-#include <linux/xia_fs.h>
-#include <linux/xia_fs_sb.h>
+
+#include "swiped/linux/minix_fs.h"
+#include "swiped/linux/xia_fs.h"
+#include "swiped/linux/xia_fs_sb.h"
 
 #include "lde.h"
 #include "minix.h"

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.20 1998/06/09 18:03:07 sdh Exp $
+ *  $Id: nc_inode.c,v 1.21 2001/02/22 19:48:20 sdh Exp $
  */
 
 #include <ctype.h>
@@ -558,9 +558,11 @@ int inode_mode() {
 	break;
 
       case CMD_BIN_INODE: /* View raw inode in block mode */
-	current_block = FS_cmd.map_inode(current_inode);
-	cwrite_inode(current_inode, GInode, &modified);
-	return CMD_BLOCK_MODE;
+        if (FS_cmd.map_inode) {
+	   current_block = FS_cmd.map_inode(current_inode);
+	   cwrite_inode(current_inode, GInode, &modified);
+	   return CMD_BLOCK_MODE;
+        }
 	break;
 
       case CMD_COPY: /* Copy inode to copy buffer */

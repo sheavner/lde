@@ -1,3 +1,11 @@
+Thu Feb 22 09:02:46 PST 2001 Scott Heavner
+
+	* remove all references to <linux/*.h> for port to cygwin
+	* O_BINARY all open statements (again for cygwin, dying on ^Z's)
+	* recover.c: BLOCK_SIZE --> bs->blocksize
+	* tty_lde.c: "lde --logtofile", dumps all messages to /tmp/ldeerrors
+	* drop configure from cvs, add autogen.sh like gnome projects
+
 Wed Feb 21 18:06:59 PST 2001 Scott Heavner
 
 	* msdos_fs.c: Some hacks

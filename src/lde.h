@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.27 2001/02/21 00:04:55 sdh Exp $
+ *  $Id: lde.h,v 1.28 2001/02/22 19:48:20 sdh Exp $
  */
 
 #ifndef LDE_H
@@ -11,6 +11,10 @@
 
 #ifndef LDE_VERSION
 #define LDE_VERSION "2.6"
+#endif
+
+#ifndef O_BINARY
+#define O_BINARY 0
 #endif
 
 extern char *program_name;
@@ -215,7 +219,7 @@ struct {
   struct Generic_Inode* (*read_inode)(unsigned long inode_nr);
   /* Copies the generic inode to a FS specific one, then write it to disk */
   int (*write_inode)(unsigned long inode_nr, struct Generic_Inode *GInode);
-  /* Map inode to block containing inode */
+  /* Map inode to block containing inode -- CAN BE NULL */
   unsigned long (*map_inode)(unsigned long n);
 } FS_cmd;
 
@@ -232,6 +236,7 @@ volatile struct _lde_flags {
   unsigned quit_now:          1;
   unsigned mounted:           1;
   unsigned blanked_indirects: 1;  /* Set for Linux 2.0.* to work around blanked indirect blocks */
+  unsigned logtofile:         1;
 } lde_flags;
 
 extern struct sbinfo *sb;

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.26 1998/06/21 06:57:16 sdh Exp $
+ *  $Id: recover.c,v 1.27 2001/02/22 19:48:20 sdh Exp $
  */
 
 #include <stdio.h>
@@ -14,7 +14,6 @@
 #ifdef   HAVE_UNAME
 #include <sys/utsname.h>
 #endif
-#include <linux/fs.h>
 
 #include "lde.h"
 #include "recover.h"
@@ -691,7 +690,7 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 	match_count[0] = match_count[1] = match_count[2] = match_count[3] =
 	  match_count[4] = largest_match = 0;
 	match[0] = dind[1];
-	for (i=3;i<BLOCK_SIZE/4;i+=fsc->ZONE_ENTRY_SIZE) {
+	for (i=3;i<sb->blocksize/4;i+=fsc->ZONE_ENTRY_SIZE) {
 	  no_match_flag = 1;
 	  for (j=-1;j++<largest_match;)
 	    if (dind[i]==match[j]) {
@@ -718,7 +717,7 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 	  match[0] = dind[0]; /* number in sequence 0,1,2,etc */
 	  match[1] = 0;       /* Length of current sequence */
 	  match[2] = 0;       /* Number of sequences longer than 3  */
-	  for (i=2;i<BLOCK_SIZE/4;i+=fsc->ZONE_ENTRY_SIZE) {
+	  for (i=2;i<sb->blocksize/4;i+=fsc->ZONE_ENTRY_SIZE) {
 	    if (dind[i]==(++match[0]))
 	      match[1]++;
 	    else {

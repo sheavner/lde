@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.29 2001/02/21 20:01:04 sdh Exp $
+ *  $Id: main_lde.c,v 1.30 2001/02/22 19:48:20 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -23,22 +23,10 @@
 #include "tty_lde.h"
 
 #include "iso9660.h"
-
-#ifdef HAVE_EXT2FS
 #include "ext2fs.h"
-#endif
-
-#ifdef HAVE_MINIXFS
 #include "minix.h"
-#endif
-
-#ifdef HAVE_MSDOSFS
 #include "msdos_fs.h"
-#endif
-
-#ifdef HAVE_XIAFS
 #include "xiafs.h"
-#endif
 
 #ifdef HAS_CURSES
 #  include "curses.h"
@@ -63,6 +51,7 @@ struct _main_opts {
   void (*dumper)(unsigned long nr);
   char *search_string;
   char *recover_file_name;
+  int log_to_file;
 };
 
 struct _search_types {
@@ -77,19 +66,11 @@ char *program_name = "lde";
 char *device_name = NULL;
 char *text_names[] = { "autodetect",
 		       "no file system"
-#ifdef HAVE_MINIXFS
 		       , "minix"
-#endif
-#ifdef HAVE_XIAFS
 		       , "xiafs"
-#endif
-#ifdef HAVE_EXT2FS
 		       , "ext2fs"
-#endif
-#ifdef HAVE_MSDOSFS
 		       , "msdos"
-#endif
-			   , "iso9660"
+                       , "iso9660"
  };
 
 char *inode_map=NULL;
@@ -104,7 +85,7 @@ struct fs_constants *fsc = NULL;
 
 int CURR_DEVICE = 0;
 volatile struct _lde_flags lde_flags = 
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } ;
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } ;
 
 void (*lde_warn)(char *fmt, ...) = tty_warn;
 int  (*mgetch)(void) = tty_mgetch;
@@ -117,7 +98,7 @@ static int check_mount(char *device_name)
   char *mtab;
   struct stat statbuf;
 
-  fd = open("/etc/mtab",O_RDONLY);
+  fd = open("/etc/mtab",O_RDONLY|O_BINARY);
   fstat(fd, &statbuf);
 
   mtab = malloc(statbuf.st_size+1);
@@ -172,26 +153,18 @@ void read_tables(int fs_type)
   nocache_read_block(0UL,super_block_buffer,sb->blocksize);
   lde_warn("User requested %s filesystem. Checking device . . .",text_names[fs_type]);
 
-#ifdef HAVE_MINIXFS
   if ( ((fs_type==AUTODETECT)&&(MINIX_test(super_block_buffer))) || (fs_type==MINIX) ) {
     MINIX_init(super_block_buffer);
   } else
-#endif
-#ifdef HAVE_EXT2FS
   if ( ((fs_type==AUTODETECT)&&(EXT2_test(super_block_buffer))) || (fs_type==EXT2) ) {
     EXT2_init(super_block_buffer);
   } else 
-#endif
-#ifdef HAVE_XIAFS
   if ( ((fs_type==AUTODETECT)&&(XIAFS_test(super_block_buffer))) || (fs_type==XIAFS) ) {
     XIAFS_init(super_block_buffer);
   } else 
-#endif
-#ifdef HAVE_MSDOSFS
   if ( ((fs_type==AUTODETECT)&&(DOS_test(super_block_buffer))) || (fs_type==DOS) ) {
     DOS_init(super_block_buffer);
   } else
-#endif
   if ( ((fs_type==AUTODETECT)&&(ISO9660_test(super_block_buffer))) || (fs_type==ISO9660) ) {
     ISO9660_init(super_block_buffer);
   } else
@@ -242,6 +215,7 @@ static void long_usage(void)
                  "   --version            Print version information\n"
                  "   --write              Allow writes to the device\n"
                  "   --file name          Specify filename to save recovered inodes to\n"
+                 "   --logtofile          Save all errors/messages to /tmp/ldeerrors\n"
 	  );
   exit(0);
 }
@@ -292,7 +266,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
   while (1) {
     option_index = 0;
 
-    c = getopt_long (argc, argv, "avf:I:i:n:N:B:b:D:d:gpqS:t:T:whH?O:L:",
+    c = getopt_long (argc, argv, "avFf:I:i:n:N:B:b:D:d:gpqS:t:T:whH?O:L:",
 		     long_options, &option_index);
 
     if (c == -1)
@@ -301,7 +275,6 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
     switch(c)
       {
 
-#ifdef HAVE_XIAFS
       case 0: /* Some XIAFS utils of limited usefulness */
 	switch (option_index)
 	  {
@@ -313,7 +286,6 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	     break;
 	  }
 	break;
-#endif
 
       case 'V': /* Display version */
       case 'v':
@@ -394,7 +366,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	}
 
 	if (opts->search_string==NULL) {
-	  i = open(optarg,O_RDONLY);
+	  i = open(optarg,O_RDONLY|O_BINARY);
 	  if (i) {
 	    opts->search_string = malloc(MAX_BLOCK_SIZE);
 	    if (read(i,opts->search_string,MAX_BLOCK_SIZE)<=0) {
@@ -409,6 +381,9 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	break;
       case 'O': /* Set offset for search string */
 	opts->search_off = read_num(optarg);
+	break;
+	  case 'F': /* Log all errors/messages to /tmp/ldeerrors */
+	lde_flags.logtofile = 1;
 	break;
       case 'L': /* Set length for search string */
 	opts->search_len = read_num(optarg);
@@ -467,9 +442,9 @@ int main(int argc, char ** argv)
   struct Generic_Inode *GInode = NULL;
 
   sigset_t sa_mask;
-  struct sigaction intaction = { {(void *)handle_sigint}, sa_mask, SA_RESTART, NULL };
+  struct sigaction intaction = { {(void *)handle_sigint}, sa_mask, SA_RESTART};
 
-  struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0, 0UL, 0UL, NULL, NULL, NULL };
+  struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0, 0UL, 0UL, NULL, NULL, NULL, 0 };
 
   /* Set things up to handle control-c:  just sets lde_flags.quit_now to 1 */
   sigemptyset(&sa_mask);
@@ -482,18 +457,18 @@ int main(int argc, char ** argv)
 
 #ifndef PARANOID
   if (!lde_flags.paranoid) {
-    CURR_DEVICE = open(device_name,O_RDWR);
+    CURR_DEVICE = open(device_name,O_RDWR|O_BINARY);
     if (CURR_DEVICE < 0) {
       lde_warn("No write access to \"%s\",  attempting to open read-only.",
 	       device_name);
-      CURR_DEVICE = open(device_name,O_RDONLY);
+      CURR_DEVICE = open(device_name,O_RDONLY|O_BINARY);
       lde_flags.write_ok = 0;
     }
   } else
 #endif
   {
     lde_warn("Paranoid flag set.  Opening \"%s\" read-only.",device_name);
-    CURR_DEVICE = open(device_name,O_RDONLY);
+    CURR_DEVICE = open(device_name,O_RDONLY|O_BINARY);
   }
   
   if (CURR_DEVICE < 0) {
@@ -506,23 +481,21 @@ int main(int argc, char ** argv)
 
   NOFS_init(NULL);
 
-#ifdef HAVE_XIAFS
   if (main_opts.scrubxiafs) {
     XIAFS_scrub(main_opts.scrubxiafs);
     exit(0);
   }
-#endif
 
   read_tables(main_opts.fs_type);
 
   /* Process requests handled by tty based lde */
   if (main_opts.recover_file_name!=NULL) {
     /* Check if file exists, if so, check if append flag is set and open accordingly */
-    if ( ( (fp = open(main_opts.recover_file_name,O_RDONLY)) > 0 ) && lde_flags.always_append ) {
+    if ( ( (fp = open(main_opts.recover_file_name,O_RDONLY|O_BINARY)) > 0 ) && lde_flags.always_append ) {
       close(fp);
-      fp = open(main_opts.recover_file_name,O_WRONLY|O_APPEND);
+      fp = open(main_opts.recover_file_name,O_WRONLY|O_APPEND|O_BINARY);
     } else {  /* It's ok to create a new file */
-      fp = open(main_opts.recover_file_name,O_WRONLY|O_CREAT,0644);
+      fp = open(main_opts.recover_file_name,O_WRONLY|O_CREAT|O_BINARY,0644);
     }
    
     /* Make sure we got a valid file number, if so look up inode and recover it, else print warning */

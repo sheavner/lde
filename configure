@@ -1,4 +1,32 @@
 #!/bin/sh
-echo Changing to macros/ and doing  \" ./configure $* \"  there . . .
-cd macros
-exec ./configure $*
+# Running configure in another directory
+
+DIE=0
+
+srcdir=`dirname $0`
+test -z "$srcdir" && srcdir=.
+
+echo "Changing to macros/ and running  \"./configure $*\" ..."
+cd $srcdir/macros
+
+
+(./configure --version) < /dev/null > /dev/null 2>&1 || {
+        echo
+        echo "Please run autogen.sh with the same options as you"
+        echo "would pass to configure."
+		echo
+		echo "autogen.sh will generate the initial configure script."
+		echo "You can then re-run ./configure to change any options."
+        DIE=1
+}
+
+if test "$DIE" -eq 1; then
+        exit 1
+fi
+
+
+./configure "$@"
+
+echo
+echo "Now type 'make' to compile lde."
+

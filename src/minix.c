@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.17 2001/02/21 20:01:04 sdh Exp $
+ *  $Id: minix.c,v 1.18 2001/02/22 19:48:20 sdh Exp $
  */
 
 /* 
@@ -15,8 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <linux/fs.h>
-#include <linux/minix_fs.h> 
+#include "swiped/linux/minix_fs.h"
 
 #include "minix.h"
 #include "lde.h"
