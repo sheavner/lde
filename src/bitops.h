@@ -7,17 +7,17 @@
 
 /* If you are using this on a computer that is not Linux, your best bet (and
  * worst performance) will be to define NO_CLI_STI, but not USE_KERNEL_BITOPS.
- * If you are on an emerging Linux system, you're on your own.
+ * If you are on an emerging Linux system, you're on your own.  Also, after you
+ * have modified this, comment out the warning line below, it's just there for
+ * people who don't read documentation.
  */
-
 #ifdef __linux__
 #define USE_KERNEL_BITOPS /* If you are using a Linux kernel with <asm/bitops.h> */
 #undef  NO_CLI_STI        /* If your system does not support cli()/sti() via <asm/system.h> */
-#warning LINUX BITOPS
 #else
+#warning Did you edit bitops.h for your non-Linux machine??? /* */
 #undef  USE_KERNEL_BITOPS /* If you are using a Linux kernel with <asm/bitops.h> */
 #define NO_CLI_STI        /* If your system does not support cli()/sti() via <asm/system.h> */
-#warning ALT_BITOPS
 #endif
 
 extern int set_bit(int nr,void * addr);
