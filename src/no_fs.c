@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.13 1998/01/24 21:43:39 sdh Exp $
+ *  $Id: no_fs.c,v 1.14 1998/07/05 18:20:46 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -18,6 +18,7 @@
 #include <unistd.h>
  
 #include "lde.h"
+#include "tty_lde.h"
 #include "no_fs.h"
 
 static struct Generic_Inode *NOFS_read_inode(unsigned long nr);
@@ -28,6 +29,7 @@ static int NOFS_write_inode_NOT(unsigned long ino,
 static int NOFS_one_i__ul(unsigned long nr);
 static unsigned long NOFS_one_ul__ul(unsigned long nr);
 static int NOFS_zero_i__ul(unsigned long nr);
+static unsigned long NOFS_get_device_size(void);
 
 static struct inode_fields NOFS_inode_fields = {
   0, /*   unsigned short i_mode; */
@@ -167,7 +169,7 @@ static void NOFS_sb_init(char * sb_buffer)
    * will most likely have a file system on it and we won't have to 
    * resort to this */
   if ((!sb->nzones)&&(!firsttime))
-    sb->nzones = NOFS_get_device_size(CURR_DEVICE, sb->blocksize);
+    sb->nzones = NOFS_get_device_size();
 
   /* Both methods of size detection failed, just set it big */
   if (!sb->nzones)
@@ -212,35 +214,35 @@ void NOFS_init(char * sb_buffer)
   FS_cmd.map_inode = NOFS_one_ul__ul;
 }
 
-static int valid_offset (int fd, unsigned long offset)
+static int valid_offset (unsigned long offset)
 {
   char ch;
   
-  if (lseek (fd, offset, SEEK_SET) < 0)
-    return 0;
-  if (read (fd, &ch, 1) < 1)
-    return 0;
-  return 1;
+  if ( (lde_seek_block(offset) == offset) &&
+       (read (CURR_DEVICE, &ch, 1) == 1) )
+    return 1;
+
+  return 0;
 }
 
 /* Returns the number of blocks in a partition */
-unsigned long NOFS_get_device_size(int fd, unsigned long blocksize)
+static unsigned long NOFS_get_device_size(void)
 {
   unsigned long high, low;
 
   /* Do binary search to find the size of the partition.  */
   low = 0;
-  for (high = 1024; valid_offset (fd, high); high *= 2)
+  for (high = 1024; valid_offset (high); high *= 2)
     low = high;
   while (low < high - 1)
     {
       const unsigned long mid = (low + high) / 2;
       
-      if (valid_offset (fd, mid))
+      if (valid_offset (mid))
 	low = mid;
       else
 	high = mid;
     }
-  valid_offset (fd, 0);
-  return ((low + 1) / blocksize);
+  lde_seek_block(0);
+  return (low + 1);
 }

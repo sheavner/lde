@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.21 1998/06/15 01:00:49 sdh Exp $
+ *  $Id: ext2fs.c,v 1.22 1998/07/05 18:20:33 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -171,6 +171,7 @@ static void EXT2_read_inode_bitmap (unsigned long nr)
 {
   int i;
   char *local_map = inode_map;
+  size_t bytes_read = sb->s_inodes_per_group / 8;
 
 #ifdef READ_PART_TABLES
   static int inode_map_cache = -1;
@@ -181,13 +182,11 @@ static void EXT2_read_inode_bitmap (unsigned long nr)
 #else  
   for (i = 0; i < group_desc_count; i++) {
 #endif
-    if (lseek (CURR_DEVICE, group_desc[i].bg_inode_bitmap * sb->blocksize,
-	       SEEK_SET) != group_desc[i].bg_inode_bitmap * sb->blocksize)
-      die ("seek failed in EXT2_read_inode_bitmap");
-    if (read (CURR_DEVICE, local_map, sb->s_inodes_per_group / 8) !=
-	sb->s_inodes_per_group / 8)
-      die ("read failed in EXT2_read_inode_bitmap");
-    local_map += sb->s_inodes_per_group / 8;
+    if ( nocache_read_block(group_desc[i].bg_inode_bitmap,
+			    local_map, bytes_read) !=
+	 bytes_read )
+      die ("EXT2_read_tables: read failed in EXT2_read_inode_bitmap");
+    local_map += bytes_read;
   }
 }
 
@@ -217,10 +216,8 @@ static void EXT2_read_block_bitmap(unsigned long nr)
 #else  
   for (i = 0; i < group_desc_count; i++) {
 #endif
-    if (lseek (CURR_DEVICE, group_desc[i].bg_block_bitmap * sb->blocksize,
-	       SEEK_SET) != group_desc[i].bg_block_bitmap * sb->blocksize)
-      die ("seek failed in EXT2_read_block_bitmap");
-    if (read (CURR_DEVICE, local_map, sb->s_blocks_per_group / 8) !=
+    if ( nocache_read_block( group_desc[i].bg_block_bitmap,
+			     local_map, sb->s_blocks_per_group / 8) !=
 	sb->s_blocks_per_group / 8)
       die ("read failed in EXT2_read_block_bitmap");
     local_map += sb->s_blocks_per_group / 8;
@@ -233,8 +230,8 @@ static int EXT2_is_system_block(unsigned long nr)
   int i;
 
   /* Group descriptor tables and first super block */
-  if (nr < (((EXT2_MIN_BLOCK_SIZE)/sb->blocksize)+1)*sb->blocksize + 
-                                   group_desc_size)
+  if (nr < (((EXT2_MIN_BLOCK_SIZE)/sb->blocksize)+1) + 
+      (group_desc_size+sb->blocksize-1)/sb->blocksize)
     return 1;
 
   for (i = 0; i < group_desc_count; i++) {
@@ -242,19 +239,19 @@ static int EXT2_is_system_block(unsigned long nr)
     if (nr==(i*sb->s_blocks_per_group+1))
       return 1;
     /* Is it part of the block map? */
-    if ( (nr>group_desc[i].bg_block_bitmap*sb->blocksize) &&
-	 (nr<group_desc[i].bg_block_bitmap*sb->blocksize+
-                  (2*sb->s_blocks_per_group-1)/8) )
+    if ( (nr>group_desc[i].bg_block_bitmap) &&
+	 (nr<group_desc[i].bg_block_bitmap+
+            ((2*sb->s_blocks_per_group-1)/8+sb->blocksize-1)/sb->blocksize) )
        return 1;
     /* No.  How about the inode map? */
     if ( (nr>group_desc[i].bg_inode_bitmap*sb->blocksize) &&
 	 (nr<group_desc[i].bg_inode_bitmap*sb->blocksize+
-                  (2*sb->s_inodes_per_group-1)/8) )
+            ((2*sb->s_inodes_per_group-1)/8+sb->blocksize-1)/sb->blocksize) )
        return 1;
     /* No.  How about the inode table? */
     if ( (nr>group_desc[i].bg_inode_table*sb->blocksize) &&
 	 (nr<group_desc[i].bg_inode_table*sb->blocksize+
-                  (2*sb->s_inodes_per_group-1)/8) )
+            ((2*sb->s_inodes_per_group-1)/8+sb->blocksize-1)/sb->blocksize) )
        return 1;
   }
 
@@ -307,8 +304,7 @@ static char* EXT2_dir_entry(int i, lde_buffer *block_buffer,
 static void EXT2_read_tables()
 {
   size_t        isize, addr_per_block, inode_blocks_per_group;
-  off_t         desc_loc;
-  unsigned long desc_blocks;
+  unsigned long desc_loc, desc_blocks;
 
   /* Free up any memory we may have previously allocated 
    *  (I don't think this will ever happen -- EXT2_read_tables is only
@@ -338,15 +334,14 @@ static void EXT2_read_tables()
   group_desc_size = desc_blocks * sb->blocksize;
   group_desc = (struct ext2_group_desc *) malloc(group_desc_size);
   if (!group_desc)
-    die ("Unable to allocate buffers for group descriptors");
+    die ("EXT2_read_tables: Unable to allocate buffers for group descriptors");
 
   /* Compute location of group descriptors on disk and read them in 
    *  (What's the +1 for?) */
-  desc_loc = (((EXT2_MIN_BLOCK_SIZE) / sb->blocksize) + 1) * sb->blocksize;
-  if (lseek (CURR_DEVICE, desc_loc, SEEK_SET) != desc_loc)
-    die ("seek failed");
-  if (read (CURR_DEVICE, group_desc, group_desc_size) != group_desc_size)
-    die ("Unable to read group descriptors");
+  desc_loc = (((EXT2_MIN_BLOCK_SIZE) / sb->blocksize) + 1);
+  if ( nocache_read_block(desc_loc, group_desc, group_desc_size) !=
+       group_desc_size)
+    die ("EXT2_read_tables: Unable to read group descriptors");
 
   /* Allocate and read in inode map */
   isize = sb->s_inodes_per_group / 8;
@@ -365,7 +360,7 @@ static void EXT2_read_tables()
 #endif
   zone_map = (char *) calloc(isize+1, 1);
   if (!zone_map)
-    die ("Unable to allocate blocks bitmap");
+    die ("EXT2_read_tables: Unable to allocate blocks bitmap");
   EXT2_read_block_bitmap(0UL);
   
   /* Why do we warn here? */  

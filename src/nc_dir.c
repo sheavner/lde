@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.16 1998/06/05 21:23:07 sdh Exp $
+ *  $Id: nc_dir.c,v 1.17 1998/07/05 18:20:43 sdh Exp $
  */
 
 #include <strings.h>
@@ -162,7 +162,9 @@ static int get_inode_info(unsigned long inode_nr, lde_buffer *buffer)
   while (count < GInode->i_size) {
     map_block(GInode->i_zone,c,&bnr);
     if (bnr)
-      count += (unsigned long) nocache_read_block(bnr,((buffer->start)+c*sb->blocksize));
+      count += (unsigned long) 
+	       nocache_read_block(bnr,((buffer->start)+c*sb->blocksize),
+				  lookup_blocksize(bnr));
     c++;
   }
 

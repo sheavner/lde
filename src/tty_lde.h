@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.h,v 1.5 1998/01/17 17:45:40 sdh Exp $
+ *  $Id: tty_lde.h,v 1.6 1998/07/05 18:18:05 sdh Exp $
  */
 
 #ifndef TTY_LDE_H
@@ -36,7 +36,8 @@ int  tty_mgetch(void);
 unsigned long lookup_blocksize(unsigned long nr);
 unsigned long read_num(char *cinput);
 void * cache_read_block (unsigned long block_nr, void *dest, int force);
-int nocache_read_block (unsigned long block_nr, char *dest);
+size_t nocache_read_block (unsigned long block_nr, void *dest, size_t size);
+unsigned long lde_seek_block(unsigned long block_nr);
 int write_block (unsigned long block_nr, void *data_buffer);
 void ddump_block(unsigned long nr);
 void dump_block(unsigned long nr);

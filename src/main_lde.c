@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.24 1998/06/15 01:00:02 sdh Exp $
+ *  $Id: main_lde.c,v 1.25 1998/07/05 18:20:39 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -26,7 +26,7 @@
 #include "tty_lde.h"
 #include "xiafs.h"
 
-#ifdef LDE_CURSES
+#ifdef HAS_CURSES
 #  include "curses.h"
 #  include "nc_lde.h"
 #endif
@@ -140,7 +140,7 @@ void read_tables(int fs_type)
    * room for LILO.
    */
  
-  nocache_read_block(0UL,super_block_buffer);
+  nocache_read_block(0UL,super_block_buffer,sb->blocksize);
   lde_warn("User requested %s filesystem. Checking device . . .",text_names[fs_type]);
   if ( ((fs_type==AUTODETECT)&&(MINIX_test(super_block_buffer))) || (fs_type==MINIX) ) {
     MINIX_init(super_block_buffer);
@@ -592,7 +592,7 @@ int main(int argc, char ** argv)
     exit(0);
   }
 
-#ifdef LDE_CURSES
+#ifdef HAS_CURSES
   interactive_main();
 #endif
 

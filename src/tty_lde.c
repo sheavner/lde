@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.19 1998/05/30 17:54:02 sdh Exp $
+ *  $Id: tty_lde.c,v 1.20 1998/07/05 18:20:48 sdh Exp $
  */
 
 #include <stdio.h>
@@ -30,7 +30,8 @@ int current_error = -1;
 void log_error(char *echo_string)
 {
   if ((++current_error)>=ERRORS_SAVED) current_error=0;
-  error_save[current_error] = realloc(error_save[current_error],(strlen(echo_string)+1));
+  error_save[current_error] = realloc(error_save[current_error],
+				      (strlen(echo_string)+1));
   strcpy(error_save[current_error], echo_string);
 }
 
@@ -96,29 +97,76 @@ unsigned long read_num(char *cinput)
     }
     return i;
   }
-
- return 0; /* This should be a safe number to return if something went wrong */
+  
+  return 0; /* This should be a safe return if something went wrong */
 }
 
-/* Reads a block w/o caching results */
-int nocache_read_block (unsigned long block_nr, char *dest)
-{
-  size_t read_size, act_size=0;
-  
-  /* Lookup size of block (if it's the last block in a file,
-   * it may be less than the blocksize of the device */
-  read_size = (size_t) lookup_blocksize(block_nr);
 
+unsigned long lde_seek_block(unsigned long block_nr)
+{
+#if HAVE_LLSEEK
+  loff_t dbnr = (loff_t)block_nr * sb->blocksize;
+
+  if (llseek(CURR_DEVICE, dbnr, SEEK_SET)==dbnr)
+    return block_nr;
+
+#else
+#define MAX_OFF_T (~(1L << (sizeof(off_t)*8-1)))
+#warning System does not have llseek(), using slow lookups for blocks > 2GB
+  
+  unsigned long MaxIndexableBlock = MAX_OFF_T / sb->blocksize;
+  unsigned long b = block_nr;
+  int whence = SEEK_SET;
+  
+  if ( (b > MaxIndexableBlock) && (!(MAX_OFF_T % sb->blocksize)) ) { 
+    if (0!=lseek(CURR_DEVICE, 0, SEEK_SET)) {
+      lde_warn("lde_seek(1): seek failed, errno=%d",errno);
+      return 0UL;
+    }
+    while (  b > MaxIndexableBlock ) {
+      off_t moved = lseek(CURR_DEVICE, MAX_OFF_T, SEEK_CUR);
+      if (moved != MAX_OFF_T) {
+	lde_warn("lde_seek(1): seek failed, errno=%d",errno);
+	lseek(CURR_DEVICE, 0, SEEK_SET);
+	return 0UL;
+      }
+      b -= MaxIndexableBlock;
+    }
+    whence = SEEK_CUR;
+  }
+    
+  b *= sb->blocksize;
+
+  if (lseek(CURR_DEVICE, b, whence)==b)
+    return block_nr;
+#endif
+
+  lde_warn("lde_seek_block: seek failed, errno=%d",errno);
+
+  /* On error, seek to beginning of device */
+  lseek(CURR_DEVICE, 0, SEEK_SET);
+  return 0;
+}
+
+
+
+/* Reads a block w/o caching results */
+size_t nocache_read_block (unsigned long block_nr, void *dest, 
+                           size_t read_size)
+{
+  size_t act_size=0;
+  
   /* Try to read it in, on error we return 0 for act_size, buffer
    * contents are not changed */
-  if (lseek (CURR_DEVICE, block_nr * sb->blocksize, SEEK_SET) !=
-      block_nr * sb->blocksize)                          
-    lde_warn("Read error: unable to seek to block in nocache_read_block",
-	     block_nr);
+  if (lde_seek_block (block_nr) != block_nr )
+    lde_warn("Read error: unable to seek to block"
+	     " in nocache_read_block, errno=%d",
+	     block_nr,errno);
   else if ( (act_size=read (CURR_DEVICE, dest, read_size)) != read_size)
-    lde_warn("Unable to read full block (%lu) in nocache_read_block",block_nr);
-
-  return (int)act_size;
+    lde_warn("Unable to read full block (%lu) in nocache_read_block,"
+	     " errno=%d",block_nr,errno);
+  
+  return act_size;
 }
 
 /* Whopping cache of one block returns pointer to a cache_block structure
@@ -142,9 +190,16 @@ void * cache_read_block (unsigned long block_nr, void *dest, int force)
   }
     
   if ((force&FORCE_READ)||(block_nr != cache_block_nr)) {
+    int read_size;
+
     cache_block_nr = block_nr;
     memset(bp->data,0,sb->blocksize);
-    bp->size = nocache_read_block(cache_block_nr, bp->data);
+
+    /* Lookup size of block (if it's the last block in a file,
+     * it may be less than the blocksize of the device */
+    read_size = lookup_blocksize(block_nr);
+
+    bp->size = nocache_read_block(cache_block_nr, bp->data, read_size);
     if (bp->size)
       bp->bnr = block_nr;
     else
@@ -171,12 +226,12 @@ int write_block(unsigned long block_nr, void *data_buffer)
     return -1;
   }
 #ifndef PARANOID
-  if (lseek (CURR_DEVICE, block_nr * sb->blocksize, SEEK_SET) !=
-      block_nr * sb->blocksize) {
+  if (lde_seek_block(block_nr) != block_nr) {
     lde_warn("Write error: unable to seek to block (%lu) in write_block", block_nr);
     return -1;
   } else {
     write_count = (size_t) lookup_blocksize(block_nr);
+
     if (write (CURR_DEVICE, data_buffer, write_count) != write_count) {
       lde_warn("Write error: unable to write block (%d) in write_block",block_nr);
       return -1;

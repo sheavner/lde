@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.14 1998/07/03 18:46:37 sdh Exp $
+ *  $Id: minix.c,v 1.15 1998/07/05 18:20:40 sdh Exp $
  */
 
 /* 
@@ -238,7 +238,9 @@ void MINIX_read_tables()
   if (sb->norm_first_data_zone != sb->first_data_zone)
     lde_warn("Warning: Firstzone != Norm_firstzone");
 
-  /* Now read in tables */
+  /* Now read in tables, do 1st with nocache_read_block() to seek to proper
+   * location and do subsequent with read() as they are all found sequentially
+   * on the disk */
   if (sb->imap_blocks*sb->blocksize != 
       nocache_read_block(fsc->FIRST_MAP_BLOCK,inode_map,
 			 sb->imap_blocks*sb->blocksize)) {
