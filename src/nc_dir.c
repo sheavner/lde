@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.13 1996/10/13 01:42:16 sdh Exp $
+ *  $Id: nc_dir.c,v 1.14 1996/10/13 02:05:22 sdh Exp $
  */
 
 #include <strings.h>
@@ -201,10 +201,11 @@ int directory_popup(unsigned long bnr, unsigned long inode_nr, unsigned long ipo
 	if (!inode_nr)  /* see if we've changed the inode */
 	  inode_nr = current_inode;
  	GInode = FS_cmd.read_inode(inode_nr);
-	advance_zone_pointer(GInode->i_zone,&bnr,&ipointer,(c==CMD_NEXT_IND_BLOCK)?+1L:-1L);
-	current = screen_off = last = 0;
-	max_entries = reread_dir(block_buffer, bnr);
-	redraw_dir_window(win, max_entries, screen_off, bnr);
+	if (!advance_zone_pointer(GInode->i_zone,&bnr,&ipointer,(c==CMD_NEXT_IND_BLOCK)?+1L:-1L)) {
+	  current = screen_off = last = 0;
+	  max_entries = reread_dir(block_buffer, bnr);
+	  redraw_dir_window(win, max_entries, screen_off, bnr);
+	}
 	break;
 
       case CMD_EXPAND_SUBDIR: /* Expand this subdirectory - 'D' also sets current inode to be this subdir */

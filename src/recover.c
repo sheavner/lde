@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.14 1996/10/13 01:41:00 sdh Exp $
+ *  $Id: recover.c,v 1.15 1996/10/13 02:05:16 sdh Exp $
  */
 
 #include <stdio.h>
@@ -163,9 +163,10 @@ int advance_zone_pointer(unsigned long zone_index[], unsigned long *currblk,
   if (blknr) {
     *ipointer = local_ipointer;
     *currblk = blknr;
+    return 0;
   }
 
-  return 0;
+  return AZP_UNCHANGED;
 }
 
 /* This is the non-magic undelete.  inode will contain a 

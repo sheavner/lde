@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.19 1996/10/13 01:40:12 sdh Exp $
+ *  $Id: nc_block.c,v 1.20 1996/10/13 02:05:11 sdh Exp $
  */
 
 #include <stdio.h>
@@ -288,12 +288,12 @@ int block_mode(void) {
         cwrite_block(current_block, block_buffer, &flags.modified);
 	GInode = FS_cmd.read_inode(current_inode);
 	/* Make sure that this block is indexed somewhere in the current inode */
-	if ( (AZP_BAD_START==advance_zone_pointer(GInode->i_zone,
-						&current_block,&ipointer,
-						(c==CMD_NEXT_IND_BLOCK)?+1L:-1L)) ||
-	     (GInode==NULL) ) {
+	c = advance_zone_pointer(GInode->i_zone,
+				 &current_block,&ipointer,
+				 (c==CMD_NEXT_IND_BLOCK)?+1L:-1L);
+	if ( (c==AZP_BAD_START)||(GInode==NULL) ) {
 	  lde_warn("Can only index blocks contained in the current inode.");
-	} else {
+	} else if (c!=AZP_UNCHANGED) {
 	  flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
 	  flags.redraw = 1;
 	  search_iptr = 0L;
