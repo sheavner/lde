@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994,1995  Scott D. Heavner
  *
- *  $Id: nc_block_help.h,v 1.7 1998/06/05 21:23:33 sdh Exp $
+ *  $Id: nc_block_help.h,v 1.8 2001/02/23 23:40:04 scottheavner Exp $
  */
 #ifndef LDE_NC_BLOCK_HELP_H
 #define LDE_NC_BLOCK_HELP_H
@@ -44,6 +44,7 @@ static lde_menu block_help[] = {
   { CMD_REFRESH, "Refresh screen"},
   { CMD_TOGGLE_ASCII, "Toggle hex/ascii edit. (in edit mode)"},
   { CMD_ALL_ASCII, "Supress hex output."},
+  { CMD_FIND_STRING,"Search disk for occurances of a string."},
   { CMD_FIND_INODE,"Find an inode which references this block"},
   { CMD_FIND_INODE_MC,"Find an inode which references this block and view it"},
   { CMD_WRITE_CHANGES, "Write changes to disk"},
@@ -56,6 +57,7 @@ static lde_menu block_menu[] = {
   { CMD_BLOCK_MODE_MC, "View block under cursor" },
   { CMD_VIEW_AS_DIR, "View block as a directory" },
   { CMD_EDIT, "Edit block" },
+  { CMD_FIND_STRING, "Search disk for string data" },
   { CMD_FIND_INODE, "Find inode which references this block" },
   { CMD_INODE_MODE, "Inode mode" },
   { CMD_INODE_MODE_MC, "Inode mode, viewing inode under cursor" },
@@ -124,6 +126,7 @@ static lde_keymap blockmode_keymap[] = {
   { 'A',CMD_ALL_ASCII },
   { LDE_CTRL('R'),CMD_FIND_INODE },
   { LDE_META('r'),CMD_FIND_INODE_MC },
+  { '/',CMD_FIND_STRING },
   { 0, 0 }
 };
 

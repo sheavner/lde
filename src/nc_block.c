@@ -1,9 +1,9 @@
-/*
+ /*
  *  lde/nc_block.c -- The Linux Disk Editor
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.29 2001/02/20 20:55:45 sdh Exp $
+ *  $Id: nc_block.c,v 1.30 2001/02/23 23:40:04 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -383,7 +383,7 @@ static int update_block_data(cached_block **passed_block,
 int block_mode(void) {
   static unsigned char *copy_buffer = NULL;
   int icount = 0, val, v1 = 0, c = CMD_REFRESH, i;
-  char *HEX_PTR, *HEX_NOS = "0123456789ABCDEF";
+  char *HEX_PTR, *HEX_NOS = "0123456789ABCDEF", *s;
   unsigned long a, temp_ptr, search_iptr=0UL, inode_ptr[2] = { 0UL, 0UL };
   bm_flags flags = { 0, 0, 0, 0, 0, 1 };
   bm_cursor curs = { 0, 0, 0, 0, 0, 0, 16, VERT };
@@ -788,6 +788,24 @@ has command */
 	flags.redraw = flags.highlight = 1;
 	break;
 
+      case CMD_FIND_STRING: /* Search disk for data */
+        if (cwrite_block(this_block,&curs,&flags))
+	  break;
+	if ( ncread("Enter search string:",NULL,&s) > 0) {
+	  unsigned long mbnr;
+	  int moffset;
+	  if ( (search_blocks(s, current_block, &mbnr, &moffset)>0) ) {
+	    irecptr = NULL;
+	    clear_data_cache(this_block,&curs);
+	    update_block_data(&this_block,mbnr,irecptr,&curs,&flags,0);
+	    flags.edit_block = curs.col = curs.row = 0;
+	    flags.redraw = 1;
+	    search_iptr = 0L;
+	  }
+
+	}
+	break;
+
       case CMD_FIND_INODE:
       case CMD_FIND_INODE_MC: /* Find an inode which references this block */
         lde_warn("Searching for inode containing block 0x%lX . . .",
@@ -924,8 +942,8 @@ has command */
       case CMD_NUMERIC_REF: /* Jump to a block by numeric reference */
         if (cwrite_block(this_block,&curs,&flags))
 	  break;
-        if (cread_num("Enter block number (leading 0x or $ indicates hex):"
-		      ,&a)) {
+        if (ncread("Enter block number (leading 0x or $ indicates hex):"
+		      ,&a,NULL)) {
 	  if (a >= sb->nzones)
 	    a=sb->nzones-1;
 	  irecptr = NULL;
@@ -956,8 +974,7 @@ has command */
 	flags.redraw = 1;
 	break;
 
-      case CMD_ANY_ACTION: /* Unknown command, but still want to execute stuff 
-*/
+      case CMD_ANY_ACTION: /* Unknown command, but still want to execute stuff */
 	break;		   /* after loop */
 
       default:             /* Unknown command, get another */
@@ -988,11 +1005,4 @@ has command */
   free(cb_buffer);
   return 0;
 }
-
-
-
-
-
-
-
 

@@ -1,3 +1,9 @@
+Fri Feb 23 2001 Scott Heavner
+
+	* add block search function (ncblock.c / recover.c)
+	* rename cread_num() to ncread() and add extra argument
+
+
 Thu Feb 22 09:02:46 PST 2001 Scott Heavner
 
 	* remove all references to <linux/*.h> for port to cygwin

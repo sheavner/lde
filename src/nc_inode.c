@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.21 2001/02/22 19:48:20 sdh Exp $
+ *  $Id: nc_inode.c,v 1.22 2001/02/23 23:40:04 scottheavner Exp $
  */
 
 #include <ctype.h>
@@ -401,7 +401,7 @@ void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *G
 {
   unsigned long a;
   int result;
-  char newdate[80] = "Enter new time and/or date: ";
+  char *s;
 
 #ifndef NC_FIXED_UNGETCH
   switch(highlight_field) {
@@ -409,11 +409,11 @@ void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *G
     case I_DTIME:
     case I_MTIME:
     case I_CTIME:
-      if ((result = cread_num(newdate,NULL)))
-	a = (unsigned long) getdate(newdate,NULL);
+      if ((result = ncread("Enter new time and/or date:",NULL,&s)))
+	a = (unsigned long) getdate(s,NULL);
       break;
     default:
-      result = cread_num("Enter new value: ",&a);
+      result = ncread("Enter new value: ",&a,NULL);
       break;
   }
 
@@ -596,7 +596,7 @@ int inode_mode() {
 	break;
 
       case CMD_NUMERIC_REF: /* Go to an inode specified by number */
-	if (cread_num("Enter inode number (leading 0x or $ indicates hex):",&a)) {
+	if (ncread("Enter inode number (leading 0x or $ indicates hex):",&a,NULL)) {
 	  current_inode = a;
 	  limit_inode(&current_inode, sb);
 	  GInode = FS_cmd.read_inode(current_inode);

@@ -3,13 +3,14 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.27 2001/02/22 19:48:20 sdh Exp $
+ *  $Id: recover.c,v 1.28 2001/02/23 23:40:04 scottheavner Exp $
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <string.h>
 
 #ifdef   HAVE_UNAME
 #include <sys/utsname.h>
@@ -743,5 +744,64 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 
 }
 
+/* Do a regular expression search across the filesystem */
+int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, int *moffset) {
+  int     rs = 500, retval=0;
+  size_t  bytesread, rbs = 0, lsearchstring;
+  char    *buffer = 0, *match;
 
+#ifdef ALPHA_CODE
+  if ( (!searchstring) || (!*searchstring) ) {
+    lde_warn("NULL searchstring ignored");
+    return -1;
+  }
+  
+  if (rs>sb->nzones) {
+    rs = sb->nzones - sbnr;
+  }
+  
+  /* Try to read 501 blocks at a time */
+  buffer = malloc((rs+1)*sb->blocksize);
+  if (!buffer) {
+    /* too ambitious? */
+    rs = 100;
+    buffer = malloc((rs+1)*sb->blocksize);
+  }
+  if (!buffer) {
+    /* still too ambitious? */
+    rs = 1;
+    buffer = malloc((rs+1)*sb->blocksize);
+  }
+  if (!buffer) {
+    lde_warn("Out of memory, can't complete search");
+    return -1;
+  }
+  
+  rbs = (rs+1)*sb->blocksize;
+  lsearchstring=strlen(searchstring);
+  
+  for ( ; sbnr<sb->nzones; sbnr+=rs) {
+    bytesread = nocache_read_block(sbnr, buffer, rbs);
+    if (bytesread < 0) {
+      retval = -1;
+      break;
+    }
+    if ( (match = memmem(buffer, bytesread, searchstring, lsearchstring)) ) {
+      *mbnr    = ((int)(match - buffer))/sb->blocksize + sbnr;
+      *moffset = ((int)(match - buffer))%sb->blocksize;
+      lde_warn("matches block=0x%lx offset=0x%lx",*mbnr,*moffset+sbnr*sb->blocksize);
+      retval   = 1;
+      break;
+    }
+  }
+  
+  free(buffer);
+#else
+  lde_warn("Block search is still Alpha -- Reconfigure & recompile with --enable-debug");
+#endif
 
+  if (retval==0)
+     lde_warn("No match");
+  
+  return retval;
+}

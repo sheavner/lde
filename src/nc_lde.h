@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.h,v 1.11 1998/06/05 21:23:54 sdh Exp $
+ *  $Id: nc_lde.h,v 1.12 2001/02/23 23:40:04 scottheavner Exp $
  */
 #ifndef LDE_NC_LDE_H
 #define LDE_NC_LDE_H
@@ -48,7 +48,7 @@ extern unsigned long fake_inode_zones[];
 extern int nc_mgetch(void);
 extern void redraw_win(WINDOW *win);
 extern int cquery(char *data_string, char *data_options, char *warn_string);
-extern int cread_num(char *coutput, unsigned long *a);
+extern int ncread(char *coutput, unsigned long *a, char **string);
 extern void display_trailer(char *line1);
 extern void update_header(void);
 extern void clobber_window(WINDOW *win);

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1995  Scott D. Heavner
  *
- *  $Id: keymap.h,v 1.8 1998/01/18 06:34:46 sdh Exp $
+ *  $Id: keymap.h,v 1.9 2001/02/23 23:40:04 scottheavner Exp $
  *
  */
 #ifndef KEYMAP_H
@@ -69,10 +69,11 @@ enum lde_actions {
   CMD_NEXT_FIELD,           /* Forward one field */
   CMD_TOGGLE_ASCII,         /* Switch between ASCII and HEX editing */
   CMD_ALL_ASCII,            /* Only display ascii information in block mode ? */
+  CMD_FIND_STRING,          /* Find this string somewhere on the disk */
   CMD_FIND_INODE,           /* Find an inode which references this block */
   CMD_FIND_INODE_MC,        /* Find an inode which references this block and view it */
   CMD_BIN_INODE,            /* View this inode with the block editor, i.e the 
-			     * raw block on the disk containing this inode */
+                             * raw block on the disk containing this inode */
 
   REC_FILE0,                /* First block in inode's recovery list */
   REC_FILE1,

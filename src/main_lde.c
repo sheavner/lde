@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.30 2001/02/22 19:48:20 sdh Exp $
+ *  $Id: main_lde.c,v 1.31 2001/02/23 23:40:04 scottheavner Exp $
  */
 
 #include <fcntl.h>
@@ -256,6 +256,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       {"recoverable",0,0,'#'},
       {"append",0,0,'%'},
       {"file",1,0,'f'},
+      {"logtofile",0,0,'F'},
       {0, 0, 0, 0}
     };
 

@@ -1,9 +1,9 @@
-/*
+ /*
  *  lde/nc_lde.c -- The Linux Disk Editor
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.36 2001/02/22 19:48:20 sdh Exp $
+ *  $Id: nc_lde.c,v 1.37 2001/02/23 23:40:04 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -107,9 +107,11 @@ int cquery(char *data_string, char *data_options, char *warn_string)
  * what the hell.  If coutput begins with a space, cinput is returned in
  * coutput and the number processing does not occurr.
  */
-int cread_num(char *coutput, unsigned long *a)
+int ncread(char *coutput, unsigned long *a, char **string)
 {
-  char cinput[80];
+  static char cinput[80];
+
+  cinput[0] = 0;
 
   lde_flags.quit_now = 0;
 
@@ -139,13 +141,13 @@ int cread_num(char *coutput, unsigned long *a)
     delwin(window_available);
 # endif
 
-  if ((coutput[0]!=' ')&&(a)) {
+  if (!string) {
     *a = read_num(cinput);
     return strlen(cinput);
   } else {
     if (lde_flags.quit_now)  /* Control-C aborts */
       return -1;
-    strncpy(coutput, cinput, 80);
+	*string = cinput;
     return strlen(cinput);
   }
 
@@ -722,11 +724,10 @@ void crecover_file(unsigned long inode_zones[], unsigned long filesize)
 {
   static char recover_file_name[80] = "RECOVERED.file";
   int fp;
-  char recover_query[80];
+  char *recover_query;
   int c;
 
-  sprintf(recover_query," Write data to file:");
-  c = cread_num(recover_query, NULL);
+  c = ncread("Write data to file:", NULL, &recover_query);
   if (c<0) {
     lde_warn("Recovery aborted");
     return;
@@ -812,11 +813,11 @@ int recover_mode(void)
       case REC_FILE12:
       case REC_FILE13:
       case REC_FILE14:
-	if (cread_num("Enter block number (leading 0x or $ indicates hex):", &a))
+	if (ncread("Enter block number (leading 0x or $ indicates hex):", &a, NULL))
 	  fake_inode_zones[c-REC_FILE0] = (unsigned long) a;
         break;
       case REC_FILE_SIZE:
-	if (cread_num("Enter file size (0 is special) (leading 0x or $ indicates hex):", &a))
+	if (ncread("Enter file size (0 is special) (leading 0x or $ indicates hex):", &a, NULL))
 	  fake_inode_zones[INODE_BLKS] = (unsigned long) a;
         break;
       case CMD_CLR_RECOVER:
