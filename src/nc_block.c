@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.11 1995/06/02 15:53:28 sdh Exp $
+ *  $Id: nc_block.c,v 1.12 1995/06/02 16:04:38 sdh Exp $
  */
 
 #include <stdio.h>
@@ -389,7 +389,7 @@ int block_mode(void) {
 	break;
 
       case CMD_FIND_INODE: /* Find an inode which references this block */
-        warn("Searching for inode containing block 0x%lX.",current_block);
+        warn("Searching for inode containing block 0x%lX . . .",current_block);
 	if ( (temp_ptr = find_inode(current_block)) )
 	  warn("Block is indexed under inode 0x%lX.",temp_ptr);
 	else
