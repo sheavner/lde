@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.12 1998/01/23 04:07:27 sdh Exp $
+ *  $Id: no_fs.c,v 1.13 1998/01/24 21:43:39 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -146,7 +146,7 @@ static char* NOFS_dir_entry(int i, lde_buffer *block_buffer,
 
 static void NOFS_sb_init(char * sb_buffer)
 {
-  static int firsttime=0;
+  static int firsttime=1;
   struct stat statbuf;
 
   fstat(CURR_DEVICE, &statbuf);
@@ -166,7 +166,7 @@ static void NOFS_sb_init(char * sb_buffer)
    * Don't want to do this the first time through because the partition
    * will most likely have a file system on it and we won't have to 
    * resort to this */
-  if ((!sb->nzones)||(firsttime))
+  if ((!sb->nzones)&&(!firsttime))
     sb->nzones = NOFS_get_device_size(CURR_DEVICE, sb->blocksize);
 
   /* Both methods of size detection failed, just set it big */
@@ -187,7 +187,7 @@ static void NOFS_sb_init(char * sb_buffer)
   sb->INODES_PER_BLOCK = 1;
   sb->norm_first_data_zone = 0UL;
 
-  firsttime = 1;
+  firsttime = 0;
 }
 
 void NOFS_init(char * sb_buffer)
