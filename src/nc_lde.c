@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.8 1994/04/24 20:36:35 sdh Exp $
+ *  $Id: nc_lde.c,v 1.9 1994/04/24 20:59:33 sdh Exp $
  */
 
 #include "nc_lde.h"
@@ -125,8 +125,8 @@ void update_header(void)
 #if HEADER_SIZE>0
   int j;
 
-  mvwprintw(header,HEADER_SIZE-1,HOFF,"Inode: %lu (0x%5.5lX)",current_inode,current_inode);
-  mvwprintw(header,HEADER_SIZE-1,HOFF+25,"Block: %lu (0x%5.5lX)",current_block,current_block);
+  mvwprintw(header,HEADER_SIZE-1,HOFF,"Inode: %lu (0x%5.5lX)       ",current_inode,current_inode);
+  mvwprintw(header,HEADER_SIZE-1,HOFF+25,"Block: %lu (0x%5.5lX)          ",current_block,current_block);
   for (j=0;j<fsc->N_BLOCKS;j++)
     if (fake_inode_zones[j]) 
       mvwaddch(header,HEADER_SIZE-1,HOFF+60+j,'-');
@@ -153,7 +153,6 @@ void restore_header(void)
   char echo_string[132];
 
   wattron(header,WHITE_ON_BLUE);
-  werase(header);
 
   /* A cute way to RVS video the header window, since erase and clear don't seem to
    * do it for me. */

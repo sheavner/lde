@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.9 1994/04/24 20:35:32 sdh Exp $
+ *  $Id: tty_lde.c,v 1.10 1994/04/24 20:59:29 sdh Exp $
  */
 
 #include "lde.h"
@@ -53,7 +53,10 @@ long read_num(char *cinput)
       if ((cinput[1]=='x')||(cinput[1]=='X'))
 	sscanf(cinput,"%*2c%lx", &i);
       else
-	sscanf(cinput,"%*1c%lo", &i);
+	if (cinput[1]!=0)
+	  sscanf(cinput,"%*1c%lo", &i);
+	else
+	  i = 0;
     else
       sscanf(cinput,"%ld", &i);
     return i;
