@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.30 2001/11/26 03:10:41 scottheavner Exp $
+ *  $Id: lde.h,v 1.31 2002/01/10 19:39:03 scottheavner Exp $
  */
 
 #ifndef LDE_H
@@ -223,18 +223,18 @@ struct {
 
 /* Flags */
 volatile struct _lde_flags {
-  unsigned search_all:        1;
-  unsigned quiet:             1;
-  unsigned write_ok:          1;
-  unsigned paranoid:          1;
-  unsigned inode_lookup:      1;
-  unsigned check_recover:     1;
-  unsigned always_append:     1;
-  unsigned indirect_search:   1;
-  unsigned quit_now:          1;
-  unsigned mounted:           1;
-  unsigned blanked_indirects: 1;  /* Set for Linux 2.0.* to work around blanked indirect blocks */
-  unsigned logtofile:         1;
+  int search_all;
+  int quiet;
+  int write_ok;
+  int paranoid;
+  int inode_lookup;
+  int check_recover;
+  int always_append;
+  int indirect_search;
+  int quit_now;
+  int mounted;
+  int blanked_indirects;  /* Set for Linux 2.0.* to work around blanked indirect blocks */
+  int logtofile;
 } lde_flags;
 
 extern struct sbinfo *sb;

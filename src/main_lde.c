@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.37 2001/11/26 03:10:41 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.38 2002/01/10 19:39:03 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -217,7 +217,7 @@ static void long_usage(void)
 static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 {
   int option_index = 0, i;
-  char c;
+  int c;
   static char gzip_tar_type[] = { 31, 138, 8, 0 };
   static char gzip_type[] = { 31, 139 };
   struct _search_types search_types[] = {
