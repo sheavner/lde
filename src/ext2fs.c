@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.9 1994/09/06 01:32:11 sdh Exp $
+ *  $Id: ext2fs.c,v 1.10 1995/06/01 06:03:15 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -44,15 +44,9 @@ static struct Generic_Inode *EXT2_read_inode (unsigned long ino);
 static int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode);
 static int EXT2_inode_in_use(unsigned long nr);
 static int EXT2_zone_in_use(unsigned long nr);
-static char* EXT2_dir_entry(int i, char *block_buffer, unsigned long *inode_nr);
+static char* EXT2_dir_entry(int i, void *block_buffer, unsigned long *inode_nr);
 static void EXT2_read_tables(void);
-static void EXT2_sb_init(char * sb_buffer);
-
-#undef Inode
-#define Inode (((struct ext2_inode *) inode_buffer)+i)
-
-#undef Super
-#define Super (*(struct ext2_super_block *)sb_buffer)
+static void EXT2_sb_init(void * sb_buffer);
 
 #define NORM_FIRSTBLOCK      1UL
 #undef  FIRSTBLOCK
@@ -76,21 +70,22 @@ static struct inode_fields EXT2_inode_fields = {
   1, /*   unsigned long  i_dtime; */
   0, /*   unsigned long  i_flags; */
   0, /*   unsigned long  i_reserved1; */
-  1, /*   unsigned long  i_zone[0]; */
-  1, /*   unsigned long  i_zone[1]; */
-  1, /*   unsigned long  i_zone[2]; */
-  1, /*   unsigned long  i_zone[3]; */
-  1, /*   unsigned long  i_zone[4]; */
-  1, /*   unsigned long  i_zone[5]; */
-  1, /*   unsigned long  i_zone[6]; */
-  1, /*   unsigned long  i_zone[7]; */
-  1, /*   unsigned long  i_zone[8]; */
-  1, /*   unsigned long  i_zone[9]; */
-  1, /*   unsigned long  i_zone[10]; */
-  1, /*   unsigned long  i_zone[11]; */
-  1, /*   unsigned long  i_zone[12]; */
-  1, /*   unsigned long  i_zone[13]; */
-  1, /*   unsigned long  i_zone[14]; */
+  { 1, /*   unsigned long  i_zone[0]; */
+    1, /*   unsigned long  i_zone[1]; */
+    1, /*   unsigned long  i_zone[2]; */
+    1, /*   unsigned long  i_zone[3]; */
+    1, /*   unsigned long  i_zone[4]; */
+    1, /*   unsigned long  i_zone[5]; */
+    1, /*   unsigned long  i_zone[6]; */
+    1, /*   unsigned long  i_zone[7]; */
+    1, /*   unsigned long  i_zone[8]; */
+    1, /*   unsigned long  i_zone[9]; */
+    1, /*   unsigned long  i_zone[10]; */
+    1, /*   unsigned long  i_zone[11]; */
+    1, /*   unsigned long  i_zone[12]; */
+    1, /*   unsigned long  i_zone[13]; */
+    1  /*   unsigned long  i_zone[14]; */
+  },
   0, /*   unsigned long  i_version; */
   0, /*   unsigned long  i_file_acl; */
   0, /*   unsigned long  i_dir_acl; */
@@ -98,7 +93,7 @@ static struct inode_fields EXT2_inode_fields = {
   0, /*   unsigned char  i_frag; */
   0, /*   unsigned char  i_fsize; */
   0, /*   unsigned short i_pad1; */
-  0, /*   unsigned long  i_reserved2[2]; */
+  0, /*   unsigned long  i_reserved2; */
 };
 
 static struct fs_constants EXT2_constants = {
@@ -207,7 +202,7 @@ static void EXT2_read_block_bitmap(unsigned long nr)
   int i;
   char *local_map;
 
-  local_map = inode_map;
+  local_map = zone_map;
 
 #ifndef READ_PART_TABLES
   for (i = 0; i < group_desc_count; i++) {
@@ -238,23 +233,27 @@ static int EXT2_zone_in_use(unsigned long nr)
 }
 
 /* Could use some optimization maybe?? */
-static char* EXT2_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
+static char* EXT2_dir_entry(int i, void *block_buffer, unsigned long *inode_nr)
 {
   char *bp;
   int j;
-  static char EXT2_cname[EXT2_NAME_LEN];
+  static char EXT2_cname[EXT2_NAME_LEN+1];
 
-  bzero(EXT2_cname,EXT2_NAME_LEN);
   bp = block_buffer;
 
   if (i)
     for (j = 0; j < i ; j++) {
       bp += block_pointer(bp,(unsigned long)(fsc->INODE_ENTRY_SIZE/2),2);
     }
-  *inode_nr = block_pointer(bp,0UL,fsc->INODE_ENTRY_SIZE);
-  strncpy(EXT2_cname, (bp+fsc->INODE_ENTRY_SIZE+2*sizeof(unsigned short)),
-	  block_pointer(bp,(unsigned long)( (fsc->INODE_ENTRY_SIZE+sizeof(unsigned short))/sizeof(unsigned short) ),
-			sizeof(unsigned short)));
+  if ( (void *)bp >= (block_buffer + sb->blocksize) ) {
+    EXT2_cname[0] = 0;
+  } else {
+    bzero(EXT2_cname,EXT2_NAME_LEN+1);
+    *inode_nr = block_pointer(bp,0UL,fsc->INODE_ENTRY_SIZE);
+    strncpy(EXT2_cname, (bp+fsc->INODE_ENTRY_SIZE+2*sizeof(unsigned short)),
+	    block_pointer(bp,(unsigned long)( (fsc->INODE_ENTRY_SIZE+sizeof(unsigned short))/sizeof(unsigned short) ),
+			  sizeof(unsigned short)));
+  }
   return (EXT2_cname);
 }
 
@@ -283,7 +282,7 @@ static void EXT2_read_tables()
   
   if (!group_desc)
     die ("Unable to allocate buffers for group descriptors");
-  desc_loc = (((MIN_BLOCK_SIZE) / sb->blocksize) + 1) * sb->blocksize;
+  desc_loc = (((EXT2_MIN_BLOCK_SIZE) / sb->blocksize) + 1) * sb->blocksize;
   if (lseek (CURR_DEVICE, desc_loc, SEEK_SET) != desc_loc)
     die ("seek failed");
   if (read (CURR_DEVICE, group_desc, group_desc_size) != group_desc_size)
@@ -327,21 +326,23 @@ static void EXT2_read_tables()
   }
 }
 
-static void EXT2_sb_init(char * sb_buffer)
+static void EXT2_sb_init(void *sb_buffer)
 {
   double temp;
+  struct ext2_super_block *Super;
+  Super = (void *)(sb_buffer+1024);
 
-  sb->ninodes = Super.s_inodes_count;
-  sb->nzones = Super.s_blocks_count;
-  sb->imap_blocks = 1;
-  sb->zmap_blocks = 1;
-  sb->first_data_zone = Super.s_first_data_block;
-  sb->max_size = 0;
-  sb->zonesize = Super.s_log_block_size;
-  sb->blocksize = MIN_BLOCK_SIZE << Super.s_log_block_size;
-  sb->magic = Super.s_magic;
-  sb->s_inodes_per_group = Super.s_inodes_per_group;
-  sb->s_blocks_per_group = Super.s_blocks_per_group;
+  sb->ninodes            = Super->s_inodes_count;
+  sb->nzones             = Super->s_blocks_count;
+  sb->imap_blocks        = 1;
+  sb->zmap_blocks        = 1;
+  sb->first_data_zone    = Super->s_first_data_block;
+  sb->max_size           = 0;
+  sb->zonesize           = Super->s_log_block_size;
+  sb->blocksize          = EXT2_MIN_BLOCK_SIZE << Super->s_log_block_size;
+  sb->magic              = Super->s_magic;
+  sb->s_inodes_per_group = Super->s_inodes_per_group;
+  sb->s_blocks_per_group = Super->s_blocks_per_group;
 
   sb->INODES_PER_BLOCK = sb->blocksize / sizeof (struct ext2_inode);
   sb->namelen = EXT2_NAME_LEN;
@@ -350,32 +351,31 @@ static void EXT2_sb_init(char * sb_buffer)
   sb->norm_first_data_zone = FIRSTBLOCK;
 }
 
-void EXT2_init(char * sb_buffer)
+void EXT2_init(void *sb_buffer)
 {
   fsc = &EXT2_constants;
 
   EXT2_sb_init(sb_buffer);
 
   FS_cmd.inode_in_use = EXT2_inode_in_use;
-  FS_cmd.zone_in_use = EXT2_zone_in_use;
-  FS_cmd.dir_entry = EXT2_dir_entry;
-  FS_cmd.read_inode = EXT2_read_inode;
-  FS_cmd.write_inode = EXT2_write_inode;
+  FS_cmd.zone_in_use  = EXT2_zone_in_use;
+  FS_cmd.dir_entry    = EXT2_dir_entry;
+  FS_cmd.read_inode   = EXT2_read_inode;
+  FS_cmd.write_inode  = EXT2_write_inode;
 
   EXT2_read_tables();
 
   (void) check_root();
 }
 
-int EXT2_test(char * sb_buffer)
+int EXT2_test(void *sb_buffer)
 {
-   if (Super.s_magic == EXT2_SUPER_MAGIC) {
+  struct ext2_super_block *Super;
+  Super = (void *)(sb_buffer+1024);
+
+   if (Super->s_magic == EXT2_SUPER_MAGIC) {
      warn("Found ext2fs on device.");
-     return 0;
+     return 1;
    }
-   return -1;
+   return 0;
 }
-
-
-
-

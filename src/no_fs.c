@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.6 1994/09/06 01:29:56 sdh Exp $
+ *  $Id: no_fs.c,v 1.7 1995/06/01 06:02:09 sdh Exp $
  */
 
 /* 
@@ -16,9 +16,7 @@
 #include "no_fs.h"
 
 static struct Generic_Inode *NOFS_read_inode(unsigned long nr);
-static int NOFS_null_call(void);
-static int NOFS_one(unsigned long nr);
-static char* NOFS_dir_entry(int i, char *block_buffer, unsigned long *inode_nr);
+static char* NOFS_dir_entry(int i, void *block_buffer, unsigned long *inode_nr);
 static void NOFS_sb_init(char * sb_buffer);
 
 static struct inode_fields NOFS_inode_fields = {
@@ -35,21 +33,22 @@ static struct inode_fields NOFS_inode_fields = {
   0, /*   unsigned long  i_dtime; */
   0, /*   unsigned long  i_flags; */
   0, /*   unsigned long  i_reserved1; */
-  0, /*   unsigned long  i_zone[0]; */
-  0, /*   unsigned long  i_zone[1]; */
-  0, /*   unsigned long  i_zone[2]; */
-  0, /*   unsigned long  i_zone[3]; */
-  0, /*   unsigned long  i_zone[4]; */
-  0, /*   unsigned long  i_zone[5]; */
-  0, /*   unsigned long  i_zone[6]; */
-  0, /*   unsigned long  i_zone[7]; */
-  0, /*   unsigned long  i_zone[8]; */
-  0, /*   unsigned long  i_zone[9]; */
-  0, /*   unsigned long  i_zone[10]; */
-  0, /*   unsigned long  i_zone[11]; */
-  0, /*   unsigned long  i_zone[12]; */
-  0, /*   unsigned long  i_zone[13]; */
-  0, /*   unsigned long  i_zone[14]; */
+  { 0, /*   unsigned long  i_zone[0]; */
+    0, /*   unsigned long  i_zone[1]; */
+    0, /*   unsigned long  i_zone[2]; */
+    0, /*   unsigned long  i_zone[3]; */
+    0, /*   unsigned long  i_zone[4]; */
+    0, /*   unsigned long  i_zone[5]; */
+    0, /*   unsigned long  i_zone[6]; */
+    0, /*   unsigned long  i_zone[7]; */
+    0, /*   unsigned long  i_zone[8]; */
+    0, /*   unsigned long  i_zone[9]; */
+    0, /*   unsigned long  i_zone[10]; */
+    0, /*   unsigned long  i_zone[11]; */
+    0, /*   unsigned long  i_zone[12]; */
+    0, /*   unsigned long  i_zone[13]; */
+    0  /*   unsigned long  i_zone[14]; */
+  },
   0, /*   unsigned long  i_version; */
   0, /*   unsigned long  i_file_acl; */
   0, /*   unsigned long  i_dir_acl; */
@@ -100,18 +99,18 @@ static struct Generic_Inode *NOFS_read_inode(unsigned long nr)
   return &NOFS_junk_inode;
 }
 
-static int NOFS_null_call(void)
+int NOFS_null_call(void)
 {
   return 0;
 }
 
 /* Returns 1 always */
-static int NOFS_one(unsigned long nr)
+int NOFS_one(unsigned long nr)
 {
   return 1;
 }
 
-static char* NOFS_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
+static char* NOFS_dir_entry(int i, void *block_buffer, unsigned long *inode_nr)
 {
   *inode_nr = 1UL;
   return ( (char *) "" );

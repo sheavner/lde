@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.8 1994/09/06 02:42:25 sdh Exp $
+ *  $Id: xiafs.c,v 1.9 1995/06/01 06:01:37 sdh Exp $
  */
 
 #include <ctype.h>
@@ -21,16 +21,10 @@
 #include "tty_lde.h"
 #include "xiafs.h"
 
-#undef Inode
-#define Inode (((struct xiafs_inode *) inode_buffer)-1+nr)
-
-#undef Super
-#define Super (*(struct xiafs_super_block *)sb_buffer)
-
 static struct Generic_Inode* XIAFS_read_inode(unsigned long nr);
 static int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode);
-static char* XIAFS_dir_entry(int i, char *block_buffer, unsigned long *inode_nr);
-static void XIAFS_sb_init(char * sb_buffer);
+static char* XIAFS_dir_entry(int i, void *block_buffer, unsigned long *inode_nr);
+static void XIAFS_sb_init(void * sb_buffer);
 
 static struct inode_fields XIAFS_inode_fields = {
   1, /*   unsigned short i_mode; */
@@ -46,21 +40,22 @@ static struct inode_fields XIAFS_inode_fields = {
   0, /*   unsigned long  i_dtime; */
   0, /*   unsigned long  i_flags; */
   0, /*   unsigned long  i_reserved1; */
-  1, /*   unsigned long  i_zone[0]; */
-  1, /*   unsigned long  i_zone[1]; */
-  1, /*   unsigned long  i_zone[2]; */
-  1, /*   unsigned long  i_zone[3]; */
-  1, /*   unsigned long  i_zone[4]; */
-  1, /*   unsigned long  i_zone[5]; */
-  1, /*   unsigned long  i_zone[6]; */
-  1, /*   unsigned long  i_zone[7]; */
-  1, /*   unsigned long  i_zone[8]; */
-  1, /*   unsigned long  i_zone[9]; */
-  0, /*   unsigned long  i_zone[10]; */
-  0, /*   unsigned long  i_zone[11]; */
-  0, /*   unsigned long  i_zone[12]; */
-  0, /*   unsigned long  i_zone[13]; */
-  0, /*   unsigned long  i_zone[14]; */
+  { 1, /*   unsigned long  i_zone[0]; */
+    1, /*   unsigned long  i_zone[1]; */
+    1, /*   unsigned long  i_zone[2]; */
+    1, /*   unsigned long  i_zone[3]; */
+    1, /*   unsigned long  i_zone[4]; */
+    1, /*   unsigned long  i_zone[5]; */
+    1, /*   unsigned long  i_zone[6]; */
+    1, /*   unsigned long  i_zone[7]; */
+    1, /*   unsigned long  i_zone[8]; */
+    1, /*   unsigned long  i_zone[9]; */
+    0, /*   unsigned long  i_zone[10]; */
+    0, /*   unsigned long  i_zone[11]; */
+    0, /*   unsigned long  i_zone[12]; */
+    0, /*   unsigned long  i_zone[13]; */
+    0  /*   unsigned long  i_zone[14]; */
+  },
   0, /*   unsigned long  i_version; */
   0, /*   unsigned long  i_file_acl; */
   0, /*   unsigned long  i_dir_acl; */
@@ -89,6 +84,7 @@ static struct Generic_Inode* XIAFS_read_inode(unsigned long nr)
 {
   static struct Generic_Inode GInode;
   static unsigned long XIAFS_last_inode = -1L; 
+  struct xiafs_inode *Inode;
   int i;
 
   if ((nr<1)||(nr>sb->ninodes)) {
@@ -98,6 +94,8 @@ static struct Generic_Inode* XIAFS_read_inode(unsigned long nr)
 
   if (XIAFS_last_inode == nr) return &GInode;
   XIAFS_last_inode = nr;
+
+  Inode = ((struct xiafs_inode *) inode_buffer) - 1 + nr;
 
   GInode.i_mode        = (unsigned short) Inode->i_mode;
   GInode.i_uid         = (unsigned short) Inode->i_uid;
@@ -122,6 +120,9 @@ static int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode)
 {
   unsigned long bnr;
   int i;
+  struct xiafs_inode *Inode;
+
+  Inode = ((struct xiafs_inode *) inode_buffer) - 1 + nr;
 
   Inode->i_mode        = (unsigned short) GInode->i_mode;
   Inode->i_uid         = (unsigned short) GInode->i_uid;
@@ -143,36 +144,43 @@ static int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode)
 }
 
 /* Could use some optimization maybe?? */
-static char* XIAFS_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
+static char* XIAFS_dir_entry(int i, void *block_buffer, unsigned long *inode_nr)
 {
   char *bp;
   int j;
-  static char cname[_XIAFS_NAME_LEN];
+  static char cname[_XIAFS_NAME_LEN+1];
 
-  bzero(cname,_XIAFS_NAME_LEN);
   bp = block_buffer;
 
   if (i)
     for (j = 0; j < i ; j++) {
       bp += block_pointer(bp,(unsigned long)(fsc->INODE_ENTRY_SIZE/2),2);
     }
-  *inode_nr = block_pointer(bp,0UL,fsc->INODE_ENTRY_SIZE);
-  strncpy(cname, (bp+fsc->INODE_ENTRY_SIZE+sizeof(unsigned short)+sizeof(unsigned char)),
-	  bp[fsc->INODE_ENTRY_SIZE+sizeof(unsigned short)+sizeof(unsigned char)]);
+  if ( (bp+fsc->INODE_ENTRY_SIZE+sizeof(unsigned short)+sizeof(unsigned char)) >= (char *)(block_buffer+sb->blocksize)) {
+    cname[0] = 0;
+  } else {
+    bzero(cname,_XIAFS_NAME_LEN+1);
+    *inode_nr = block_pointer(bp,0UL,fsc->INODE_ENTRY_SIZE);
+    strncpy(cname, (bp+fsc->INODE_ENTRY_SIZE+sizeof(unsigned short)+sizeof(unsigned char)),
+	    bp[fsc->INODE_ENTRY_SIZE+sizeof(unsigned short)+sizeof(unsigned char)]);
+  }
   return (cname);
 }
 
-static void XIAFS_sb_init(char * sb_buffer)
+static void XIAFS_sb_init(void *sb_buffer)
 {
-  sb->ninodes = Super.s_ninodes;
-  sb->nzones = Super.s_nzones;
-  sb->imap_blocks = Super.s_imap_zones;
-  sb->zmap_blocks = Super.s_zmap_zones;
-  sb->first_data_zone = Super.s_firstdatazone;
-  sb->max_size = Super.s_max_size;
-  sb->zonesize = Super.s_zone_shift;
-  sb->blocksize = 1024;
-  sb->magic = Super.s_magic;
+  struct xiafs_super_block *Super;
+  Super = sb_buffer;
+
+  sb->ninodes         = Super->s_ninodes;
+  sb->nzones          = Super->s_nzones;
+  sb->imap_blocks     = Super->s_imap_zones;
+  sb->zmap_blocks     = Super->s_zmap_zones;
+  sb->first_data_zone = Super->s_firstdatazone;
+  sb->max_size        = Super->s_max_size;
+  sb->zonesize        = Super->s_zone_shift;
+  sb->blocksize       = 1024;
+  sb->magic           = Super->s_magic;
 
   sb->I_MAP_SLOTS = _XIAFS_IMAP_SLOTS;
   sb->Z_MAP_SLOTS = _XIAFS_ZMAP_SLOTS;
@@ -181,30 +189,31 @@ static void XIAFS_sb_init(char * sb_buffer)
   sb->norm_first_data_zone = (sb->imap_blocks+1+sb->zmap_blocks+INODE_BLOCKS);
 }
 
-int XIAFS_init(char * sb_buffer)
+int XIAFS_init(void *sb_buffer)
 {
   fsc = &XIAFS_constants;
 
   XIAFS_sb_init(sb_buffer);
 
   FS_cmd.inode_in_use = MINIX_inode_in_use;
-  FS_cmd.zone_in_use = MINIX_zone_in_use;
-  FS_cmd.dir_entry = XIAFS_dir_entry;
-  FS_cmd.read_inode = XIAFS_read_inode;
-  FS_cmd.write_inode = XIAFS_write_inode;
+  FS_cmd.zone_in_use  = MINIX_zone_in_use;
+  FS_cmd.dir_entry    = XIAFS_dir_entry;
+  FS_cmd.read_inode   = XIAFS_read_inode;
+  FS_cmd.write_inode  = XIAFS_write_inode;
 
   MINIX_read_tables();
 
   return check_root();
 }
 
-#undef ONE_BLOCK
-#define ONE_BLOCK 1024
 void XIAFS_scrub(int flag)
 {
-  char sb_buffer[ONE_BLOCK];
+  struct xiafs_super_block Super;
 
-  if (ONE_BLOCK != read(CURR_DEVICE, sb_buffer, ONE_BLOCK))
+  if (lseek(CURR_DEVICE,0,SEEK_SET))
+    die("unable to seek block in XIAFS_scrub() prior to read");
+
+  if (sizeof(struct xiafs_super_block) != read(CURR_DEVICE, &Super, sizeof(struct xiafs_super_block)))
     die("unable to read super block in XIAFS_scrub()");
 
   if (flag > 0)
@@ -212,17 +221,24 @@ void XIAFS_scrub(int flag)
   else
     Super.s_magic = _XIAFS_SUPER_MAGIC;
 
-  if (ONE_BLOCK != write(CURR_DEVICE, sb_buffer, ONE_BLOCK))
+  if (lseek(CURR_DEVICE,0,SEEK_SET))
+    die("unable to seek block in XIAFS_scrub() prior to write");
+
+  if (sizeof(struct xiafs_super_block) != write(CURR_DEVICE, &Super, sizeof(struct xiafs_super_block)))
     die("unable to write super block in XIAFS_scrub()");
 }
 
-int XIAFS_test(char * sb_buffer)
+int XIAFS_test(void *sb_buffer)
 {
-   if (Super.s_magic == _XIAFS_SUPER_MAGIC) {
-     warn("Found xia_fs on device");
-     return 0;
-   }
-   return -1;
+  struct xiafs_super_block *Super;
+  Super = sb_buffer;
+
+  if (Super->s_magic == _XIAFS_SUPER_MAGIC) {
+    warn("Found xia_fs on device");
+    return 1;
+  }
+
+  return 0;
 }
 
 

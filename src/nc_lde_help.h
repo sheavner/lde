@@ -1,9 +1,11 @@
 /*
  *  lde/nc_lde_help.h -- The Linux Disk Editor
  *
- *  Copyright (C) 1994  Scott D. Heavner
+ *  Copyright (C) 1994,1995  Scott D. Heavner
  *
  */
+
+#include "keymap.h"
 
 static char *recover_help[] = {
   "F2, ^O  : Popup menu of commands",
@@ -19,18 +21,15 @@ static char *recover_help[] = {
   NULL
 };
 
-static char *recover_menu_options[] = {
-  "Block mode",
-  "Help",
-  "Inode mode",
-  "Quit",
-  "Toggle some flags",
-  "View error/warning log",
-    "Write recover file to disk",
-  NULL
-};
-static char recover_menu_map[] = {
-  'b', '?', 'i', 'q', 'f', 'v', 'r' 
+static lde_menu recover_menu[] = {
+  { CMD_BLOCK_MODE_MC, "Block mode" },
+  { CMD_HELP, "Help" },
+  { CMD_INODE_MODE, "Inode mode" },
+  { CMD_EXIT, "Quit" },
+  { CMD_FLAG_ADJUST, "Toggle some flags" },
+  { CMD_DISPLAY_LOG, "View error/warning log" },
+  { CMD_DO_RECOVER, "Write recover file to disk" },
+  { 0, NULL }
 };
 
 static char *ncmain_help[] = {
@@ -46,17 +45,13 @@ static char *ncmain_help[] = {
   NULL
 };
 
-static char *ncmain_menu_options[] = {
-  "Block mode",
-  "Help",
-  "Inode mode",
-  "Recover mode",
-  "Quit",
-  "Toggle some flags",
-  "View error/warning log",
-  NULL
+static lde_menu ncmain_menu[] = {
+  { CMD_BLOCK_MODE_MC, "Block mode" },
+  { CMD_HELP, "Help" },
+  { CMD_INODE_MODE, "Inode mode" },
+  { CMD_RECOVERY_MODE, "Recover mode" },
+  { CMD_EXIT, "Quit" },
+  { CMD_FLAG_ADJUST, "Toggle some flags" },
+  { CMD_DISPLAY_LOG, "View error/warning log" },
+  { 0, NULL }
 };
-char ncmain_menu_map[] = {
-  'b', '?', 'i', 'r', 'q', 'f', 'v' 
-};
-

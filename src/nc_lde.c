@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.10 1994/09/06 01:30:05 sdh Exp $
+ *  $Id: nc_lde.c,v 1.11 1995/06/01 06:02:16 sdh Exp $
  */
 
 #include <stdio.h>
@@ -22,6 +22,73 @@
 #include "nc_lde_help.h"
 #include "nc_inode.h"
 #include "nc_block.h"
+#include "keymap.h"
+
+static lde_keymap recover_keymap[] = {
+  { 'Q', CMD_EXIT_PROG },
+  { 'q', CMD_EXIT },
+  { CTRL('L'), CMD_REFRESH },
+  { '?', CMD_HELP },
+  { KEY_F(1), CMD_HELP },
+  { CTRL('H'), CMD_HELP },
+  { META('H'), CMD_HELP },
+  { META('h'), CMD_HELP },
+  { 'z', CMD_CALL_MENU },
+  { KEY_F(2), CMD_CALL_MENU },
+  { CTRL('O'), CMD_CALL_MENU },
+  { 'v', CMD_DISPLAY_LOG },
+  { 'V', CMD_DISPLAY_LOG },
+  { 'b', CMD_BLOCK_MODE },
+  { 'B', CMD_BLOCK_MODE },
+  { 'i', CMD_INODE_MODE },
+  { 'I', CMD_INODE_MODE },
+  { 's', CMD_VIEW_SUPER },
+  { 'S', CMD_VIEW_SUPER },
+  { 'r', CMD_DO_RECOVER },
+  { 'R', CMD_DO_RECOVER },
+  { '0', REC_FILE0 },
+  { '1', REC_FILE1 },
+  { '2', REC_FILE2 },
+  { '3', REC_FILE3 },
+  { '4', REC_FILE4 },
+  { '5', REC_FILE5 },
+  { '6', REC_FILE6 },
+  { '7', REC_FILE7 },
+  { '8', REC_FILE8 },
+  { '9', REC_FILE9 },
+  { '!', REC_FILE10 },
+  { '@', REC_FILE11 },
+  { '#', REC_FILE12 },
+  { '$', REC_FILE13 },
+  { '%', REC_FILE14 },
+  { 0, 0 }
+};
+
+static lde_keymap main_keymap[] = {
+  { 'Q', CMD_EXIT_PROG },
+  { 'q', CMD_EXIT_PROG },
+  { CTRL('L'), CMD_REFRESH },
+  { '?', CMD_HELP },
+  { KEY_F(1), CMD_HELP },
+  { CTRL('H'), CMD_HELP },
+  { META('H'), CMD_HELP },
+  { META('h'), CMD_HELP },
+  { 'z', CMD_CALL_MENU },
+  { KEY_F(2), CMD_CALL_MENU },
+  { CTRL('O'), CMD_CALL_MENU },
+  { 'v', CMD_DISPLAY_LOG },
+  { 'V', CMD_DISPLAY_LOG },
+  { 'b', CMD_BLOCK_MODE },
+  { 'B', CMD_BLOCK_MODE },
+  { 'i', CMD_INODE_MODE },
+  { 'I', CMD_INODE_MODE },
+  { 's', CMD_VIEW_SUPER },
+  { 'S', CMD_VIEW_SUPER },
+  { 'r', CMD_RECOVERY_MODE },
+  { 'R', CMD_RECOVERY_MODE },
+  { 0, 0 }
+};
+
 
 /* This will recognize escapes keys as "META" strokes */
 int mgetch(void)
@@ -52,7 +119,7 @@ int cquery(char *data_string, char *data_options, char *warn_string)
 
   c = 255;
   win = newwin(5,WIN_COL,((VERT-5)/2+HEADER_SIZE),HOFF);
-  wclear(win);
+  werase(win);
   box(win,0,0);
   if (strlen(warn_string)) {
     if (!quiet) beep();
@@ -87,7 +154,7 @@ int cread_num(char *coutput, long *a)
 #else
   win *window_avaliable;
   window_avaliable = newwin(5,WIN_COL,((VERT-5)/2+HEADER_SIZE),HOFF);
-  wclear(window_avaliable);
+  werase(window_avaliable);
   box(window_avaliable,0,0);
 #define LINE_NUMBER 0
 #endif
@@ -137,15 +204,26 @@ void display_trailer(char *line1, char *line2)
 void update_header(void)
 {
 #if HEADER_SIZE>0
-  int j;
+  int i,j;
 
   mvwprintw(header,HEADER_SIZE-1,HOFF,"Inode: %lu (0x%5.5lX)       ",current_inode,current_inode);
   mvwprintw(header,HEADER_SIZE-1,HOFF+25,"Block: %lu (0x%5.5lX)          ",current_block,current_block);
-  for (j=0;j<fsc->N_BLOCKS;j++)
-    if (fake_inode_zones[j]) 
+  for (j=0;j<fsc->N_BLOCKS;j++) {
+    if (fake_inode_zones[j]) { 
       mvwaddch(header,HEADER_SIZE-1,HOFF+60+j,'-');
-    else
-      mvwaddch(header,HEADER_SIZE-1,HOFF+60+j,j+'0');
+    } else {
+      for (i=0;recover_keymap[i].action_code;i++)
+        if ((j+REC_FILE0)==recover_keymap[i].action_code) {
+          mvwaddch(header,HEADER_SIZE-1,HOFF+60+j,recover_keymap[i].key_code);
+          break;
+        }
+      
+      if (!recover_keymap[i].key_code) {
+        mvwaddch(header,HEADER_SIZE-1,HOFF+60+j,'?');
+        continue;
+      }
+    }
+  }
   redraw_win(header);
 #endif
 }
@@ -241,15 +319,15 @@ int error_popup(void)
 }
 
 /* Popup menu */
-int do_popup_menu(char **menu_choices, char *valid_choices)
+int do_popup_menu(lde_menu menu[])
 {
   WINDOW *win, *bigwin;
   int    c, window_length, window_width, length, width, last_highlight = 0, highlight = 0;
-  char   *choice;
 
   length = width = 0;
-  while (menu_choices[length]!=NULL) {
-    width = (strlen(menu_choices[length]) > width) ? strlen(menu_choices[length])+1 : width;
+  while (menu[length].description!=NULL) {
+    width = (strlen(menu[length].description) > width) ?
+      strlen(menu[length].description)+1 : width;
     length++;
   }
 
@@ -264,14 +342,14 @@ int do_popup_menu(char **menu_choices, char *valid_choices)
   win = derwin(bigwin, window_length, window_width, 1, 1);
 
   scrollok(win, TRUE);
-  wclear(bigwin);
+  werase(bigwin);
   box(bigwin,0,0);
 
   wattron(win,WHITE_ON_RED);
-  mvwprintw(win,0,0,menu_choices[0]);
+  mvwprintw(win,0,0,menu[0].description);
   wattroff(win,WHITE_ON_RED);
   for (c=1; c < window_length; c++) 
-      mvwprintw(win,c,0,menu_choices[c]);
+      mvwprintw(win,c,0,menu[c].description);
   wmove(bigwin,1,1);
   wrefresh(bigwin);
 
@@ -299,21 +377,16 @@ int do_popup_menu(char **menu_choices, char *valid_choices)
       case KEY_ENTER:
       case CTRL('M'):
       case CTRL('J'):
-	c = valid_choices[highlight];
-      default:
-	if ( (choice = strchr(valid_choices, c)) != NULL ) {
-	  delwin(win);
-	  delwin(bigwin);
-	  refresh_all();
-	  return choice[0];
-	break;
-	}
-      }
+	delwin(win);
+	delwin(bigwin);
+	refresh_all();
+	return menu[highlight].action_code;
+    }
 
     if (highlight != last_highlight) { 
-      mvwprintw(win,last_highlight,0,menu_choices[last_highlight]);
+      mvwprintw(win,last_highlight,0,menu[last_highlight].description);
       wattron(win,WHITE_ON_RED);
-      mvwprintw(win,highlight,0,menu_choices[highlight]);
+      mvwprintw(win,highlight,0,menu[highlight].description);
       wattroff(win,WHITE_ON_RED);
       wmove(win,highlight,0);
       wrefresh(win);
@@ -345,6 +418,7 @@ void dump_scroll(WINDOW *win, int i, int window_offset, int win_col, int banner_
   wmove(win,i,fancy);
 }
 
+
 /* Display some help in a separate scrollable window */
 void do_scroll_help(char **help_text, int fancy)
 {
@@ -355,7 +429,7 @@ void do_scroll_help(char **help_text, int fancy)
 #if (BANNER_SIZE > 0)
   char *banner[BANNER_SIZE] = {
     "Program name : Filesystem type : Device name",
-    "Inode: dec. (hex)     Block: dec. (hex)    0123456789:;<=>",
+    "Inode: dec. (hex)     Block: dec. (hex)    0123456789!@#$",
     NULL
   };
 #else
@@ -382,7 +456,7 @@ void do_scroll_help(char **help_text, int fancy)
   window_size = ((length+fancy+banner_size)<VERT) ? (length+fancy+banner_size) : VERT;
 
   bigwin = newwin(window_size,win_col,((VERT-window_size)/2+HEADER_SIZE),(win_col == WIN_COL) ? HOFF : 0);
-  wclear(bigwin);
+  werase(bigwin);
 
   if (fancy) {
     win = derwin(bigwin, window_size - 2 , win_col - 2, 1, 1);
@@ -452,6 +526,7 @@ void flag_popup(void)
   int c, redraw, flag;
 
   win = newwin(7,WIN_COL,((VERT-7)/2+HEADER_SIZE),HOFF);
+  werase(win);
 
   flag = 1; c = ' ';
   while ((flag)||(c = mgetch())) {
@@ -490,7 +565,7 @@ void flag_popup(void)
 	break;
     }
 
-    wclear(win);
+    werase(win);
     wattron(win,RED_ON_BLACK);
     box(win,0,0);
     wattroff(win,RED_ON_BLACK);
@@ -543,73 +618,64 @@ void crecover_file(unsigned long inode_zones[])
 /* This lists all the tagged inodes */
 int recover_mode(void)
 {
-  int j,c,flag;
+  int j,c,next_cmd=CMD_NO_ACTION;
   unsigned long a;
 
   clobber_window(workspace); 
   workspace = newwin(fsc->N_BLOCKS+1,WIN_COL,((VERT-fsc->N_BLOCKS-1)/2+HEADER_SIZE),HOFF);
+  werase(workspace);
   
   display_trailer("Enter number corresponding to block to modify values",
 		  "Q to quit, R to dump to file");
 
-  flag=1; c = ' ';
-  while (flag||(c = mgetch())) {
-    flag = 0;
+  while ( (c=next_cmd)||(c=lookup_key(mgetch(),recover_keymap)) ) {
+    next_cmd = 0;
+
     switch (c) {
-      case '0':
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9':
-      case ':':
-      case ';':
-      case '<':
-      case '=':
-      case '>':
+      case REC_FILE0: /* Enter block 'n' of recovery file */
+      case REC_FILE1:
+      case REC_FILE2:
+      case REC_FILE3:
+      case REC_FILE4:
+      case REC_FILE5:
+      case REC_FILE6:
+      case REC_FILE7:
+      case REC_FILE8:
+      case REC_FILE9:
+      case REC_FILE10:
+      case REC_FILE11:
+      case REC_FILE12:
+      case REC_FILE13:
+      case REC_FILE14:
 	if (cread_num("Enter block number (leading 0x or $ indicates hex):", &a))
-	    fake_inode_zones[c-'0'] = (unsigned long) a;
+	    fake_inode_zones[c-REC_FILE0] = (unsigned long) a;
         break;
-      case 'B':
-      case 'b':
-      case 'q':
-      case 'Q':
-      case 'S':
-      case 's':
-      case 'I':
-      case 'i':
+      case CMD_BLOCK_MODE:
+      case CMD_VIEW_SUPER:
+      case CMD_EXIT:
+      case CMD_EXIT_PROG:
+      case CMD_INODE_MODE:
 	return c;
 	break;
-      case 'f':
-      case 'F':
+      case CMD_FLAG_ADJUST:
 	flag_popup();
 	break;
-      case 'z':
-      case KEY_F(2):
-      case CTRL('O'):
-	c = flag = do_popup_menu(recover_menu_options, recover_menu_map);	
+      case CMD_CALL_MENU:
+	next_cmd = do_popup_menu(recover_menu);	
 	break;
-      case '?':
-      case CTRL('H'):
-      case META('H'):
-      case META('h'):
-      case KEY_F(1):
+      case CMD_HELP:
 	do_scroll_help(recover_help, FANCY);
-      case CTRL('L'):
+      case CMD_REFRESH:
 	refresh_all();
 	break;
-      case 'R':
-      case 'r':
+      case CMD_DO_RECOVER:
 	crecover_file(fake_inode_zones);
 	break;
-      case 'V':
-      case 'v':
-	c = flag = error_popup();
+      case CMD_DISPLAY_LOG:
+	error_popup();
 	break;
+      default:
+        continue;
     }
 
     mvwprintw(workspace,0,0,"DIRECT BLOCKS:" );
@@ -642,6 +708,7 @@ void show_super(void)
 {
   clobber_window(workspace);
   workspace = newwin(10,WIN_COL,((VERT-10)/2+HEADER_SIZE),HOFF);
+  werase(workspace);
   
   mvwprintw(workspace,0,20,"Inodes:       %10ld (0x%8.8lX)",sb->ninodes, sb->ninodes);
   mvwprintw(workspace,1,20,"Blocks:       %10ld (0x%8.8lX)",sb->nzones, sb->nzones);
@@ -657,11 +724,24 @@ void show_super(void)
   return;
 }
 
+int lookup_key(int c, lde_keymap *kmap)
+{
+  int i;
+
+  for (i=0;kmap[i].key_code;i++) {
+    if (c==kmap[i].key_code) {
+      return kmap[i].action_code;
+    }
+  }
+
+  return CMD_NO_ACTION;
+}
+ 
 
 /* Not too exciting main parser with superblock on screen */
 void interactive_main(void)
 {
-  int c, redraw, flag;
+  int c, next_cmd = CMD_DISPLAY_LOG;
 
   current_inode = fsc->ROOT_INODE;
   current_block = 0UL;
@@ -697,70 +777,44 @@ void interactive_main(void)
   
   restore_header();
   
-  /* flag is used so that the user can switch between modes without
-   * getting stuck here.  Flag indicates no keypress is required, so
-   * mgetch() is not called.
-   */
-  flag = 1; c = ' ';
-  while (flag || (c = mgetch())) {
-    flag = 0;
-    redraw = 0;
-    switch (c|flag) {
-      case 'B':
-      case 'b':
-        c = flag = block_mode();
+  while ( (c=next_cmd)||(c=lookup_key(mgetch(),main_keymap)) ) {
+    next_cmd = 0;
+
+    switch (c) {
+      case CMD_BLOCK_MODE:
+        next_cmd = block_mode();
         break;
-      case 'F':
-      case 'f':
+      case CMD_FLAG_ADJUST:
 	flag_popup();
 	break;
-      case 'I':
-      case 'i':
-	c = flag = inode_mode();
+      case CMD_INODE_MODE:
+	next_cmd = inode_mode();
 	break;
-      case 'q':
-      case 'Q':
+      case CMD_EXIT_PROG:
 	endwin();
 	return;
 	break;
-      case 'R':
-      case 'r':
-	c = flag = recover_mode();
+      case CMD_RECOVERY_MODE:
+	next_cmd = recover_mode();
 	break;
-      case 'V':
-      case 'v':
-	c = flag = error_popup();
+      case CMD_DISPLAY_LOG:
+	error_popup();
 	break;
-      case 'z':
-      case KEY_F(2):
-      case CTRL('O'):
-	c = flag = do_popup_menu(ncmain_menu_options, ncmain_menu_map);	
+      case CMD_CALL_MENU:
+	next_cmd = do_popup_menu(ncmain_menu);	
 	break;
-      case CTRL('H'):
-      case META('H'):
-      case META('h'):
-      case KEY_F(1):
-      case '?':
+      case CMD_HELP:
 	do_scroll_help(ncmain_help,FANCY);
-      case CTRL('L'):
+      case CMD_REFRESH:
 	refresh_all();
-	redraw = 1;
 	break;
       default:
-	redraw=0;
-	break;
-      case ' ':
-      case 's':
-      case 'S':
-	redraw = 1;
-	break;
+	continue;
       }
 
-    if (redraw) {
-      show_super();
-      update_header();
-      display_trailer("", "F)lags, I)node, B)locks, R)ecover File");
-    }
+    show_super();
+    update_header();
+    display_trailer("", "F)lags, I)node, B)locks, R)ecover File");
 
   }
   

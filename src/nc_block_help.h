@@ -1,9 +1,11 @@
 /*
  *  lde/nc_block_help.h -- The Linux Disk Editor
  *
- *  Copyright (C) 1994  Scott D. Heavner
+ *  Copyright (C) 1994,1995  Scott D. Heavner
  *
  */
+
+#include "keymap.h"
 
 /* Help for block_mode() */
 static char *block_help[] = {
@@ -35,36 +37,29 @@ static char *block_help[] = {
 };
 
 /* Popup menu in block_mode() */
-static char *block_options[] = {
-  "MORE EDITING COMMANDS",
-  "View block under cursor",
-  "View block as a directory",
-  "Edit block",
-  "Find inode which references this block",
-  "Inode mode",
-  "Inode mode, viewing inode under cursor",
-  "Help",
-  "Quit program",
-  "Recovery mode",
-  "View superblock",
-  "Toggle some flags",
-  "View error/warning log",
-  "Write block to recovery file",
-  NULL
+static lde_menu block_menu[] = {
+  { CMD_CALL_MENU, "MORE EDITING COMMANDS" },
+  { CMD_BLOCK_MODE_MC, "View block under cursor" },
+  { CMD_VIEW_AS_DIR, "View block as a directory" },
+  { CMD_EDIT, "Edit block" },
+  { CMD_FIND_INODE, "Find inode which references this block" },
+  { CMD_INODE_MODE, "Inode mode" },
+  { CMD_INODE_MODE_MC, "Inode mode, viewing inode under cursor" },
+  { CMD_HELP, "Help" },
+  { CMD_EXIT, "Quit" },
+  { CMD_RECOVERY_MODE, "Recovery mode" },
+  { CMD_VIEW_SUPER, "View superblock" },
+  { CMD_FLAG_ADJUST, "Toggle some flags" },
+  { CMD_DISPLAY_LOG, "View error/warning log" },
+  { 0, NULL }
 };
-static char block_map[] = {
-  '*', 'B', 'd', 'e', CTRL('R'), 'i', 'I', '?', 'q', 'r', 's', 'f', 'v', 'w' 
-} ;
 
 /* Sub-menu in block_mode() */
-char *edit_options[] = {
-  "Abort edit",
-  "Copy block",
-  "Paste block",
-  "Toggle Hex/ASCII mode",
-  "Write changes to disk",
-  NULL
+static lde_menu edit_menu[] = {
+  { CMD_ABORT_EDIT, "Abort edit" },
+  { CMD_COPY, "Copy block" },
+  { CMD_PASTE, "Paste block"},
+  { CMD_TOGGLE_ASCII, "Toggle Hex/ASCII mode" },
+  { CMD_WRITE_CHANGES, "Write changes to disk"},
+  { 0, NULL }
 };
-char edit_map[] = {
-  CTRL('A'), 'c', 'p', CTRL('I'), CTRL('W')
-} ;

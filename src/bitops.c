@@ -81,4 +81,5 @@ int test_bit(int nr, void * addr)
 	mask = 1 << (nr & 0x1f);
 	return ((mask & *ADDR) != 0);
 }
+
 #endif	/* defined(USE_KERNEL_BITOPS) */

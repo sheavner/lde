@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.11 1994/09/06 01:27:56 sdh Exp $
+ *  $Id: lde.h,v 1.12 1995/06/01 05:59:36 sdh Exp $
  */
 
 #ifndef VERSION
@@ -14,7 +14,7 @@ extern char *program_name;
 extern char *device_name;
 
 /* main_lde.c */
-volatile void fatal_error(const char * fmt_string);
+void die(char *msg);
 void read_tables(int fs_type);
 int check_root(void);
 void (*warn)(char *fmt, ...);
@@ -22,19 +22,17 @@ void (*warn)(char *fmt, ...);
 /* filemode.c  */
 void mode_string(unsigned short mode, char *str);
 
-#define die(str) fatal_error("%s: " str "\n")
-
 #define MAX_NAME_LEN 30
 #define MAX_BLOCK_POINTER 200
-#define MAX_BLOCK_SIZE 1024
-#define MIN_BLOCK_SIZE 1024
+/* #define MAX_BLOCK_SIZE 1024 -- why is this here?? */
+#define MAX_BLOCK_SIZE 2048
 
 #define INODE_BLKS 15 /* EXT2_N_BLOCKS or higher -- can't use EXT2 references after
 		       * mulitiple architecture support was added to ext2.
 		       */
 
 
-enum { AUTODETECT, NONE, MINIX, XIAFS, EXT2 };
+enum lde_fstypes { AUTODETECT, NONE, MINIX, XIAFS, EXT2, DOS };
 extern char *text_names[]; /* defined in main.c */
 
 /*
@@ -200,7 +198,7 @@ struct {
   /* Check if data zone/block is marked in bad -- not implemented in v2.2 yet */
   int (*zone_is_bad)(unsigned long n);
   /* Get dir name and inode number */
-  char* (*dir_entry)(int i, char *block_buffer, unsigned long *inode_nr);
+  char* (*dir_entry)(int i, void *block_buffer, unsigned long *inode_nr);
   /* Copies the FS specific inode into a generic inode structure */
   struct Generic_Inode* (*read_inode)(unsigned long inode_nr);
   /* Copies the generic inode to a FS specific one, then write it to disk */

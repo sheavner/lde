@@ -1,9 +1,11 @@
 /*
  *  lde/nc_inode_help.h -- The Linux Disk Editor
  *
- *  Copyright (C) 1994  Scott D. Heavner
+ *  Copyright (C) 1994,1995  Scott D. Heavner
  *
  */
+
+#include "keymap.h"
 
 static char *inode_help[] = {
   "F2, ^O  : Popup menu of commands",
@@ -31,33 +33,27 @@ static char *inode_help[] = {
   NULL
 };
 
-static char *inode_menu_options[] = {
-  "MORE EDITING COMMANDS",
-  "Block mode",
-  "Block mode, viewing block under cursor",
-  "View inode under cursor",
-  "View inode as a directory",
-  "Edit inode",
-  "Help",
-  "Quit program",
-  "Recovery mode",
-  "Recovery mode, recover this inode",
-  "View superblock",
-  "Toggle some flags",
-  "View error/warning log",
-  NULL
-};
-static char inode_menu_map[] = {
-  '*', 'b', 'B', 'I', 'd', 'e', '?', 'q', 'r', 'R', 's', 'f', 'v'
+static lde_menu inode_menu[] = {
+  { CMD_CALL_MENU, "MORE EDITING COMMANDS" },
+  { CMD_BLOCK_MODE, "Block mode" },
+  { CMD_BLOCK_MODE_MC, "Block mode, viewing block under cursor" },
+  { CMD_INODE_MODE_MC, "View inode under cursor" },
+  { CMD_VIEW_AS_DIR, "View inode as a directory" },
+  { CMD_EDIT, "Edit inode"},
+  { CMD_HELP, "Help" },
+  { CMD_EXIT, "Quit" },
+  { CMD_RECOVERY_MODE, "Recovery mode" },
+  { CMD_RECOVERY_MODE_MC, "Recovery mode, recover this inode" },
+  { CMD_VIEW_SUPER, "View superblock" },
+  { CMD_FLAG_ADJUST, "Toggle some flags" },
+  { CMD_DISPLAY_LOG, "View error/warning log" },
+  { 0, NULL }
 };
 
-static char *edit_menu_options[] = {
-  "Abort edit",
-  "Copy inode",
-  "Paste inode",
-  "Write changes to disk",
-  NULL
+static lde_menu edit_menu[] = {
+  { CMD_ABORT_EDIT, "Abort edit" },
+  { CMD_COPY, "Copy inode" },
+  { CMD_PASTE, "Paste inode"},
+  { CMD_WRITE_CHANGES, "Write changes to disk"},
+  { 0, NULL }
 };
-static char edit_menu_map[] = {
-  CTRL('A'), 'c', 'p', CTRL('W')
-} ;

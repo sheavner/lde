@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.4 1994/09/06 01:31:09 sdh Exp $
+ *  $Id: nc_inode.c,v 1.5 1995/06/01 06:02:22 sdh Exp $
  */
 
 #include <ctype.h>
@@ -20,92 +20,175 @@
 #include "nc_inode.h"
 #include "nc_inode_help.h"
 #include "nc_dir.h"
+#include "keymap.h"
+
+#define LDE_DUMP_ILABELS 128
+
+/* default keymap for directory mode -- are all these really necessary ??? */
+static lde_keymap inodemode_keymap[] = {
+  { 'Q', CMD_EXIT_PROG },
+  { 'q', CMD_EXIT_PROG },
+  { 'D', CMD_EXPAND_SUBDIR_MC },
+  { CTRL('L'), CMD_REFRESH },
+  { CTRL('N'), CMD_NEXT_LINE },
+  { KEY_DOWN, CMD_NEXT_LINE },
+  { 'J', CMD_NEXT_LINE },
+  { CTRL('P'), CMD_PREV_LINE },
+  { KEY_UP, CMD_PREV_LINE },
+  { 'K', CMD_PREV_LINE },
+  { 'k', CMD_PREV_LINE },
+  { '?', CMD_HELP },
+  { KEY_F(1), CMD_HELP },
+  { CTRL('H'), CMD_HELP },
+  { META('H'), CMD_HELP },
+  { META('h'), CMD_HELP },
+  { 'z', CMD_CALL_MENU },
+  { KEY_F(2), CMD_CALL_MENU },
+  { CTRL('O'), CMD_CALL_MENU },
+  { '#', CMD_NUMERIC_REF },
+  { CTRL('A'), CMD_ABORT_EDIT },
+  { CTRL('W'), CMD_WRITE_CHANGES },
+  { 'v', CMD_DISPLAY_LOG },
+  { 'V', CMD_DISPLAY_LOG },
+  { 'p', CMD_PASTE },
+  { 'P', CMD_PASTE },
+  { 'c', CMD_COPY },
+  { 'C', CMD_COPY },
+  { 'd', CMD_VIEW_AS_DIR },
+  { 'D', CMD_VIEW_AS_DIR },
+  { 'e', CMD_EDIT },
+  { 'E', CMD_EDIT },
+  { 'b', CMD_BLOCK_MODE },
+  { 'B', CMD_BLOCK_MODE_MC },
+  { 's', CMD_VIEW_SUPER },
+  { 'S', CMD_VIEW_SUPER },
+  { 'r', CMD_RECOVERY_MODE },
+  { 'R', CMD_RECOVERY_MODE_MC },
+  { KEY_UP, CMD_PREV_INODE },
+  { CTRL('P'), CMD_PREV_INODE },
+  { 'k', CMD_PREV_INODE },
+  { 'K', CMD_PREV_INODE },
+  { KEY_PPAGE, CMD_PREV_INODE },
+  { 'j', CMD_NEXT_INODE },
+  { 'J', CMD_NEXT_INODE },
+  { KEY_DOWN, CMD_NEXT_INODE },
+  { KEY_NPAGE, CMD_NEXT_INODE },
+  { CTRL('N'), CMD_NEXT_INODE },
+  { 'h', CMD_PREV_FIELD },
+  { 'H', CMD_PREV_FIELD },
+  { KEY_BTAB, CMD_PREV_FIELD },
+  { CTRL('B'), CMD_PREV_FIELD },
+  { KEY_BACKSPACE, CMD_PREV_FIELD },
+  { KEY_DC, CMD_PREV_FIELD },
+  { KEY_LEFT, CMD_PREV_FIELD },
+  { CTRL('U'), CMD_PREV_FIELD },
+  { CTRL('V'), CMD_PREV_FIELD },
+  { 'l', CMD_NEXT_FIELD },
+  { 'L', CMD_NEXT_FIELD },
+  { CTRL('D'), CMD_NEXT_FIELD },
+  { CTRL('F'), CMD_NEXT_FIELD },
+  { META('V'), CMD_NEXT_FIELD },
+  { KEY_RIGHT, CMD_NEXT_FIELD },
+  { CTRL('I'), CMD_NEXT_FIELD },
+  { '0', REC_FILE0 },
+  { '1', REC_FILE1 },
+  { '2', REC_FILE2 },
+  { '3', REC_FILE3 },
+  { '4', REC_FILE4 },
+  { '5', REC_FILE5 },
+  { '6', REC_FILE6 },
+  { '7', REC_FILE7 },
+  { '8', REC_FILE8 },
+  { '9', REC_FILE9 },
+  { '!', REC_FILE10 },
+  { '@', REC_FILE11 },
+  { '#', REC_FILE12 },
+  { '$', REC_FILE13 },
+  { '%', REC_FILE14 },
+  { 0, 0 }
+};
+
+static struct { /* Someday I'll clean up dump_inode() to use something like this */
+  int sb_entry;
+  int row;
+  int col;
+  char *text;
+  char *fmt;
+  int park_row;
+  int park_col;
+} inode_labels[] = { 
+  { I_MODE,        2, 0,"TYPE: ","type",2,6 },
+  { I_MODE,        3, 0,"MODE: ","mode",3,6 }, 
+  { I_LINKS_COUNT, 2,20,"LINKS: ","%3d",2,27 },
+  { I_MODE_FLAGS,  3,20,"FLAGS: ","\\%2.2s\n",3,27 },  /* MODE_FLAGS */
+  { I_UID,         4, 0,"UID: ","uid",4,5 },
+  { I_GID,         4,20,"GID: ","gid",4,25 },
+  { I_SIZE,        5, 0,"SIZE: ","%-8ld",5,6 },
+  { I_BLOCKS,      5,20,"SIZE(BLKS): ","%-8ld \n",5,32 },
+  { I_ATIME,       7, 0,"ACCESS TIME:        ","time25",7,20 },
+  { I_CTIME,       8, 0,"CREATION TIME:      ","time25",8,20 },
+  { I_MTIME,       9, 0,"MODIFICATION TIME:  ","time25",9,20 },
+  { I_DTIME,      10, 0,"DELETION TIME:      ","time25",10,20 },
+  { I_ZONE_0,      2,47,"DIRECT BLOCKS=","",0,0 },
+  { -1,            0, 0,"","",0,0 }
+};
 
 static void cwrite_inode(unsigned long inode_nr, struct Generic_Inode *GInode, int *mod_yes);
 static void cdump_inode_labels(void);
 static void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, int highlight_field);
 static void set_inode_field(int curr_field, unsigned long a, struct Generic_Inode *GInode);
+static void limit_inode(unsigned long *inode, struct sbinfo *local_sb);
+static void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *GInode,
+		int highlight_field, int park_x, int park_y );
 
 static int park_x = 0, park_y = 0;
 
+/* Dump a modified inode to disk */
 static void cwrite_inode(unsigned long inode_nr, struct Generic_Inode *GInode, int *mod_yes)
 {
   int c;
-  char *warning;
 
-#ifdef ALPHA_CODE
+#ifndef NO_WRITE_INODE
   if (*mod_yes) {
-    if (!write_ok)
-      warning = "(NOTE: write permission not set on disk, use 'F' to set flags before 'Y') ";
-    else
-      warning = "";
-    
-    while ( (c = cquery("WRITE OUT INODE DATA TO DISK [Y/N]? ","ynfq",warning)) == 'f') {
+    while ( (c = cquery("WRITE OUT INODE DATA TO DISK [Y/N]? ","ynfq",
+			write_ok?"":"(NOTE: write permission not set on disk, use 'F' to set flags before 'Y')")
+	     ) == 'f') {
       flag_popup();
-      if (write_ok) warning = "";
     }
 
     refresh_all(); /* Have to refresh screen before write or error messages will be lost */
     if (c == 'y')
       FS_cmd.write_inode(inode_nr, GInode);
   }
+#else
+  warn("Compiled with NO_WRITE_INODE, write is disallowed");
 #endif
   
   *mod_yes = 0;
 }
 
+    
 /* Display current labels */
 static void cdump_inode_labels()
 {
+  int i;
+
   clobber_window(workspace); 
   workspace = newwin(17,WIN_COL,((VERT-17)/2+HEADER_SIZE),HOFF);
+  werase(workspace);
 
-  /* Now display it again in a longer format */
-  if (fsc->inode->i_mode)
-    mvwprintw(workspace,2,0,"TYPE: ");
-
-  if (fsc->inode->i_links_count)
-    mvwprintw(workspace,2,20,"LINKS: ");
-
-  if (fsc->inode->i_mode)
-    mvwprintw(workspace,3,0,"MODE: ");
-
-  if (fsc->inode->i_mode_flags)
-    mvwprintw(workspace,3,20,"FLAGS: ");
-
-  if (fsc->inode->i_uid)
-    mvwprintw(workspace,4,0,"UID: ");
-
-  if (fsc->inode->i_gid)
-    mvwprintw(workspace,4,20,"GID: ");
-
-  if (fsc->inode->i_size)
-    mvwprintw(workspace,5,0,"SIZE: ");
-
-  if (fsc->inode->i_blocks)
-    mvwprintw(workspace,5,20,"SIZE(BLKS): ");
-
-  if (fsc->inode->i_atime)
-    mvwprintw(workspace,7,0,"ACCESS TIME:        ");
-
-  if (fsc->inode->i_ctime)
-    mvwprintw(workspace,8,0,"CREATION TIME:      ");
-
-  if (fsc->inode->i_mtime)
-    mvwprintw(workspace,9,0,"MODIFICATION TIME:  ");
-
-  if (fsc->inode->i_dtime)
-    mvwprintw(workspace,10,0,"DELETION TIME:      ");
+  for (i=0;(inode_labels[i].sb_entry>=0);i++)
+    if ( (char *)fsc->inode + i )
+      if (inode_labels[i].text != NULL)
+	mvwprintw(workspace,inode_labels[i].row,inode_labels[i].col,inode_labels[i].text);
  
-  if (fsc->inode->i_zone[0]) {
-    mvwprintw(workspace,2,47,"DIRECT BLOCKS=");
-    if (fsc->INDIRECT)
-      mvwprintw(workspace,fsc->INDIRECT+2,47,"INDIRECT BLOCK=");
-    if (fsc->X2_INDIRECT)
-      mvwprintw(workspace,fsc->X2_INDIRECT+2,47,"2x INDIRECT BLOCK=");
-    if (fsc->X3_INDIRECT)
-      mvwprintw(workspace,fsc->X3_INDIRECT+2,47,"3x INDIRECT BLOCK=");
-  }
+  /* Special cases */
+  if (fsc->INDIRECT)
+    mvwprintw(workspace,fsc->INDIRECT+2,47,"INDIRECT BLOCK=");
+  if (fsc->X2_INDIRECT)
+    mvwprintw(workspace,fsc->X2_INDIRECT+2,47,"2x INDIRECT BLOCK=");
+  if (fsc->X3_INDIRECT)
+    mvwprintw(workspace,fsc->X3_INDIRECT+2,47,"3x INDIRECT BLOCK=");
 }
 
 /* Display current inode */
@@ -115,6 +198,11 @@ static void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, i
   char f_mode[12];
   struct passwd *NC_PASS = NULL;
   struct group *NC_GROUP = NULL;
+
+  if (highlight_field&LDE_DUMP_ILABELS) {
+    cdump_inode_labels();
+    highlight_field = highlight_field^LDE_DUMP_ILABELS;
+  }
 
   /* Line 0 looks like a directory entry */
   if (fsc->inode->i_links_count) {
@@ -126,6 +214,7 @@ static void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, i
 
   if (fsc->inode->i_links_count)
     mvwprintw(workspace,0,11,"%3d",GInode->i_links_count);
+
   if (fsc->inode->i_uid)
     if ((NC_PASS = getpwuid(GInode->i_uid))!=NULL)
       mvwprintw(workspace,0,15,"%-8s",NC_PASS->pw_name);
@@ -367,258 +456,211 @@ static void set_inode_field(int curr_field, unsigned long a, struct Generic_Inod
     }
 }
 
+/* Checks for inode out of range */
+void limit_inode(unsigned long *local_inode, struct sbinfo *local_sb)
+{
+  if (*local_inode > local_sb->ninodes) 
+    *local_inode = local_sb->ninodes;
+  else if (*local_inode < 1 ) 
+    *local_inode = 1;
+}
+
+
+/* Reads a value from the user and stuffs it into the current inode field */
+void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *GInode,
+		int highlight_field, int park_x, int park_y )
+{
+  long a;
+
+#ifndef NC_FIXED_UNGETCH
+  if (cread_num("Enter new value: ",&a)) {
+    set_inode_field(highlight_field, (unsigned long) a, GInode);
+    *modified = 1;
+  }
+#else
+  WINDOW *win;
+  char cinput[10], *HEX_PTR, *HEX_NOS = "0123456789ABCDEFX\\$";
+  
+  HEX_PTR = strchr(HEX_NOS, toupper(c));
+  if (HEX_PTR != NULL) {
+    ungetch(c);
+    echo();
+    nodelay(workspace,TRUE);
+    wmove(workspace,park_y,park_x);
+    wgetnstr(workspace, cinput, 10);
+    nodelay(workspace,FALSE);
+    noecho();
+    set_inode_field(highlight_field, read_num(cinput), GInode);
+    *modified = 1;
+    return 1;
+  }
+#endif /* NC_FIXED_UNGETCH */
+  if (!write_ok) warn("Disk not writeable, change status flags with (F)");
+}
+
+
 /* This is the parser for inode_mode: previous/next inode, etc. */
 int inode_mode() {
-  int c, redraw, full_redraw;
-  unsigned long flag;
+  int c, next_cmd=0, i, modified = 0, highlight_field = I_ZONE_0;
   long a;
   struct Generic_Inode *GInode = NULL;
   static unsigned char *copy_buffer = NULL;
-  int edit_inode, modified, re_read_inode, highlight_field;
 
-#ifdef NCURSES_IS_COOL
-  WINDOW *win;
-  char cinput[10], *HEX_PTR, *HEX_NOS = "0123456789ABCDEFX\\$";
-#endif
-  
-  highlight_field = I_ZONE_0;
-
-  display_trailer("PG_UP/DOWN = previous/next inode, or '#' to enter inode number",
-		  "H for help. Q to quit");
-
-  cdump_inode_labels();
-  
-  flag = 1; c = ' ';
-  modified = edit_inode = 0;
+  display_trailer("F1/H for help.  F2/^O for menu.  Q to quit",
+		  "PG_UP/DOWN = previous/next inode, or '#' to enter inode number");
   GInode = FS_cmd.read_inode(current_inode);
+  cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
 
-  while (flag||(c = mgetch())) {
-    flag = full_redraw = re_read_inode = 0;
-    redraw = 1;
-
-#ifdef ALPHA_CODE
-    if (edit_inode) {
-#ifndef NCURSES_IS_COOL
-      if ( (c==KEY_ENTER) || (c==CTRL('M')) || (c==CTRL('J')) || (toupper(c)=='E') ) {
-	if (cread_num("Enter new value: ",&a)) {
-	  set_inode_field(highlight_field, (unsigned long) a, GInode);
-	  modified = 1;
-	}
-	c = ' ';
-      }
-#else
-      HEX_PTR = strchr(HEX_NOS, toupper(c));
-      if (HEX_PTR != NULL) {
-	ungetch(c);
-	echo();
-	nodelay(workspace,TRUE);
-	wmove(workspace,park_y,park_x);
-	wgetnstr(workspace, cinput, 10);
-	nodelay(workspace,FALSE);
-	noecho();
-	set_inode_field(highlight_field, read_num(cinput), GInode);
-	c = ' ';
-      }
-#endif /* NCURSES_IS_COOL -- NOT */
-    }
-#endif /* ALPHA_CODE */
+  while ( (c=next_cmd)||(c=lookup_key(mgetch(),inodemode_keymap)) ) {
+    next_cmd = 0;
 
     switch (c) {
-      case CTRL('D'): /* Forward one field */
-      case CTRL('F'):
-      case 'l':
-      case 'L':
-      case META('V'):
-      case META('v'):
-      case KEY_RIGHT:
-      case KEY_NPAGE:
-	cwrite_inode(current_inode, GInode, &modified);
-	edit_inode = modified = 0;
-        current_inode++;
+      case CMD_NEXT_INODE: /* Forward one inode */
+	cwrite_inode(current_inode++, GInode, &modified);
+	modified = 0;
+	limit_inode(&current_inode, sb);
 	highlight_field = I_ZONE_0;
-	re_read_inode = full_redraw = 1;
+	GInode = FS_cmd.read_inode(current_inode);
+	cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
 	break;
 
-      case CTRL('B'): /* Backward one field */
-      case KEY_BACKSPACE:
-      case KEY_DC:
-      case KEY_LEFT:
-      case 'h':
-      case 'H':
-      case CTRL('U'):
-      case CTRL('V'):
-      case KEY_PPAGE:
-	cwrite_inode(current_inode, GInode, &modified);
-	edit_inode = modified = 0;
-	current_inode--;
+      case CMD_PREV_INODE: /* Backward one inode */
+	cwrite_inode(current_inode--, GInode, &modified);
+	modified = 0;
+	limit_inode(&current_inode, sb);
 	highlight_field = I_ZONE_0;
-	re_read_inode = full_redraw = 1;
+	GInode = FS_cmd.read_inode(current_inode);
+	cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
 	break;
 
-      case KEY_DOWN: /* Forward one inode */
-      case 'j':
-      case 'J':
-      case CTRL('N'):
-      case CTRL('I'):
+      case CMD_NEXT_FIELD: /* Forward one field */
         while ( (! *(&fsc->inode->i_mode+(++highlight_field))) || (highlight_field >= I_END) )
           if (highlight_field >= (I_END-1) ) highlight_field = I_BEGIN;
 	break;
 
-      case KEY_UP: /* Back one inode */
-      case CTRL('P'):
-      case 'k':
-      case 'K':
-      case KEY_BTAB:
+      case CMD_PREV_FIELD: /* Back one field */
         while ( (! *(&fsc->inode->i_mode+(--highlight_field))) || (highlight_field <= I_BEGIN)) 
           if (highlight_field <= (I_BEGIN+1) ) highlight_field = I_END;
 	break;
 
-      case '0': /* Tag block under cursor as block 'n' of recovery file */
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9':
-      case ':':
-      case ';':
-      case '<':
-      case '=':
-      case '>':
-	if (GInode->i_zone[(unsigned long) (c-'0')]) {
-	  current_block = GInode->i_zone[(unsigned long) (c-'0')];
-	  return 'b';
-	}
+      case REC_FILE0: /* Tag block under cursor as block 'n' of recovery file */
+      case REC_FILE1:
+      case REC_FILE2:
+      case REC_FILE3:
+      case REC_FILE4:
+      case REC_FILE5:
+      case REC_FILE6:
+      case REC_FILE7:
+      case REC_FILE8:
+      case REC_FILE9:
+      case REC_FILE10:
+      case REC_FILE11:
+      case REC_FILE12:
+      case REC_FILE13:
+      case REC_FILE14:
+	if (GInode->i_zone[c-REC_FILE0])
+	  fake_inode_zones[c-REC_FILE0] = GInode->i_zone[c-REC_FILE0];
 	break;
 
-      case 'R': /* Goto recovery mode, set to recover all blocks in this inode */
+      case CMD_RECOVERY_MODE_MC: /* Goto recovery mode, set to recover all blocks in this inode */
 	cwrite_inode(current_inode, GInode, &modified);
-	for (flag=0;(flag<fsc->N_BLOCKS);flag++)
-	  fake_inode_zones[flag] = GInode->i_zone[flag];
-	return c;
+	for (i=0;(i<fsc->N_BLOCKS);i++)
+	  fake_inode_zones[i] = GInode->i_zone[i];
+	return CMD_RECOVERY_MODE;
 	break;
 
-      case 'B': /* Go to block mode, examine the block which is currently highlighted */
+      case CMD_BLOCK_MODE_MC: /* Go to block mode, examine the block which is currently highlighted */
 	if (GInode->i_zone[highlight_field-I_ZONE_0])
 	  current_block = GInode->i_zone[highlight_field-I_ZONE_0];
-      case 'b': /* Switch to another mode */
-      case 'q':
-      case 'Q':
-      case 'S':
-      case 's':
-      case 'r':
+	cwrite_inode(current_inode, GInode, &modified);
+	return CMD_BLOCK_MODE;
+	break;
+
+      case CMD_EXIT_PROG:
+      case CMD_VIEW_SUPER:
+      case CMD_RECOVERY_MODE:
+      case CMD_BLOCK_MODE: /* Switch to another mode */
 	cwrite_inode(current_inode, GInode, &modified);
 	return c;
 	break;
 
-      case 'F': /* Put up a menu of adjustable flags */
-      case 'f':
+      case CMD_FLAG_ADJUST: /* Put up a menu of adjustable flags */
 	flag_popup();
 	break;
 
-      case 'E': /* Edit inode */
-      case 'e':
-	edit_inode = 1;
-	if (!write_ok) warn("Disk not writeable, change status flags with (F)");
+      case CMD_EDIT: /* Edit inode */
+	parse_edit(workspace, c, &modified, GInode, highlight_field, park_x, park_y );
 	break;
 
-      case 'D': /* View inode as a directory */
-      case 'd':
-	full_redraw = 1;
+      case CMD_VIEW_AS_DIR: /* View inode as a directory */
 	if (S_ISDIR(GInode->i_mode)&&((highlight_field>=I_ZONE_0)&&(highlight_field<=I_ZONE_LAST)))
 	  if (GInode->i_zone[highlight_field-I_ZONE_0]) {
-	    if (tolower(directory_popup(GInode->i_zone[highlight_field-I_ZONE_0]))=='n') {
+	    if (directory_popup(GInode->i_zone[highlight_field-I_ZONE_0])==CMD_NEXT_DIR_BLOCK) {
 	      while (! *(&fsc->inode->i_mode+(++highlight_field)) )
 		if (highlight_field >= (I_END-1) ) highlight_field = I_BEGIN;
-	      flag = 1;
-	      full_redraw = redraw = 0;
 	    }
-	    re_read_inode = 1;
+	    GInode = FS_cmd.read_inode(current_inode);
+	    cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
 	  }
 	break;
 
-      case 'c': /* Copy inode to copy buffer */
-      case 'C':
+      case CMD_COPY: /* Copy inode to copy buffer */
 	if (!copy_buffer) copy_buffer = malloc(sizeof(struct Generic_Inode));
 	memcpy(copy_buffer,GInode,sizeof(struct Generic_Inode));
 	warn("Inode (%lu) copied into copy buffer.",current_inode);
 	break;
 
-      case 'p': /* Paste inode from copy buffer */
-      case 'P':
+      case CMD_PASTE: /* Paste inode from copy buffer */
 	if (copy_buffer) {
-	  full_redraw = modified = 1;
+	  modified = 1;
 	  memcpy(GInode,copy_buffer,sizeof(struct Generic_Inode));
+	  cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
 	  if (!write_ok) warn("Turn on write permissions before saving this inode");
 	} else {
 	  warn("Nothing in copy buffer.");
 	}
 	break;
 
-      case 'V': /* Show error log */
-      case 'v':
-	c = flag = error_popup();
+      case CMD_DISPLAY_LOG: /* Show error log */
+	error_popup();
 	break;
 
-      case( CTRL('W')): /* Write out modifications to this inode */
-	edit_inode = 0;
+      case CMD_WRITE_CHANGES: /* Write out modifications to this inode */
 	cwrite_inode(current_inode, GInode, &modified);
 	break;
 
-      case CTRL('A'): /* Abort edit, re-read original inode */
-	modified = edit_inode = 0;
-	re_read_inode = 1;
+      case CMD_ABORT_EDIT: /* Abort edit, re-read original inode */
+	modified = 0;
+	GInode = FS_cmd.read_inode(current_inode);
 	break;
 
-      case '#': /* Go to an inode specified by number */
+      case CMD_NUMERIC_REF: /* Go to an inode specified by number */
 	if (cread_num("Enter inode number (leading 0x or $ indicates hex):",&a)) {
-	  current_inode = (unsigned long) a;
-	  full_redraw = 1;
+	  limit_inode(&current_inode, sb);
+	  cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
 	}
 	break;
 
-      case 'z': /* Display popup menu with submenus */
-      case KEY_F(2):
-      case CTRL('O'):
-	c = flag = do_popup_menu(inode_menu_options, inode_menu_map);	
-	if (c == '*') 
-	  c = flag = do_popup_menu(edit_menu_options, edit_menu_map);
+      case CMD_CALL_MENU: /* Display popup menu, process submenus here */
+	next_cmd = do_popup_menu(inode_menu);	
+	if (next_cmd == CMD_CALL_MENU) 
+	  next_cmd = do_popup_menu(edit_menu);
 	break;
 
-      case '?': /* Display help */
-      case KEY_F(1):
-      case CTRL('H'):
-      case META('H'):
+      case CMD_HELP: /* Display help */
         do_scroll_help(inode_help, FANCY);
+	/* Requires a redraw after return, so let it fall through */
 
-      case CTRL('L'): /* Refresh screen */
+      case CMD_REFRESH: /* Refresh screen */
 	refresh_all();
-
-      case ' ':
-	break;
+	cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
+	continue;
 
       default:
-	redraw = 0;
+	beep();
 	break;
     }
-
-    if (current_inode > sb->ninodes) 
-      current_inode = sb->ninodes;
-    else if (current_inode < 1 ) 
-      current_inode = 1;
-
-    if (re_read_inode)
-	GInode = FS_cmd.read_inode(current_inode);
-
-    if (full_redraw)
-      cdump_inode_labels();
-
-    if (redraw||full_redraw)
-      cdump_inode_values(current_inode, GInode, highlight_field);
+    cdump_inode_values(current_inode, GInode, (highlight_field));
   }
   return 0;
 }
- 

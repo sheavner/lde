@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.8 1994/09/06 02:50:14 sdh Exp $
+ *  $Id: main_lde.c,v 1.9 1995/06/01 06:02:59 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -18,6 +18,7 @@
 #include "lde.h"
 #include "ext2fs.h"
 #include "minix.h"
+#include "msdos_fs.h"
 #include "no_fs.h"
 #include "recover.h"
 #include "tty_lde.h"
@@ -28,7 +29,7 @@
 #  include "nc_lde.h"
 #endif
 
-#ifndef __linux__
+#ifndef volatile
 #define volatile
 #endif
 
@@ -56,7 +57,7 @@ struct _search_types {
 /* Initialize some global variables */
 char *program_name = "lde";
 char *device_name = NULL;
-char *text_names[5] = { "autodetect", "no file system" , "minix", "xiafs", "ext2fs" };
+char *text_names[] = { "autodetect", "no file system" , "minix", "xiafs", "ext2fs", "msdos" };
 
 char *inode_map;
 char *zone_map;
@@ -71,33 +72,27 @@ int CURR_DEVICE = 0;
 int paranoid = 0, list = 0;
 int write_ok = 0, quiet = 0;
 
-#define USAGE_STRING "[-VvIibBdcCStThH?] /dev/name\n"
-#define usage() fatal_error("Usage: %s " USAGE_STRING)
-
 struct _rec_flags rec_flags = 
   { 0 } ;
 
-/* Volatile to let gcc know that this doesn't return. */
-volatile void fatal_error(const char * fmt_string)
-{
-	fprintf(stderr,fmt_string,program_name,device_name);
-	exit(1);
-}
 
 /* Check if device is mounted, return 1 if is mounted else 0 */
 static int check_mount(char *device_name)
 {
   int fd;
   char *mtab;
-  struct stat *statbuf = NULL;
+  struct stat statbuf;
 
   fd = open("/etc/mtab",O_RDONLY);
-  fstat(fd, statbuf);
+  fstat(fd, &statbuf);
 
-  mtab = malloc(statbuf->st_size);
-  read(fd, mtab, statbuf->st_size);
+  mtab = malloc(statbuf.st_size+1);
+  if (mtab==NULL)
+    warn("Out of memory reading /etc/mtab");
+  read(fd, mtab, statbuf.st_size);
   close(fd);
 
+  mtab[statbuf.st_size] = 0;
   if (strstr(mtab, device_name)) {
     free(mtab);
     return 1;
@@ -123,27 +118,41 @@ int check_root(void)
 void read_tables(int fs_type)
 {
   char *super_block_buffer;
+  sb->blocksize = 2048; /* Want to read in two blocks */
 
-  /* Read and parse super block -- xiafs stuff is in 1st block,
-   * most others are in the second block. 
+  /* Pull in first two blocks from the file system.  Xiafs info is
+   * in the first block.  Minix, ext2fs is in second block (to leave
+   * room for LILO.
    */
  
-  /* Pull in second block for other fs's */
-  super_block_buffer = cache_read_block(1UL, FORCE_READ);
-  if ( ((fs_type==AUTODETECT)||(fs_type==MINIX)) && (!MINIX_test(super_block_buffer)) )
+  super_block_buffer = cache_read_block(0UL, FORCE_READ);
+  warn("FSTYPE = %2d:%20s\n",fs_type,text_names[fs_type]);
+  if ( ((fs_type==AUTODETECT)&&(MINIX_test(super_block_buffer))) || (fs_type==MINIX) ) {
     MINIX_init(super_block_buffer);
-  else if ( ((fs_type==AUTODETECT)||(fs_type==EXT2)) && (!EXT2_test(super_block_buffer)) )
+  } else if ( ((fs_type==AUTODETECT)&&(EXT2_test(super_block_buffer))) || (fs_type==EXT2) ) {
     EXT2_init(super_block_buffer);
-  else {
-    super_block_buffer = cache_read_block(0UL, FORCE_READ);
-    if ( ((fs_type==AUTODETECT)||(fs_type==XIAFS)) && (!XIAFS_test(super_block_buffer)) )
-      (void) XIAFS_init(super_block_buffer);
-    else
-      NOFS_init(super_block_buffer);
+  } else if ( ((fs_type==AUTODETECT)&&(XIAFS_test(super_block_buffer))) || (fs_type==XIAFS) ) {
+    XIAFS_init(super_block_buffer);
+  } else if ( ((fs_type==AUTODETECT)&&(DOS_test(super_block_buffer))) || (fs_type==DOS) ) {
+    DOS_init(super_block_buffer);
+  } else {
+    warn("No file system found on device");
+    NOFS_init(super_block_buffer);
   }
-  
 }
 
+void die(char *msg)
+{
+  fprintf(stderr,"%s: %s\n",program_name,msg);
+  exit(1);
+}
+
+#define USAGE_STRING "[-VvIibBdcCStThH?] /dev/name"
+static void usage(void)
+{
+  fprintf(stderr,"Usage: %s %s\n",program_name,USAGE_STRING);
+  exit(1);
+}
 
 static void long_usage(void)
 {
@@ -153,7 +162,7 @@ static void long_usage(void)
   printf("   -d ##:      dump block's data to stdout (binary format)\n");
   printf("   -S string:  search disk for data (questionable)\n");
   printf("   -T type:    search disk for data. type = {gz, tgz, script}\n");
-  printf("   -t fstype:  Overide the autodetect. fstype = {no, minix, xiafs, ext2fs}\n");
+  printf("   -t fstype:  Overide the autodetect. fstype = {no, minix, xiafs, ext2fs, msdos}\n");
   printf("   --help:     output this screen\n");
   printf("   --paranoid: Open the device read only.\n");
   printf("   --quiet:    Turn off warning beeps.\n");
@@ -184,6 +193,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       {"grep", 0, 0, 'g'},
       {"write", 0, 0, 'w'},
       {"paranoid", 0, 0, 'p'},
+      {"read-only", 0, 0, 'p'},
       {"safe", 0, 0, 'p'},
       {"quiet", 0, 0, 'q'},
       {0, 0, 0, 0}
@@ -204,7 +214,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 
     switch(c)
       {
-      case 0:
+      case 0: /* Some XIAFS utils of limited usefulness */
 	switch (option_index)
 	  {
 	  case 0:
@@ -215,41 +225,42 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	     break;
 	   }
 
-      case 'V': 
+      case 'V': /* Display version */
       case 'v':
 	warn("This is %s (version %s).\n",program_name,VERSION);
 	exit(0);
 	break;
-      case 'a':
+      case 'a': /* Search disk space marked in use as well as unused */
 	rec_flags.search_all = 1;
 	break;
-      case 'g':
+      case 'g': /* Search for an inode which contains the specified block */
 	opts->grep_mode = 1;
 	break;
       case 'I':
 	opts->idump_all=1;
-      case 'i':
+      case 'i': /* dump a formatted inode to stdout */
 	opts->idump = read_num(optarg);
 	break;
       case 'B': 
 	opts->bdump_all=1;
-      case 'b': 
+      case 'b': /* dump a block to stdout (Hex/ASCII) */
 	opts->bdump = read_num(optarg);
 	break;
-      case 'd':
+      case 'd': /* dump a block to stdout -- binary format -- why not use dd?? */
 	opts->ddump = read_num(optarg);
 	break;
-      case 'p':
+      case 'r':
+      case 'p': /* open FS read only */
 	paranoid = 1;
 	break;
-      case 'q':
+      case 'q': /* no audio -- well nop beeps */
 	quiet = 1;
 	break;
-      case 'S': 
+      case 'S': /* Seatch for a string of data */
 	opts->search_all = 1;
 	opts->search_string = optarg;
 	break;
-      case 't':
+      case 't': /* Specify the FS on the disk */
 	i = NONE;
 	while (text_names[i]) {
 	  if (!strncmp(optarg, text_names[i], strlen(optarg))) {
@@ -270,7 +281,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	  exit(0);
 	}
 	break;
-      case 'T':
+      case 'T': /* Search for a file by type */
 	opts->search_all = 1;
 	i = -1;
 	while (strcmp(search_types[++i].name,"")) {
@@ -291,10 +302,10 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	  exit(0);
 	}
 	break;
-      case 'w':
+      case 'w': /* Set FS writable */
 	write_ok = 1;
 	break;
-      case 'h':
+      case 'h': /* HELP */
       case 'H':
       case '?':
 	long_usage();

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.1 1994/11/20 21:10:55 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.2 1995/06/01 06:02:48 sdh Exp $
  */
 
 /* 
@@ -23,42 +23,43 @@ static char* DOS_dir_entry(int i, void *block_buffer, unsigned long *inode_nr);
 static void DOS_sb_init(void * sb_buffer);
 
 static struct inode_fields DOS_inode_fields = {
-  0, /*   unsigned short i_mode; */
-  0, /*   unsigned short i_uid; */
-  0, /*   unsigned long  i_size; */
-  0, /*   unsigned short i_links_count; */
-  0, /*   ()             i_mode_flags; */
-  0, /*   unsigned short i_gid; */
-  0, /*   unsigned long  i_blocks; */
-  0, /*   unsigned long  i_atime; */
-  0, /*   unsigned long  i_ctime; */
-  0, /*   unsigned long  i_mtime; */
-  0, /*   unsigned long  i_dtime; */
-  0, /*   unsigned long  i_flags; */
-  0, /*   unsigned long  i_reserved1; */
-  0, /*   unsigned long  i_zone[0]; */
-  0, /*   unsigned long  i_zone[1]; */
-  0, /*   unsigned long  i_zone[2]; */
-  0, /*   unsigned long  i_zone[3]; */
-  0, /*   unsigned long  i_zone[4]; */
-  0, /*   unsigned long  i_zone[5]; */
-  0, /*   unsigned long  i_zone[6]; */
-  0, /*   unsigned long  i_zone[7]; */
-  0, /*   unsigned long  i_zone[8]; */
-  0, /*   unsigned long  i_zone[9]; */
-  0, /*   unsigned long  i_zone[10]; */
-  0, /*   unsigned long  i_zone[11]; */
-  0, /*   unsigned long  i_zone[12]; */
-  0, /*   unsigned long  i_zone[13]; */
-  0, /*   unsigned long  i_zone[14]; */
-  0, /*   unsigned long  i_version; */
-  0, /*   unsigned long  i_file_acl; */
-  0, /*   unsigned long  i_dir_acl; */
-  0, /*   unsigned long  i_faddr; */
-  0, /*   unsigned char  i_frag; */
-  0, /*   unsigned char  i_fsize; */
-  0, /*   unsigned short i_pad1; */
-  1, /*   unsigned long  i_reserved2[2]; */
+  0,   /*   unsigned short i_mode; */
+  0,   /*   unsigned short i_uid; */
+  0,   /*   unsigned long  i_size; */
+  0,   /*   unsigned short i_links_count; */
+  0,   /*   ()             i_mode_flags; */
+  0,   /*   unsigned short i_gid; */
+  0,   /*   unsigned long  i_blocks; */
+  0,   /*   unsigned long  i_atime; */
+  0,   /*   unsigned long  i_ctime; */
+  0,   /*   unsigned long  i_mtime; */
+  0,   /*   unsigned long  i_dtime; */
+  0,   /*   unsigned long  i_flags; */
+  0,   /*   unsigned long  i_reserved1; */
+  { 0, /*   unsigned long  i_zone[0]; */
+    0, /*   unsigned long  i_zone[1]; */
+    0, /*   unsigned long  i_zone[2]; */
+    0, /*   unsigned long  i_zone[3]; */
+    0, /*   unsigned long  i_zone[4]; */
+    0, /*   unsigned long  i_zone[5]; */
+    0, /*   unsigned long  i_zone[6]; */
+    0, /*   unsigned long  i_zone[7]; */
+    0, /*   unsigned long  i_zone[8]; */
+    0, /*   unsigned long  i_zone[9]; */
+    0, /*   unsigned long  i_zone[10]; */
+    0, /*   unsigned long  i_zone[11]; */
+    0, /*   unsigned long  i_zone[12]; */
+    0, /*   unsigned long  i_zone[13]; */
+    0  /*   unsigned long  i_zone[14]; */
+  },
+  0,   /*   unsigned long  i_version; */
+  0,   /*   unsigned long  i_file_acl; */
+  0,   /*   unsigned long  i_dir_acl; */
+  0,   /*   unsigned long  i_faddr; */
+  0,   /*   unsigned char  i_frag; */
+  0,   /*   unsigned char  i_fsize; */
+  0,   /*   unsigned short i_pad1; */
+  1,   /*   unsigned long  i_reserved2[2]; */
 };
 
 static struct fs_constants DOS_constants = {
