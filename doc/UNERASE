@@ -1,0 +1,317 @@
+
+	I imagine that most of the people initially using this package
+will be the ones who have recently deleted something.  After all,
+that's what finally inspired me to learn enough about the different
+file systems to write this package.  Undelete under unix really isn't
+that hard, it really only suffers the same problems that DOS undelete
+does which is -- you can't recover data that someone else has just
+overwritten.
+
+	If you are quick and have very few users on your system there
+is a good chance that the data will be intact and you can go ahead
+with a successful undelete.  I don't recommend using this package to
+undelete your /usr/bin directory or really any directory, but if you
+have trashed a piece of irreplaceable code or data, undelete is where
+it's at.  If you can reinstall or have recent backups I'd recommend
+you try them.  But it's up to you, besides, sometimes playing with
+lde/undelete for a while is a lot more fun than going back and
+recoding a few hours worth of lost work.
+
+	Before I tell you how to undelete stuff, have a look at
+doc/minix.tex (or the ps or dvi version).  Even if you aren't using a
+minix file system, read it carefully, it will get you used to the
+terms and the general idea behind things here.
+
+These are the steps for a successful undelete:
+
+#########################  STEP ONE  ##################################
+
+	Unmount the partition which has the erased file on it.  If you
+want to, you can remount it read-only, but it isn't necessary.  
+
+NOTE: lde does some checks to see if the file system is mounted, but
+it does not check if it was mounted read-only.  Some functions will be
+deactivated for any (read-only or read/write) mounted partition.
+
+#########################  STEP TWO  ##################################
+
+	Figure out what you want to undelete.  If you know what kind
+of file you are looking for (tar file, compressed file, C file),
+finding it will be a lot easier.  There are a few ways to look for
+file data.
+
+	lde supports a type search and a string search for data at the
+beginning of a file.  Currently, the supported types include gz
+(gzip), tgz (tarred gzip file), and script (those beginning with
+"#!/").
+
+---- EXAMPLE ----
+String search (search for a PKzip file - starts with PK, -O 0 not required):
+	lde -S PK -O 0 /dev/hda1 
+
+String search (search for JPEG files - JIFF starts at byte 6):
+	lde -S JIFF -O 6 /dev/hda1
+
+Type search (search for a gzipped tar file):
+	lde -T tgz /dev/hda1
+-------------------
+
+	When searching by type, you can also include the filename;
+the desired pattern will be extracted from the file.  You should
+specify an offest (-O) and length (-L) when using this option.  This
+option was included to make generalized searches easier.  You can
+find pattern, length, and offset information in /etc/magic which you
+can use to generate your own template files, or specify lengths and
+offsets so that existing files may be used as templates.
+
+---- EXAMPLE ----
+Type search (search for core file - see /etc/magic to determine -O/-L):
+	lde -T /proc/kcore -O 216 -L 4 /dev/hda1
+-----------------
+
+If you add --recoverable to the command line, it will check to see if
+another active inode uses any blocks in this inode.  If no blocks are
+marked used by another inode, "recovery possible" will be printed.  If
+blocks are used by another file "recovery NOT possible" will be
+printed to the screen.  You may still be able to get some data back
+even when it reports that recovery is not possible.  To get an idea of
+how many blocks are in use, you will have to check its recoverablilty
+from lde via its curses interface.
+
+---- EXAMPLE ----
+./lde --paranoid -T script --ilookup --recoverable /dev/hda5
+---- OUTPUT  ----
+Paranoid flag set.  Opening device "/dev/hda5" read-only.
+User requested autodetect filesystem. Checking device . . .
+Found ext2fs on device.
+Match at block 0x107, check inode 0xB, recovery possible.
+Match at block 0x421E7, no unused inode found.
+-----------------
+
+	When you run lde in these mode, it will report a block (and
+inode if you are lucky and used the --ilookup flag) where a match was
+found. Take this inode number and go to step (3).
+
+	If lde doesn't report anything on its own, or the search
+detailed above does not suit your needs, you can use grep to search
+the partition for data and pipe it through lde which will attempt to
+find a block and inode again.  The recommended procedure (all this can
+go on one line, the '\' indicates continuation) is:
+
+   grep -b SEARCH DEVICE | awk '{FS = ":" } ; {print $1 }' | \
+	 lde ${LDE_OPT} --grep DEVICE
+
+A shell script (crash_recovery/grep-inode) is included that will do
+this for you.
+
+   grep-inode [grep_options] search_string device
+
+---- EXAMPLE ----
+   grep-inode -i MyDevelopment.h /dev/hda1
+-----------------
+
+	If none of these search methods are productive, you can page
+through the disk with an editor (emacs /dev/hda2) or the preferred
+choice might be to page through it with lde.  Fire up lde and go into
+block mode (hit 'b') then use PG_UP/PG_DN to flip through all the
+blocks until you find one you like.  Hitting '^R' while displaying the
+block will attempt to find an inode which references the block.
+
+########################  STEP THREE  #################################
+
+	If you have an inode number, things are looking good.  Go into
+inode mode and display this inode.  Then hit 'R' (use capital 'R') to
+copy the inode information to the recovery block list and enter
+recovery mode.  Now hit 'R' again and lde will prompt you for a file
+name (you can include a full path).  Make sure you write it to a FILE
+SYSTEM OTHER THAN THE ONE WHICH THE DELETED FILE RESIDES ON or you
+will probably overwrite it as you go.  One day, when lde supports disk
+writes, it will be able to undelete the file to its original location,
+but for now this is safer.
+
+	The recovered file will be a little larger than the original
+as the last block will be padded with zeroes (or whatever was on the
+disk at the end of the last block).  If you did find an inode for the
+deleted file, you can copy its old size to the new inode by using lde
+to edit the two inodes (don't use lde's copy/paste as it will copy the
+entire inode and undo all the work you just did to restore the file).
+
+######################  OTHER OPTIONS  ################################
+
+	If you were unable to find an intact inode, things are going
+to be tough.  You will have to find all the blocks in the file in
+order.  If your disk is relatively unfragmented, you can hopefully
+find everything in order or close by at least.  Currently, you have to
+tag all the direct blocks, then find the indirect blocks and tag them.
+
+	If the indirect block was wiped or you are unable to find it,
+you've got a lot of work to do.  You can copy individual blocks one at
+a time to the recovery file by using 'w' in block mode.  Display the
+next block in the file, hit 'w', then enter the filename (if you hit
+enter, the last filename will be reused and the block will be appended
+to the file).  lde will always ask if you want to append, overwrite,
+or cancel when a file exists.  You can override this by setting the
+append flag from the flags menu ('f' from most modes).
+
+	If you find any type of indirect block, you can copy it to the
+recovery inode in its corresponding position and recover a whole bunch
+of blocks at once.  Leave the direct blocks filled with zeros.
+
+	Another option is to use dd.  Real programmers still probably
+use emacs and dd to hack a fs. ;) If you know there are a bunch (one
+or more) of contiguous blocks on the disk, you can use the unix
+command dd to copy them from the device to a file.
+
+---- EXAMPLE ----
+To copy blocks 200-299 from the device /dev/hda1 to /home/recover/file1:
+
+   dd if=/dev/hda1 of=/home/recover/file1 bs=1024 count=100 skip=200
+
+	if    input file or device
+	of    output file or device
+	bs    blocksize (will be 1024 for most linux fs's)
+	count number of blocks to copy
+	skip  number of blocks to skip from the start of the device 
+-----------------
+
+Read the dd man page for more info.
+
+####################  ABOUT INDIRECT BLOCKS  ##########################
+
+[ Mail from to an lde user ]
+
+> 1 - install a routine that lets you read what the indirect blocks
+> are pointing to in the chain, I mean, I know that file X has 2
+> indirect blocks but what blocks do these point to and how do I find
+> out?
+
+        This is hard to describe, but if you have figured out how to
+use inode mode any you are looking at the blocklist contained in that
+inode (it should list all the direct blocks and the 1x, 2x, and 3x
+indirect blocks), when you hit 'B' when the cursor is sitting on the
+1x indirect block, it will take you to that block in block mode, then
+each entry in that block (most likely each entry is 4 bits -- as in
+the ext2 fs) points to another block in the chain.
+
+I.E.
+
+        INDIRECT BLOCK:   0x000200
+
+   Now look at block 0x000200
+
+       0000:   01 00 00 00 02 00 00 00 : 04 04 04 00 10 01 00 00
+
+   This would indicate the the next 4 blocks in the file are
+
+        0x00000001, 0x00000002, 0x00040404, 0x00000110
+
+The same is true for double indirect blocks, but the double indirect
+blocks contains pointers to more indirect block which you must then
+look up as above.
+
+That was a pretty lousy explaination, someday I do plan to add a
+feature where you may view all the blocks in a file without doing the
+indirect indexing yourself.  For now, lde is mostly a crutch for last
+ditch efforts at file recovery, but I'm glad if people find other uses
+for it.
+
+
+#################  RECOVERING WITHOUT INODES  #######################
+
+[ This is mail to a person who was unable to find an inode, it gives
+  some last ditch suggestions before giving up. ]
+
+        In a perfect world, or on a virgin disk, everything would
+be sequential.  But with things like unix and (network) file sharing,
+many people can write to the disk at the same time, so the blocks
+can get interleaved.  Also depending on the free space situation of
+the disk, the two free blocks may not exist sequentially on the disk.
+Also, there are file "holes" in ext2 where there are block pointers of
+zero on the disk.  Normally an indirect block would point to 256
+direct blocks, but with zero entries it may be less than this.
+
+        If things are perfect, here is how I imagine your disk is
+layed out:
+
+        Direct blocks 1-9: you already know where these are and they
+                           are in that tiny recovery file (9k).  These
+                           were not sequential, so it makes me wonder
+                           if the rest of the bytes will be layed out
+			   in order.
+
+        Indirect block:    This takes up one block and ideally your
+                           data would start right after it.
+        256 blocks of data:
+        2x indirect block: Should only have one entry, pointing to the
+                           next block on the disk
+        indirect block:    pointed to by the 2xindirect block
+        88 blocks of data:
+
+So my last ditch recommendation is to use dd to copy the blocks off
+the disk and then cat all the dd'ed files together.
+
+        0x5e65e - 0x5e660  |
+        0x61a72            |
+        0x5e661            +--  These are the direct blocks, you could
+        0x61ad4            |    use the lde recovered file instead of
+        0x5e662 - 0x5e664  |    dd + cat.
+
+        0x5e665 - 0x5e764  - 256 blocks of data
+        0x5e750 - 0x5e7a8  - 88 blocks of data
+
+Things look bad becuse the numbers are out of sequence (those 256
+blocks of data should end right before the 2x indirect block at 0x5e74
+there's 0x10 blocks unaccounted for (maybe this is just some of the
+ext2 file system data which is dispersed about the disk -- it could
+fall anywhere in that data range if it's there).
+
+        So try:
+
+---- EXAMPLE ----
+	lde (recover direct blocks to /home/recover/block1)
+        dd if=/dev/sdb1 of=/home/recover/block2 bs=1024 count=256 skip=386661
+        dd if=/dev/sdb1 of=/home/recover/block3 bs=1024 count=88  skip=386896
+        cat block.1 block2 block3 > access_file.dos
+-----------------
+
+####################  TRIPLE INDIRECT BLOCKS  #########################
+
+[ This is a response to one persons request for immediate help
+  recovering a very large file -- the stuff about the triple block
+  having _three_ entries was specific to this persons problem.  In general
+  though, the triple indirect block will not have very many entries, so
+  this method might be viable until I get things together and write in
+  the triple indirect block support. ]
+
+        lde allows you to append a single block to the recover file
+(use 'w' from block mode) -- you can page through the triple indirect
+blocks to figure out the block order and then write each block to the
+recover file.  I.e. after piecing things together from the triple
+indirect block, you should have a list of all the blocks in the file,
+now display the first block on the screen, write it to the file,
+display the second block, write it to the file . . . I really don't
+think it's worth it for 145,000 blocks though.
+
+        The semi-automated way to do this is to make some fake inodes.
+The triple indirect inode should be pretty empty - maybe 3 entires.
+Each of these entries points to a double indirect block.  Solution:
+
+        1) Recover any direct/indirect/double indirect blocks in 
+           the original inode to a file.  Do this with lde.
+
+        2) Look at the triple indirect block.  It should have 3
+           entries.  Write down the 3 double indirect blocks listed here.
+
+        3) Use the recover mode fake inode, fill in all entires with
+           zeroes.  Now fill in the 1st double indirect block that
+           you wrote down in step 2 in the slot for the 2x indirect 
+           block.
+
+        4) Execute a recover, dump it to a file, say "file1".  Repeat
+           step 3 with the other two double indirect inodes from step 2.
+
+        5) Now you should have 4 files, catenate them all together and
+           with any luck, it will un-tar.
+ 
+
+

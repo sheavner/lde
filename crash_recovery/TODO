@@ -1,0 +1,1 @@
+Change search_ext2fs() to use 512 byte blocks, not 1024.

@@ -1,0 +1,242 @@
+\documentstyle[11pt,warn]{article}
+
+% Introduction to the Minix file system:
+% (c) 1993 Scott D. Heavner (sdh@po.cwru.edu)
+% 
+% This is a brief introduction to the Minix file system compiled by
+% Scott D. Heavner (sdh@po.cwru.edu).  Please direct any comments or
+% corrections back to the author.  You are free to distribute this
+% document to anyone in any form as long as this notice remains intact.
+%
+% One day it might even make it to the LDP.
+%
+\parindent 0pt
+\parskip 5pt
+\topmargin 0pt
+\textheight 9in
+\textwidth 6.5in
+\oddsidemargin 0pt
+\evensidemargin 0pt
+\pagestyle{myheadings}
+\markboth{Introduction to the Minix File System}{Introduction to the 
+   Minix File System}
+
+\begin{document}
+
+\section*{Introduction to the Minix File System}
+
+This is a brief introduction to the Minix file system compiled by
+Scott D. Heavner \linebreak[4]
+({\bf sdh@po.cwru.edu}).  Please direct any comments or
+corrections back to the author.  You are free to distribute this
+document to anyone in any form as long as this notice remains intact.
+
+\section{Definitions}
+
+(All are probably relevant to this document only.)
+
+{\bf inode:} Stores all the information about a file except its
+name.
+
+{\bf block:} A unit of size which is determined by the medium or
+programmer.  For example, most devices use 1024 byte (1k) blocks,
+including hard disks and floppy disks (stored in {\tt BLOCK\_SIZE}).
+
+{\bf zone:} probably used interchangeably with block in this document.
+A zone is the part of the disk where the files data exists.
+
+{\bf super block:} the first block on a disk which contains
+information about the type and size of the file system.
+
+\section{Physical Layout}
+
+\small
+\begin{tabular}{|r||c|p{3.5in}|}
+\hline
+\multicolumn{3}{|c|}{Minix FS Layout}
+  \\ \hline\hline
+\multicolumn{1}{|c||}{}
+& \multicolumn{1}{c|}{Size (Blocks)}
+& \multicolumn{1}{c|}{Description}
+  \\ \hline
+Blank Block & 1 & Reserved for partition boot code. \\ \hline
+Super Block & 1 & Info about the file system. \\ \hline
+Inode Map & \#Inodes/BLOCK\_SIZE &
+  Keeps track of used/unused inodes. \\ \hline
+Zone Map & \#Data Zones/BLOCK\_SIZE & 
+  Keeps track of used/unused zones. \\ \hline
+Inode Table & ($(32 or 16) \times {\rm \#Inodes}$)/{BLOCK\_SIZE} &
+  Store info about files/devices. \\ \hline
+Data Zones & Big  & File/Directory contents. \\ \hline
+\end{tabular}
+\normalsize
+
+\section{Inodes}
+
+From $<$linux/minix.h$>$ (Isn't source code wonderful?)
+
+\begin{verbatim}
+struct minix_inode {
+        unsigned short i_mode;
+        unsigned short i_uid;
+        unsigned long i_size;
+        unsigned long i_time;
+        unsigned char i_gid;
+        unsigned char i_nlinks;
+        unsigned short i_zone[9];
+};
+\end{verbatim}
+
+\begin{tabular}{|r||c|c|c|c|c|c|c|c||c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{17}{|c|}{Minix Inode Entry}
+  \\ \hline\hline
+ & 00 & 01 & 02 & 03 & 04 & 05 & 06 & 07 & 08 &
+   09 & 0A & 0B & 0C & 0D & 0E & 0F \\ \hline
+0x00 & \multicolumn{2}{c|}{MODE} & \multicolumn{2}{c|}{UID} &
+   \multicolumn{4}{c||}{SIZE} & \multicolumn{4}{c|}{TIME} &
+   GID & LINKS & \multicolumn{2}{c|}{ZONE 0} \\ \hline
+0x10 & \multicolumn{2}{c|}{ZONE 1} & \multicolumn{2}{c|}{ZONE 2} &
+   \multicolumn{2}{c|}{ZONE 3} & \multicolumn{2}{c||}{ZONE 4} &
+   \multicolumn{2}{c|}{ZONE 5} & \multicolumn{2}{c|}{ZONE 6} &
+   \multicolumn{2}{c|}{ZONE 7} & \multicolumn{2}{c|}{ZONE 8} \\ \hline
+\end{tabular}
+
+\vskip1eM
+
+The inode contains all the important information about a file, except
+its name.  It contains the file permissions, file type, user, group,
+size, modification time, number of links, and the location and order
+of all the blocks in the file.  All values are stored in low byte --
+high byte order.  The maximum number of links is 250 ({\tt 
+MINIX\_LINK\_MAX}).  Notice that the group number is limited to one byte
+whereas $<$gnu/types.h$>$ defines it as short.
+
+Now, for the zones.  The first seven zone pointers (0-6) are point to
+file data.  They are two byte numbers which point to a BLOCK on the
+disk which contains the file's data.  The eighth is a pointer to an
+indirect block; this block continues the tradition of the first seven
+zone pointers, and contains 512 ({\tt BLOCK\_SIZE/2}) zone pointers.
+The ninth zone pointer in the inode points to a double indirect
+block.  The double indirect block contains 512 pointers to more
+indirect blocks, each of which points to 512 data zones.  Each
+indirect block adds 1k to the file.  It's no big deal, but it's nice
+that small files (under 8k) don't have this overhead.  Technically you
+can make 262M files ($7 + 512 + 512 \times 512$ k, see also 
+s\_max\_size in the superblock information), but
+since the Minix fs uses unsigned shorts for block pointers, 
+it is limited to 64M partitions.
+ 
+To determine the meaning of the mode entry, consult 
+$<$linux/types.h$>$  which is included via $<$sys/types.h$>$.  Below is 
+a list of octal numbers which can be extracted from the mode entry.  This
+information can also be found in the stat(2) and chmod(2) man pages.
+
+\begin{verbatim}
+#define S_IFSOCK 0140000 /* Socket */
+#define S_IFLNK  0120000 /* Symbolic Linux */
+#define S_IFREG  0100000 /* Regular file */
+#define S_IFBLK  0060000 /* Block device */
+#define S_IFDIR  0040000 /* Directory */
+#define S_IFCHR  0020000 /* Character device */
+#define S_IFIFO  0010000 /* FIFO/Named pipe */
+#define S_ISUID  0004000 /* Set user id upon execution */
+#define S_ISGID  0002000 /* Set group id upon execution */
+#define S_ISVTX  0001000 /* Sticky bit */
+
+#define S_IRUSR 00400 /* User readable */
+#define S_IWUSR 00200 /* User writable */
+#define S_IXUSR 00100 /* User executable */
+
+#define S_IRGRP 00040 /* Group readable */
+#define S_IWGRP 00020 /* Group writable */
+#define S_IXGRP 00010 /* Group executable */
+
+#define S_IROTH 00004 /* World/Other readable */
+#define S_IWOTH 00002 /* World/Other writable */
+#define S_IXOTH 00001 /* World/Other executable */
+\end{verbatim}
+
+\section{Directories}
+
+From $<$linux/minix.h$>$
+
+\begin{verbatim}
+struct minix_dir_entry {
+        unsigned short inode;
+        char name[0];
+};
+\end{verbatim}
+
+\begin{center}
+\begin{tabular}{|r||c|c|c|}
+\hline
+\multicolumn{4}{|c|}{Minix Directory Entry}
+  \\ \hline\hline
+ & 00 & 01 & 02 -- 1F \\ \hline
+0x00 & \multicolumn{2}{c|}{INODE NUMBER} & char[30/14] FILENAME \\ \hline
+\end{tabular}
+\end{center}
+
+The directory entry associates a filename with an inode.  The first two
+bytes of a directory entry indicate the inode, the remainder is the 
+filename.  On the Minix FS, the root directory is inode 1 
+({\tt MINIX\_ROOT\_INO}).  You can fit 32 directory entries on a 1k block
+which can exist anywhere in the data zone.  Hard links are made when two
+entries point to the same node.  Soft links are stored in the data zone,
+indexed by an inode entry.  A hard links uses only a directory entry, 
+whereas a soft link uses a directory entry, an inode, and at least one
+data zone.
+
+\section{Super Block}
+
+Again, from $<$linux/minix.h$>$:
+
+\begin{verbatim}
+struct minix_super_block {
+        unsigned short s_ninodes;       /* Number of inodes */
+        unsigned short s_nzones;        /* Number of data zones */
+        unsigned short s_imap_blocks;   /* Space used by inode map (blocks) */
+        unsigned short s_zmap_blocks;   /* Space used by zone map  (blocks) */
+        unsigned short s_firstdatazone; /* First zone with ``file'' data */
+        unsigned short s_log_zone_size; /* Size of a data zone =
+                                               (1024 << s_log_zone_size) */
+        unsigned long s_max_size;       /* Maximum file size (bytes) */
+        unsigned short s_magic;         /* Minix 14/30 ID number */
+        unsigned short s_state;         /* Mount state, was it
+                                                       cleanly unmounted */
+};
+\end{verbatim}
+
+\scriptsize
+\begin{tabular}{|r||c|c|c|c|c|c|c|c||c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{17}{|c|}{Minix Inode Entry}
+  \\ \hline\hline
+ & 00 & 01 & 02 & 03 & 04 & 05 & 06 & 07 & 08 &
+   09 & 0A & 0B & 0C & 0D & 0E & 0F \\ \hline
+0x00 & \multicolumn{2}{c|}{No. inodes} & \multicolumn{2}{c|}{No. zones} &
+   \multicolumn{2}{c|}{Imap blocks} & \multicolumn{2}{c||}{ZMap blocks} &
+   \multicolumn{2}{c|}{First data zone} &
+   \multicolumn{2}{c|}{Log zone size} &
+   \multicolumn{4}{c|}{Max. file size} \\ \hline
+0x10 & \multicolumn{2}{c|}{Minix magic} & \multicolumn{2}{c|}{Mount state} &
+   \multicolumn{4}{c||}{} & \multicolumn{8}{c|}{} \\ \hline
+\end{tabular}
+\normalsize
+
+\vskip1eM
+
+The superblock for the minix fs is offset 1024 bytes from the start of 
+the disk, this is to leave room for things like LILO and other boot code.
+The superblock basically details the size of the file system.  It contains
+the number of inodes, numner of data zones, space used by the inode and zone
+map, the blocksize of the filesystem and a two character ID number indicating
+that it is indeed a Minix file system.
+
+\end{document}
+
+% Local Variables:
+% TeX-parse-self: nil
+% TeX-auto-save: nil
+% End:

@@ -1,0 +1,149 @@
+=======================================================================
+COMPILE AND INSTALL
+=======================================================================
+
+1. Configure the package for your system.
+
+   Normally, you just `cd' to the package main directory and type
+`./configure'.  The lde specific options are outlined below in the
+CONFIGURE FLAGS section.  General options for configure are described
+in the INSTALL file.  Some of the newer (possibly untested) features
+of lde may not be enabled unless you specify --enable-alpha-code
+and/or --enable-beta-code.
+
+   You may also want to specify CFLAGS for the compiler (it will
+probably default to `-O2 -g'):
+
+   `CFLAGS=-O2 ./configure'
+
+2. Type `make' to compile the package.
+
+3. Type `make install' (as root)
+
+   Installs man page and binary.  Installs lde binary in /sbin
+   and changes its ownership to root.system with permission 500
+   (only root can read and exec it).
+
+=======================================================================
+CONFIGURE FLAGS
+=======================================================================
+`--prefix=PATH'
+        By default, `make install' will install the package's files in
+        `/sbin' and `/usr/local/man'.  To override the usr of /sbin,
+        use `--disable-root-sbin'.  To change the installation prefix,
+        default will be `/usr/local', giving `configure' the option
+       `--prefix=PATH'.
+
+`--with-ncurses[=PATH]'
+        Use this flag with =PATH part, if your ncurses is not
+        installed in any of the places configure checks (/usr/include,
+        /usr/include/ncurses, /usr/local/include and
+        /usr/local/include/ncurses). The configure script will append
+        `lib' and `include' to find the libncurses.a and ncurses.h
+         files respectively.
+
+        Specify `--without-ncurses' to disable ncurses support.
+
+`--with-gpm=[PATH]'
+        Use this flag if your GPM mouse package is not installed in
+        a standard place.  configure will append `lib' and `include'
+        to find the libgpm.a and gpm.h files respectively.
+
+        Specify `--without-gpm' to disable gpm support.
+
+`--enable-read-partial-tables'
+        This will only read one group of disk tables into memory at a
+        time.  For each group on the ext2fs, we read the inode map,
+        block map, and inode table into memory and retain it until we
+        are asked to access a block in another group.  If
+        `--enable-read-partial-tables' is not specified, we read in
+        the tables for the entire partition (all groups).  Memory
+        savings using partitial reads are probably not substantial,
+        they should be on the order of kb, maybe 10's of kb.
+
+`--disable-inode-writes'
+        Do not allow writes from inode mode.  To modify inodes, you
+        may still edit a block containing the inodes in block mode.
+
+`--enable-paranoid'
+       Open device read only at all times.  If you are scared of doing
+       damage to your disk, defining `--enable-paranoid' will open the
+       device read only at all times.  You will not be able to modify
+       the disk using lde.  lde will also accept a run time flag 
+       of --paranoid, but if compiled using `--enable-paranoid' there
+       are no runtime flags that will allow writes to the device.
+
+`--disable-kernel-bitops'
+       I try to link in code from <asm/bitops.h>.  This works for
+       linux-*-i386 for kernel 2.0.29 and possibly others.  If you see
+       compiler errors (not warnings) about the bitop code, try
+       reconfiguring using `--disable-kernel-bitops'.
+
+`--enable-alpha-code'
+       Define this to activate alpha code.  Sometimes I include
+       untested code in releases, but it will always be surrounded by
+       `#ifdef ALPHA_CODE'.  The binary included in this release will
+       not contain alpha code, to compile it in yourself, specify
+       `--enable-alpha-code' when running `./configure'.
+
+`--disable-beta-code'
+       Define this to deactivate beta code.  The binary included in
+       this release will contain beta code (if it is labeled an Alpha
+       or Beta release), to compile lde without any code marked
+       `#ifdef BETA_CODE', specify `--disable-beta-code' when
+       running `./configure'.
+
+`--enable-error-log[=NUMLINES]'
+       Redefine the number of errors which are saved in the error
+       history log.  If this option is omitted, 30 lines will be
+       retained.
+
+`--enable-debug'
+       This is included as a developer convenience.  It will enable
+       verbose error reporting when compiling and produce a debuggable
+       executable file with ALPHA and BETA code predefined.  It
+       doesn't test options, it just sets them. 
+
+`--disable-root-sbin'
+       This is a cheesy way to do things, but I feel lde should be
+       installed in /sbin, not wherever the prefix is pointing.  If
+       you want the install rules to follow the prefix rules, run
+       ./configure with `--disable-root-sbin'.
+
+=======================================================================
+TROUBLE SHOOTING
+=======================================================================
+
+Bitops.c:
+---------
+   Sometimes there are problems with the kernel bitop routines that I
+swipe from the kernel.  If you get compiler errors (not warnings)
+regarding set_bit, clear_bit, or anything else in bitops.c, try adding
+-DNO_KERNEL_BITOPS to the CFLAGS definition in the Makefile.
+
+llseek:
+-------
+   Some systems are missing the llseek prototype.  I'm using libc5 and
+llseek is proto'ed in <unistd.h>.  This should all be taken care of by
+configure.
+
+typedef long long __loff_t;
+extern __loff_t llseek __P ((int __fd, __loff_t __offset, int __whence));
+
+
+Ncurses:
+--------
+   To compile lde for use in full screen mode, you must have the
+ncurses package. I have tested lde with ncurses 4.2 and cannot
+guarantee that it will work with any other version. If you don't have
+ncurses, get it.  Check your favorite Linux archive site or
+ftp://ftp.gnu.org/pub/gnu/ for the full ncurses distribution.
+
+   The static binary I've included has built in support for linux,
+xterm, and vt100 terminals.  This can be adjusted when compiling and
+installing the ncurses package (see the FALLBACK section of ncurses
+INSTALL file).  If your ncurses is not configured with fallback
+entries and you want to keep lde somewhere for use in emergencies,
+save a few terminfo files with this copy of lde, just in case it's
+your /usr partition goes down.  You can then set the TERMINFO
+environment variable to point to the directory containing these files.

@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# This will grep a partition for a string, then pass the output to lde
+# to hopefully produce and intact inode which can be used to recover 
+# the file.
+#
+# USAGE:  grep-inode [grep options] search_string device
+#
+# Might want to specify --all if the data was really important, but 
+# if you've caught it early, it won't be necessary.
+LDE_OPT=
+GREP_OPT=$*
+while [ "$*" != "" ] ; do
+	DEVICE=$*
+	shift 1
+done
+# If you don't have awk, remove it from the command pipeline below.
+# I don't think it was doing what I wanted it to anyways.
+grep -b ${GREP_OPT} | awk '{FS = ":" } ; { print $1 }' | lde ${LDE_OPT} --grep ${DEVICE}

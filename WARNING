@@ -1,0 +1,20 @@
+*** 1 ***
+
+   The edit/write inode stuff is still very much ALPHA.  So far I've
+tested ext2, minix, and xiafs on a 172k partition and they worked
+under minimal testing.  I copied the partition to a file, modified one
+block pointer, wrote it, then did a "cmp -l" on the partition and the
+copy and it reported only one block different (with the correct values
+even).  Not bad, but I would appreciate it if someone could verify
+something similar on a larger scale, particularly the ext2fs.
+
+*** 2 ***
+
+   There is a bug/misfeature in the Linux 2.0 kernels that will make
+undelete fairly hard.  When files are deleted, all indirect blocks are
+zeroed.  I wrote a small kernel patch and used it successfully for
+most of last year, but according to Ted, it probably won't work.
+Looking it over, I think he's right, so I've stopped using and
+distributing it.  Most of the kernel developers are working on Linux
+2.1, but if anyone has a fix for 2.0 or wants to work on one, email me
+(sdh@po.cwru.edu).

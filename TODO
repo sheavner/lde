@@ -1,0 +1,44 @@
+Sat Jan 17 18:34:17 1998  Scott D. Heavner  <sdh@fishmonger>
+
+	* gpm support only works on my system when I am root?  Most lde
+	usage is probaby done as root, so is this a big deal?
+	
+	* block mode: make cursors scroll window one line at a time?
+	
+	* nofs_init: called at startup and uses ted/remy's slow sizelookup
+	function.  Should reconsider call, maybe just set
+	sb->blocksize=1024, nothing else should matter.
+
+	* recover.c: add option to really undelete files, not just create
+	a copy somewhere else, but mark all it's blocks used and create a
+	dir entry for it (I'm not going to do this anytime soon).
+
+	* Implement a curses window that can be used to select files to
+ 	undelete. (like command line lde -I 1 --recoverable).  Could spawn
+ 	another lde to run create a file with all deleted inodes, display
+ 	the file in a curses window, then let user pick files to undelete.
+
+??? ??? ?? ??:??:?? 1996  Scott D. Heavner  <sdh@fishmonger>
+
+	* Add toggle inode/block in use/bad flag.  Also a reread tables
+ 	from disk command in case the user edits the tables.
+
+	* If you edit a block with inodes on it in block_mode, then view it
+ 	under inode mode, the inode will be incorrect until you view
+ 	another inode and come back to this one.  (This is only a problem
+ 	with ext2fs -- see EXT2_read_inode).  (***Actually***, it is a
+ 	bigger problem with the other fs's which store the inode tables in
+ 	memory.)
+
+	* Put up more super block info.  It was fine for Minix, but ext2
+ 	has a lot more "junk".
+
+	* Throw in more inode info.  What are the inode.flags for ext2
+ 	anyways?
+
+-----------------------------------------------------------------------
+Local Variables:
+  mode:change-log
+  make-backup-files: nil
+End:
+

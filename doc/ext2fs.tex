@@ -1,0 +1,266 @@
+\documentstyle[]{article}
+
+% Maps for Second Extended File System
+% (c) 1994 Scott D. Heavner (sdh@po.cwru.edu)
+% 
+% One day it might even make it to the LDP.
+%
+\parindent 0pt
+\parskip 5pt
+\topmargin 0pt
+\textheight 9in
+\textwidth 6.5in
+\oddsidemargin 0pt
+\evensidemargin 0pt
+\pagestyle{myheadings}
+\markboth{Maps for Second Extended File System}
+	{Maps for Second Extended File System}
+
+\begin{document}
+
+These are some ``maps'' for the second extended file system which 
+were compiled by 
+Scott D. Heavner \linebreak[4]
+({\bf sdh@po.cwru.edu}).  Sorry there is no real descriptions for
+anything, but read the docs/man pages that came with e2fsprogs and 
+the ``Introduction to the Minix Fs'' included in the lde distribution
+and you should get a pretty good idea of what is going on.  You don't
+need to know everything to hack a FS, but it helps.  These tables just
+make it easier to figure out what you are actually editing. 
+Please direct any comments or
+corrections back to the author.  You are free to distribute this
+document to anyone in any medium as long as this notice remains intact.
+
+\section*{BLOCK 0: UNUSED}
+
+This block is reserved for OS boot code.
+
+\section*{BLOCK 1: SUPERBLOCK}
+
+From $<$linux/ext2\_fs.h$>$
+
+\begin{verbatim}
+/*
+ * Structure of the super block
+ */
+struct ext2_super_block {
+        unsigned long  s_inodes_count;  /* Inodes count */
+        unsigned long  s_blocks_count;  /* Blocks count */
+        unsigned long  s_r_blocks_count;/* Reserved blocks count */
+        unsigned long  s_free_blocks_count;/* Free blocks count */
+        unsigned long  s_free_inodes_count;/* Free inodes count */
+        unsigned long  s_first_data_block;/* First Data Block */
+        unsigned long  s_log_block_size;/* Block size */
+        long           s_log_frag_size; /* Fragment size */
+        unsigned long  s_blocks_per_group;/* # Blocks per group */
+        unsigned long  s_frags_per_group;/* # Fragments per group */
+        unsigned long  s_inodes_per_group;/* # Inodes per group */
+        unsigned long  s_mtime;         /* Mount time */
+        unsigned long  s_wtime;         /* Write time */
+        unsigned short s_mnt_count;     /* Mount count */
+        short          s_max_mnt_count; /* Maximal mount count */
+        unsigned short s_magic;         /* Magic signature */
+        unsigned short s_state;         /* File system state */
+        unsigned short s_errors;        /* Behaviour when detecting errors */
+        unsigned short s_pad;
+        unsigned long  s_lastcheck;     /* time of last check */
+        unsigned long  s_checkinterval; /* max. time between checks */
+        unsigned long  s_reserved[238]; /* Padding to the end of the block */
+};
+\end{verbatim}
+
+\scriptsize
+\begin{tabular}{|r||c|c|c|c|c|c|c|c||c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{17}{|c|}{Ext2 Super Block Entry}
+  \\ \hline\hline
+ & 00 & 01 & 02 & 03 & 04 & 05 & 06 & 07 & 08 &
+   09 & 0A & 0B & 0C & 0D & 0E & 0F \\ \hline
+0x00 & \multicolumn{4}{c|}{Inodes count} & \multicolumn{4}{c||}{Blocks count} &
+   \multicolumn{4}{c|}{Reserved blocks count} &
+   \multicolumn{4}{c|}{Free blocks count} \\ \hline
+0x10 & \multicolumn{4}{c|}{Free inodes count} &
+   \multicolumn{4}{c||}{First data block} &
+   \multicolumn{4}{c|}{Log block size} &
+   \multicolumn{4}{c|}{Log fragment size} \\ \hline
+0x20 & \multicolumn{4}{c|}{Blocks per group} & 
+   \multicolumn{4}{c||}{Fragments per group} &
+   \multicolumn{4}{c|}{Inodes per group} &
+   \multicolumn{4}{c|}{Mount time} \\ \hline
+0x30 & \multicolumn{4}{c|}{Write time} &
+   \multicolumn{2}{c|}{Mount count} &
+   \multicolumn{2}{c||}{Max mount count} &
+   \multicolumn{2}{c|}{Magic signature} &
+   \multicolumn{2}{c|}{File system state} &
+   \multicolumn{2}{c|}{Error behaviour} &
+   \multicolumn{2}{c|}{Padding} \\ \hline
+0x40 & \multicolumn{4}{c|}{Time of last check} &
+   \multicolumn{4}{c||}{Max time between checks} &
+   \multicolumn{8}{c|}{Padding to end of block} \\ \hline
+\end{tabular}
+\normalsize
+
+\vskip1eM
+
+\section*{BLOCK 2: GROUP DESCRIPTORS}
+
+From $<$linux/ext2\_fs.h$>$
+
+\begin{verbatim}
+struct ext2_group_desc
+{
+        unsigned long  bg_block_bitmap;         /* Blocks bitmap block */
+        unsigned long  bg_inode_bitmap;         /* Inodes bitmap block */
+        unsigned long  bg_inode_table;          /* Inodes table block */
+        unsigned short bg_free_blocks_count;    /* Free blocks count */
+        unsigned short bg_free_inodes_count;    /* Free inodes count */
+        unsigned short bg_used_dirs_count;      /* Directories count */
+        unsigned short bg_pad;
+        unsigned long  bg_reserved[3];
+};
+\end{verbatim}
+
+\scriptsize
+\begin{tabular}{|r||c|c|c|c|c|c|c|c||c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{17}{|c|}{Ext2 Group Descriptor Entry}
+  \\ \hline\hline
+ & 00 & 01 & 02 & 03 & 04 & 05 & 06 & 07 & 08 &
+   09 & 0A & 0B & 0C & 0D & 0E & 0F \\ \hline
+0x00 & \multicolumn{4}{c|}{Blocks bitmap block} &
+   \multicolumn{4}{c||}{Inode bitmap block} &
+   \multicolumn{4}{c|}{Inodes table block} &
+   \multicolumn{2}{c|}{Free blocks count} &
+   \multicolumn{2}{c|}{Free inodes count} \\ \hline
+0x10 & \multicolumn{2}{c|}{Directories count} &
+   \multicolumn{2}{c|}{Padding} &
+   \multicolumn{4}{c||}{Reserved} &
+   \multicolumn{8}{c|}{Reserved} \\ \hline
+\end{tabular}
+\normalsize
+
+\section*{INODES}
+
+From $<$linux/ext2\_fs.h$>$
+
+\begin{verbatim}
+/*
+ * Structure of an inode on the disk
+ */
+struct ext2_inode {
+        unsigned short i_mode;          /* File mode */
+        unsigned short i_uid;           /* Owner Uid */
+        unsigned long  i_size;          /* Size in bytes */
+        unsigned long  i_atime;         /* Access time */
+        unsigned long  i_ctime;         /* Creation time */
+        unsigned long  i_mtime;         /* Modification time */
+        unsigned long  i_dtime;         /* Deletion Time */
+        unsigned short i_gid;           /* Group Id */
+        unsigned short i_links_count;   /* Links count */
+        unsigned long  i_blocks;        /* Blocks count */
+        unsigned long  i_flags;         /* File flags */
+        unsigned long  i_reserved1;
+        unsigned long  i_block[EXT2_N_BLOCKS];/* Pointers to blocks */
+        unsigned long  i_version;       /* File version (for NFS) */
+        unsigned long  i_file_acl;      /* File ACL */
+        unsigned long  i_dir_acl;       /* Directory ACL */
+        unsigned long  i_faddr;         /* Fragment address */
+        unsigned char  i_frag;          /* Fragment number */
+        unsigned char  i_fsize;         /* Fragment size */
+        unsigned short i_pad1;
+        unsigned long  i_reserved2[2];
+};
+\end{verbatim}
+
+\scriptsize
+\begin{tabular}{|r||c|c|c|c|c|c|c|c||c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{17}{|c|}{Ext2 Inode Entry}
+  \\ \hline\hline
+ & 00 & 01 & 02 & 03 & 04 & 05 & 06 & 07 & 08 &
+   09 & 0A & 0B & 0C & 0D & 0E & 0F \\ \hline
+0x00 & \multicolumn{2}{c|}{File mode} &
+   \multicolumn{2}{c|}{Owner UID} &
+   \multicolumn{4}{c||}{Size (bytes)} &
+   \multicolumn{4}{c|}{Access time} &
+   \multicolumn{4}{c|}{Creation time} \\ \hline
+0x10 & \multicolumn{4}{c|}{Modification time} &
+   \multicolumn{4}{c||}{Deletion time} &
+   \multicolumn{2}{c|}{Group id} &
+   \multicolumn{2}{c|}{Links count} &
+   \multicolumn{4}{c|}{Blocks count} \\ \hline
+0x20 & \multicolumn{4}{c|}{File flags} &
+   \multicolumn{4}{c||}{Reserved} &
+   \multicolumn{4}{c|}{Zone \#0} &
+   \multicolumn{4}{c|}{Zone \#1} \\ \hline
+0x30 & \multicolumn{4}{c|}{Zone \#2} &
+   \multicolumn{4}{c||}{Zone \#3} &
+   \multicolumn{4}{c|}{Zone \#4} &
+   \multicolumn{4}{c|}{Zone \#5} \\ \hline
+0x40 & \multicolumn{4}{c|}{Zone \#6} &
+   \multicolumn{4}{c||}{Zone \#7} &
+   \multicolumn{4}{c|}{Zone \#8} &
+   \multicolumn{4}{c|}{Zone \#9} \\ \hline
+0x50 & \multicolumn{4}{c|}{Zone \#10} &
+   \multicolumn{4}{c||}{Zone \#11} &
+   \multicolumn{4}{c|}{Indirect Zone} &
+   \multicolumn{4}{c|}{Double Indirect Zone} \\ \hline
+0x60 & \multicolumn{4}{c|}{Triple Indirect Zone} &
+   \multicolumn{4}{c||}{NFS File version} &
+   \multicolumn{4}{c|}{File ACL} &
+   \multicolumn{4}{c|}{Directory ACL} \\ \hline
+0x70 & \multicolumn{4}{c|}{Fragment address} &
+   \multicolumn{1}{c|}{Fragment number} &
+   \multicolumn{1}{c|}{Fragment size} &
+   \multicolumn{2}{c||}{Padding} &
+   \multicolumn{8}{c|}{Reserved} \\ \hline
+\end{tabular}
+\normalsize
+
+\section*{DIRECTORIES}
+
+From $<$linux/ext2\_fs.h$>$
+
+\begin{verbatim}
+/*
+ * Structure of a directory entry
+ */
+#define EXT2_NAME_LEN 255
+
+struct ext2_dir_entry {
+        unsigned long  inode;                   /* Inode number */
+        unsigned short rec_len;                 /* Directory entry length */
+        unsigned short name_len;                /* Name length */
+        char           name[EXT2_NAME_LEN];     /* File name */
+};
+\end{verbatim}
+
+\scriptsize
+\begin{tabular}{|r||c|c|c|c|c|c|c|c||c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{17}{|c|}{Ext2 Directory Entry}
+  \\ \hline\hline
+ & 00 & 01 & 02 & 03 & 04 & 05 & 06 & 07 & 08 &
+   09 & 0A & 0B & 0C & 0D & 0E & 0F \\ \hline
+0x00 & \multicolumn{4}{c|}{Inode number} &
+   \multicolumn{2}{c|}{Entry length} &
+   \multicolumn{2}{c||}{Name length} &
+   \multicolumn{8}{c|}{Filename (variable len)} \\ \hline
+\end{tabular}
+\normalsize
+
+\end{document}
+
+% Local Variables:
+% TeX-parse-self: nil
+% TeX-auto-save: nil
+% End:
+
+
+
+
+
+
+
+
+

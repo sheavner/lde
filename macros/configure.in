@@ -1,0 +1,253 @@
+dnl Process this file with autoconf to produce a configure script.
+
+dnl Autoconf requires the name of a unique file in the source tree
+AC_INIT(../src/main_lde.c)
+
+LDEVERSION=2.4.pre1
+AC_SUBST(LDEVERSION)
+
+dnl Must use builtin() as it is overridden by some AC_ macros
+builtin(include,./curses.m4)
+builtin(include,./misctests.m4)
+
+dnl Search for ncurses by default
+search_gpm=true
+
+dnl Install into /sbin by default
+SBIN_LOCATION=/sbin
+AC_SUBST(SBIN_LOCATION)
+
+dnl Checks for programs.
+AC_PROG_YACC
+AC_PROG_CC
+AC_PROG_INSTALL
+AC_PROG_MAKE_SET
+AC_PATH_PROG(RM, rm, rm)
+AC_PATH_PROG(AR, ar, ar)
+
+AC_CHECK_PROG(system,uname,`uname`,unknown)
+
+dnl Make sure linux include links are properly installed
+AC_CHECK_HEADER(linux/fs.h,,
+  AC_MSG_ERROR( 
+  [ Missing include file <linux/fs.h>.  
+  Is there a symlink from your source tree to /usr/include/linux?
+  See README in the linux kernel source directory.  You should have
+  links from the kernel tree to /usr/include/(linux,asm,scsi)]
+  )
+)
+
+dnl Check that <asm/bitops.h> exists and works
+AC_CHECK_KERNEL_BITOPS
+
+dnl There is some system patch that redefines msdos_boot_sector
+AC_EGREP_HEADER(fat_boot_sector,linux/msdos_fs.h,
+	AC_DEFINE(MSDOS_BS_NAMED_FAT))
+
+dnl llseek seems to appear in different places
+AC_EGREP_HEADER(llseek,unistd.h,[
+		AC_DEFINE(UNISTD_LLSEEK_PROTO)
+		AC_DEFINE(HAVE_LLSEEK)
+	],
+	AC_CHECK_FUNCS(llseek))
+AC_CHECK_TYPE(loff_t, long long)
+
+dnl Can we override -Wall on swiped code. 
+AC_CC_NOWARN
+
+dnl ------------------------------------------------------------------
+dnl      C H E C K   S U P P O R T E D   F I L E S Y S T E M S
+dnl ------------------------------------------------------------------
+AC_SUBST(FS_SRCS)
+AC_SUBST(FS_OBJS)
+
+AC_CHECK_HEADER(linux/minix_fs.h,
+	AC_DEFINE(HAVE_MINIXFS)
+	FS_SRCS="minix.c $FS_SRCS"
+	FS_OBJS="minix.o $FS_OBJS"
+)
+
+AC_CHECK_HEADER(linux/msdos_fs.h,
+	AC_DEFINE(HAVE_MSDOSFS)
+	FS_SRCS="msdos_fs.c $FS_SRCS"
+	FS_OBJS="msdos_fs.o $FS_OBJS"
+)
+
+AC_CHECK_HEADER(linux/xia_fs.h,
+	AC_DEFINE(HAVE_XIAFS)
+	FS_SRCS="xiafs.c $FS_SRCS"
+	FS_OBJS="xiafs.o $FS_OBJS"
+)
+
+AC_CHECK_HEADER(linux/ext2_fs.h,
+	AC_DEFINE(HAVE_EXT2FS)
+	FS_SRCS="ext2fs.c $FS_SRCS"
+	FS_OBJS="ext2fs.o $FS_OBJS"
+)
+
+
+dnl ------------------------------------------------------------------
+dnl                U S E R   E N A B L E   F L A G S
+dnl ------------------------------------------------------------------
+AC_ARG_ENABLE(read-partial-tables,
+        [  --enable-read-partial-tables
+                          For ext2fs.  By default read all disk tables
+                          on startup. Or when READ_PART_TABLES is
+                          defined, read just one group at a time
+                          (memory savings should really be on the
+                          order	of kb, maybe 10's of kb) ],
+	AC_DEFINE(READ_PART_TABLES)
+)
+
+AC_ARG_ENABLE(inode-writes,
+        [  --disable-inode-writes  disables save feature in inode mode],
+	if test x$enableval = xno
+	then
+		AC_DEFINE(NO_WRITE_INODE)
+	fi
+)
+
+AC_ARG_ENABLE(paranoid,
+        [  --enable-paranoid       open device read only at all times],
+	AC_DEFINE(PARANOID)
+)
+
+AC_ARG_ENABLE(kernel-bitops,
+        [  --disable-kernel-bitops use the C bitop replacement code instead of the
+                          ones in <asm/bitops.h>],
+	if test x$enableval = xno
+	then
+		AC_DEFINE(NO_KERNEL_BITOPS)
+	fi
+)
+
+AC_ARG_ENABLE(alpha-code,
+        [  --enable-alpha-code     Activate some of the code that is still Alpha ],
+	AC_DEFINE(ALPHA_CODE)
+)
+
+AC_ARG_ENABLE(beta-code,
+        [  --disable-beta-code     Disable some of the code that is still Beta],
+	,
+	AC_DEFINE(BETA_CODE)
+)
+
+AC_ARG_ENABLE(error-log,
+        [  --enable-error-log=NUMLINES
+                          define the number of errors which are saved in
+                          the error history log (default to 30 if unspecified)],
+	if test x$enableval = xyes
+	then
+                AC_MSG_WARN(Usage is: --enable-error-log=NUMLINES)
+	else
+		AC_DEFINE_UNQUOTED(ERRORS_SAVED,$withval)
+	fi
+)
+
+AC_ARG_ENABLE(debug,
+        [  --enable-debug          Turn on debugging flags / alpha & beta code],
+	CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wmissing-prototypes"
+	LDFLAGS="$LDFLAGS --static -g"
+	AC_DEFINE(ALPHA_CODE)
+)
+
+AC_ARG_ENABLE(dist,
+        [  --enable-dist           Make for distribution],
+	CFLAGS="-O2 -Wall -Wstrict-prototypes -Wmissing-prototypes"
+	LDFLAGS="$LDFLAGS --static -s"
+)
+
+AC_ARG_ENABLE(root-sbin,
+        [  --disable-root-sbin     Dont install to /sbin, but use \${prefix}/sbin ],
+	if test x$enableval = xno
+	then
+		SBIN_LOCATION='${exec_prefix}/sbin'
+	fi
+)
+
+
+dnl ------------------------------------------------------------------
+dnl           U S E R   S P E C I F I E D   L I B R A R I E S
+dnl ------------------------------------------------------------------
+dnl Swiped this from MCs configure.in
+AC_ARG_WITH(gpm,
+        [  --with-gpm[=base-dir]   Specifies the base gpm directory],
+        if test x$withval = xyes
+        then
+		search_gpm=true
+	elif test x$withval = xno
+	then
+		search_gpm=false
+        else
+		search_gpm=false
+		LIBS="$LIBS -L$withval/lib -lgpm"
+	        AC_DEFINE(HAVE_LIBGPM)
+		CPPFLAGS="$CPPFLAGS -I$withval/include"
+		mouse_lib="GPM and xterm"
+	        AC_MSG_RESULT(defining use_gpm)
+        fi
+)
+
+dnl ------------------------------------------------------------------
+dnl  Search for some version of curses
+dnl ------------------------------------------------------------------
+AC_CHECK_CURSES
+if test "$has_curses" = true
+then
+	AC_DEFINE(LDE_CURSES)
+	AC_SUBST(CURSES_PREFIX)
+	CURSES_PREFIX=LDE_
+	dnl This must be checked after locating -lncurses
+	if $search_gpm
+	then
+           dnl Make sure we have found ncurses or gpm support is useless
+	   AC_CHECK_LIB(gpm, Gpm_Repeat,[
+		AC_DEFINE(HAVE_LIBGPM)
+	        LIBS="$LIBS -lgpm"],[
+		if test x$system = xLinux
+	        then
+		        AC_MSG_WARN("libgpm.a is missing or older than 0.18")
+	        fi
+		], $LIBS)
+	fi
+fi
+
+dnl ************************************************************************
+dnl I haven't bothered to do anything with these yet, so why check for them?
+dnl ************************************************************************
+
+dnl Checks for header files.
+dnl AC_HEADER_STDC
+dnl AC_CHECK_HEADERS(fcntl.h strings.h unistd.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+dnl AC_C_CONST
+dnl AC_TYPE_SIZE_T
+dnl AC_STRUCT_TM
+
+dnl Checks for library functions.
+dnl AC_FUNC_VPRINTF
+dnl AC_CHECK_FUNCS(ftime strstr strtol)
+
+dnl ************************************************************************
+
+AC_CHECK_FUNCS(uname)
+
+
+AC_OUTPUT(../Makefile:./Makefile.in)
+
+echo "
+Configuration:
+
+  Source code location:    ${srcdir}
+  Compiler:                ${CC}
+  Compiler flags:          ${CFLAGS} ${CURSES_INCLUDEDIR}
+  Defines:                 ${DEFS}
+  Linker flags:            ${LDFLAGS} ${CURSES_LIBS}
+
+  Install path:            ${SBIN_LOCATION}, ${mandir}"
+echo ""
+
+dnl Local Variables:
+dnl  make-backup-files: nil
+dnl End:

@@ -1,0 +1,4 @@
+#!/bin/sh
+echo Changing to macros/ and doing  \" ./configure $* \"  there . . .
+cd macros
+exec ./configure $*
