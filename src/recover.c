@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.16 1996/10/13 17:00:20 sdh Exp $
+ *  $Id: recover.c,v 1.17 1996/10/18 12:17:05 sdh Exp $
  */
 
 #include <stdio.h>
@@ -130,6 +130,7 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
 	*mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(ZONES_PER_BLOCK+1) +
 	  ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK;
 	return (EMB_3IND_ZERO);
+#ifdef BETA_CODE
       } else if (block<sb->nzones) {
 	/* Read in the triple indirect block */
 	ind = cache_read_block(block,CACHEABLE);
@@ -182,6 +183,15 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
 	*mapped_block = fsc->N_DIRECT + ZONES_PER_BLOCK*(ZONES_PER_BLOCK+1) +
 	  ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK;
 	return (EMB_3IND_RANGE);
+#else /* BETA CODE undef */
+      } else {
+	static char warn_once = 0;         /* Only warn once about not using 3x indirects */
+        *mapped_block = 0UL;
+        if (!warn_once) {
+          lde_warn("Triple indirects are ignored: Recompile with -DBETA_CODE to handle triple indirect blocks");
+          warn_once = 1;
+	}
+#endif
       }
     }
     blknr -= (ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK);
