@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.14 1996/06/01 04:58:02 sdh Exp $
+ *  $Id: nc_block.c,v 1.15 1996/09/14 02:43:02 sdh Exp $
  */
 
 #include <stdio.h>
@@ -155,7 +155,7 @@ int block_mode(void) {
   static unsigned char *copy_buffer = NULL;
   unsigned char block_buffer[MAX_BLOCK_SIZE];
   char *HEX_PTR, *HEX_NOS = "0123456789ABCDEF";
-  unsigned long a, temp_ptr, temp_iptr=0UL, inode_ptr[2] = { 0UL, 0UL };
+  unsigned long a, temp_ptr, search_iptr=0UL, inode_ptr[2] = { 0UL, 0UL };
   struct bm_flags flags = { 0, 0, 0, 0, 0, 1 };
 
   if (current_block >= sb->nzones)
@@ -283,6 +283,7 @@ int block_mode(void) {
 	  current_block=sb->nzones-1;
 	flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
 	flags.redraw = 1;
+	search_iptr = 0L;
 	break;
 
       case CMD_PREV_BLOCK:
@@ -290,6 +291,7 @@ int block_mode(void) {
 	if (current_block!=0) current_block--;
 	flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
 	flags.redraw = 1;
+	search_iptr = 0L;
 	break;
 
       case CMD_WRITE_CHANGES: /* Write out modified block to disk */
@@ -307,17 +309,20 @@ int block_mode(void) {
       case CMD_FIND_INODE:
       case CMD_FIND_INODE_MC: /* Find an inode which references this block */
         warn("Searching for inode containing block 0x%lX . . .",current_block);
-	if ( (temp_iptr = find_inode(current_block, temp_iptr)) ) {
-	  warn("Block is indexed under inode 0x%lX.  Repeat to search for more occurances.",temp_iptr);
+	if ( (search_iptr = find_inode(current_block, search_iptr)) ) {
+	  warn("Block is indexed under inode 0x%lX.  Repeat to search for more occurances.",search_iptr);
 	  if (c==CMD_FIND_INODE_MC) {
-	    current_inode = temp_iptr;
+	    current_inode = search_iptr;
 	    return CMD_INODE_MODE;
 	  }
 	} else {
-	  if (lde_flags.search_all)
+	  if (lde_flags.quit_now)
+	    warn("Search terminated.");
+	  else if (lde_flags.search_all)
 	    warn("Unable to find inode referenece.");
 	  else
 	    warn("Unable to find inode referenece try activating the --all option.");
+	  search_iptr = 0L;
 	}
 	break;
 
@@ -422,6 +427,7 @@ int block_mode(void) {
 	  current_block = a;
 	  flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
 	  flags.redraw = 1;
+	  search_iptr = 0L;
 	  if (current_block >= sb->nzones)
 	    current_block=sb->nzones-1;
 	}
