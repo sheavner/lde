@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.16 1996/06/01 04:59:09 sdh Exp $
+ *  $Id: nc_lde.c,v 1.17 1996/08/16 22:37:12 sdh Exp $
  */
 
 #include <stdio.h>
@@ -530,11 +530,11 @@ int recover_mode(void)
 {
   int j,c,next_cmd=CMD_REFRESH;
   unsigned long a;
-  char recover_labels[INODE_BLKS][4];
+  char recover_labels[INODE_BLKS];
 
   /* Fill in keys used to change blocks in recover mode */
   for (j=REC_FILE0; j<REC_FILE_LAST; j++)
-    strncpy(recover_labels[j-REC_FILE0], text_key(j,recover_keymap), 3);
+    recover_labels[j-REC_FILE0] = (text_key(j,recover_keymap))[1];
 
   clobber_window(workspace); 
   workspace = newwin(fsc->N_BLOCKS+1,WIN_COL,((VERT-fsc->N_BLOCKS-1)/2+HEADER_SIZE),HOFF);
