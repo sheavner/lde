@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.14 1995/06/02 15:58:30 root Exp $
+ *  $Id: nc_lde.c,v 1.15 1995/06/03 05:09:24 sdh Exp $
  */
 
 #include <stdio.h>
@@ -612,7 +612,7 @@ void crecover_file(unsigned long inode_zones[])
 	fp = 0;
 	break;
       }
-  } else if ( (fp = open(recover_file_name,O_WRONLY|O_CREAT)) < 0 )
+  } else if ( (fp = open(recover_file_name,O_WRONLY|O_CREAT,0644)) < 0 )
     warn("Cannot open file '%s'\n",recover_file_name);
 
   if (fp > 0) {

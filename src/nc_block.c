@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.12 1995/06/02 16:04:38 sdh Exp $
+ *  $Id: nc_block.c,v 1.13 1995/06/03 05:08:57 sdh Exp $
  */
 
 #include <stdio.h>
@@ -251,40 +251,40 @@ int block_mode(void) {
 
   while (flags.dontwait||(c = mgetch())) {
     flags.redraw = flags.highlight = 0;
-    if (!flags.dontwait && flags.edit_block) {
-      if (!flags.ascii_mode) {
+    if ( (!flags.dontwait)&&flags.edit_block) {
+      if (flags.ascii_mode) {
+	if ((c>31)&&(c<127)) {
+	  block_buffer[cur_row*16+cur_col+win_start] = c;
+	  flags.highlight = flags.modified = flags.dontwait = 1;
+	  c = CMD_NEXT_FIELD; /* Advance the cursor */
+	}
+      } else { 
 	HEX_PTR = strchr(HEX_NOS, toupper(c));
 	if ((HEX_PTR != NULL)&&(*HEX_PTR)) {
-	  val = HEX_PTR - HEX_NOS;
+	  val = (int) ( HEX_PTR - HEX_NOS );
 	  if (!icount) {
 	    icount = 1;
 	    v1 = val;
 	    wattron(workspace,WHITE_ON_RED);
 	    waddch(workspace,HEX_NOS[val]);
 	    wattroff(workspace,WHITE_ON_RED);
+	    flags.dontwait = 1;
 	    c = CMD_NO_ACTION;
 	  } else {
 	    icount = 0;
 	    v1 = v1*16 + val;
 	    block_buffer[cur_row*16+cur_col+win_start] = v1;
-	    flags.modified = flags.highlight = 1;
-	    c = KEY_RIGHT; /* Advance the cursor */
+	    flags.modified = flags.highlight = flags.dontwait = 1;
+	    c = CMD_NEXT_FIELD; /* Advance the cursor */
 	  }
-	}
-      } else { /* ASCII MODE */
-	if ((c>31)&&(c<127)) {
-	  block_buffer[cur_row*16+cur_col+win_start] = c;
-	  flags.highlight = flags.modified = 1;
-	  c = KEY_RIGHT; /* Advance the cursor */
 	}
       }
     }
-    
-    if (flags.dontwait) {
+
+    if (flags.dontwait)
       flags.dontwait = 0;
-    } else {
+    else
       c = lookup_key(c, blockmode_keymap);
-    }
     
     switch(c) {
 
@@ -427,7 +427,7 @@ int block_mode(void) {
 
       case CMD_PASTE: /* Paste block from copy buffer */
 	if (copy_buffer) {
-	  flags.modified = 1;
+	  flags.modified = flags.redraw = 1;
 	  memcpy(block_buffer, copy_buffer, sb->blocksize);
 	  if (!write_ok) 
 	    warn("Turn on write permissions before saving this block");
@@ -533,7 +533,7 @@ int block_mode(void) {
       cur_row = (sb->blocksize-win_start)/16 - 1;
 
     if (flags.redraw) {
-      if (!flags.edit_block)
+      if ((!flags.edit_block)&&(!flags.modified))
 	memcpy(block_buffer, cache_read_block(current_block,CACHEABLE),
 	       sb->blocksize);
       cdump_block(current_block,block_buffer,win_start,VERT);

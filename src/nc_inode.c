@@ -3,12 +3,13 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.9 1995/06/02 15:54:11 sdh Exp $
+ *  $Id: nc_inode.c,v 1.10 1995/06/03 05:10:15 sdh Exp $
  */
 
 #include <ctype.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
@@ -43,6 +44,7 @@ static lde_keymap inodemode_keymap[] = {
   { CTRL('W'), CMD_WRITE_CHANGES },
   { 'v', CMD_DISPLAY_LOG },
   { 'V', CMD_DISPLAY_LOG },
+  { 'f', CMD_FLAG_ADJUST },
   { 'p', CMD_PASTE },
   { 'P', CMD_PASTE },
   { 'c', CMD_COPY },
@@ -51,6 +53,8 @@ static lde_keymap inodemode_keymap[] = {
   { 'D', CMD_VIEW_AS_DIR },
   { 'e', CMD_EDIT },
   { 'E', CMD_EDIT },
+  { CTRL('M'), CMD_EDIT },
+  { CTRL('J'), CMD_EDIT },
   { 'b', CMD_BLOCK_MODE },
   { 'B', CMD_BLOCK_MODE_MC },
   { 's', CMD_VIEW_SUPER },
@@ -489,7 +493,7 @@ void parse_edit(WINDOW *workspace, int c, int *modified, struct Generic_Inode *G
     noecho();
     set_inode_field(highlight_field, read_num(cinput), GInode);
     *modified = 1;
-    return 1;
+    return;
   }
 #endif /* NC_FIXED_UNGETCH */
   if (!write_ok) warn("Disk not writeable, change status flags with (F)");
