@@ -1,3 +1,20 @@
+2002-01-10    Scott Heavner
+
+	* lde.h/main_lde.c: drop bitfields from lde_flags structure, waste
+	some space and make them ints.  It's probably faster and it would
+	work with gcc-3.0 where the debian port noticed problems.
+
+	* Adjust makefiles to only pass static flag to lde binary, not other
+	subdirs when using ./configure --enable-dist.
+
+	* crash_recovery: add makefile, merge deb fixes, use our ext2 header
+	file instead of the kernel one.
+
+	* mess with the bitops code some more, test for cli/sti in autoconf
+	and other required headers.
+
+	* Other misc fixes from debian package lde-2.5-8.
+
 2001-11-25    Scott Heavner
 
 	* xiafs.c (XIAFS_dir_entry): Change dir_entry for minix, ext2,

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: bitops.c,v 1.4 1998/01/17 18:10:56 sdh Exp $
+ *  $Id: bitops.c,v 1.5 2002/01/10 20:59:15 scottheavner Exp $
  *
  *  Pulled from Ted's ext2fs v0.5 library code, updated to use
  *  kernel bitops if available.  Otherwise fall back to Ted's C.
@@ -20,16 +20,37 @@
 
 #include "bitops.h"
 
-#ifndef USE_KERNEL_BITOPS
+/* If you are using this on a computer that is not Linux, your best bet (and
+ * worst performance) will be to define NO_CLI_STI, but not USE_KERNEL_BITOPS.
+ * If you are on an emerging Linux system, you're on your own.  Also, after you
+ * have modified this, comment out the warning line below, it's just there for
+ * people who don't read documentation.
+ */
 
-#ifndef NO_CLI_STI
-/* Hopefully, cli() and sti() are in here for all new Linux architectures */
+#ifdef NO_KERNEL_BITOPS
+
+
+/* Hopefully, cli() and sti() are in asm/system.h for all new 
+ *  Linux architectures */
+#ifdef HAVE_ASM_SYSTEM_H
 #include <asm/system.h>
-#else
-/* They won't matter for this application, but will if we ever access shared memory */
+#endif
+
+/* As of January 2002, lde doesn't modify any bits, so we don't really
+ *  nedd cli()/sti().  Also, we're operating on our own memory, so there
+ *  isn't much point in locking it, we're single threaded, no one else
+ *  would be touching it.  I'm not sure why I'm keeping this here? 
+ *  Probably because I just wrote the autoconf macro... */
+#ifdef NO_CLI_STI
 #define sti()
 #define cli()
 #endif
+
+
+#if HAVE_ASM_TYPES_H
+#include <asm/types.h>
+#endif
+
 
 /*
  * For the benefit of those who are trying to port Linux to another
@@ -46,6 +67,7 @@
  * C language equivalents written by Theodore Ts'o, 9/26/92
  */
 
+#if 0  /* Set and clear are unused today */
 int set_bit(int nr,void * addr)
 {
 	int	mask, retval;
@@ -73,13 +95,14 @@ int clear_bit(int nr, void * addr)
 	sti();
 	return retval;
 }
+#endif
 
 int test_bit(int nr, void * addr)
 {
 	int		mask;
-	const int	*ADDR = (const int *) addr;
+	const __u32	*ADDR = (const __u32 *) addr;
 
-	ADDR += nr >> 5;
+	ADDR += nr / 32;
 	mask = 1 << (nr & 0x1f);
 	return ((mask & *ADDR) != 0);
 }

@@ -12,7 +12,28 @@ AC_DEFUN(AC_CHECK_KERNEL_BITOPS,[
                         ) 
         )
         if test x$ac_cv_has_asmbitops = xno ; then
+		AC_CHECK_KERNEL_CLISTI
                 AC_DEFINE(NO_KERNEL_BITOPS)
+        fi
+])
+
+dnl Check for cli/sti functions
+AC_DEFUN(AC_CHECK_KERNEL_CLISTI,[
+	AC_CHECK_HEADERS(asm/system.h)
+        AC_CACHE_CHECK(for cli()/sti() functions,
+                       ac_cv_has_clisti,
+                       AC_TRY_LINK([
+#ifdef HAVE_ASM_SYSTEM_H
+#include <asm/system.h>
+#endif
+],
+                                   [cli(); sti(); return 0;],
+                                   ac_cv_has_clisti="yes",
+                                   ac_cv_has_clisti="no"
+                        ) 
+        )
+        if test x$ac_cv_has_clisti = xno ; then
+                AC_DEFINE(NO_CLI_STI)
         fi
 ])
 
