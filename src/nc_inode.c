@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.8 1995/06/02 14:53:55 sdh Exp $
+ *  $Id: nc_inode.c,v 1.9 1995/06/02 15:54:11 sdh Exp $
  */
 
 #include <ctype.h>
@@ -99,9 +99,9 @@ static lde_keymap inodemode_keymap[] = {
   { '9', REC_FILE9 },
   { '!', REC_FILE10 },
   { '@', REC_FILE11 },
-  { '#', REC_FILE12 },
-  { '$', REC_FILE13 },
-  { '%', REC_FILE14 },
+  { '$', REC_FILE12 },
+  { '%', REC_FILE13 },
+  { '^', REC_FILE14 },
   { 0, 0 }
 };
 

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.10 1995/06/02 15:28:07 sdh Exp $
+ *  $Id: nc_block.c,v 1.11 1995/06/02 15:53:28 sdh Exp $
  */
 
 #include <stdio.h>
@@ -100,9 +100,9 @@ static lde_keymap blockmode_keymap[] = {
   { '9', REC_FILE9 },
   { '!', REC_FILE10 },
   { '@', REC_FILE11 },
-  { '#', REC_FILE12 },
-  { '$', REC_FILE13 },
-  { '%', REC_FILE14 },
+  { '$', REC_FILE12 },
+  { '%', REC_FILE13 },
+  { '^', REC_FILE14 },
   { 0, 0 }
 };
 
