@@ -3,10 +3,9 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.12 1998/01/17 17:45:42 sdh Exp $
+ *  $Id: xiafs.c,v 1.13 1998/05/30 17:57:32 sdh Exp $
  */
 
-#include <ctype.h>
 #include <string.h>
 #include <unistd.h>
 
