@@ -3,16 +3,8 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.h,v 1.3 1994/04/24 20:32:30 sdh Exp $
+ *  $Id: nc_lde.h,v 1.4 1994/09/06 01:24:36 sdh Exp $
  */
-
-#include "lde.h"
-
-#ifdef NC_HEADER
-#include <ncurses.h>
-#else
-#include <curses.h>
-#endif
 
 #define ESC 27
 #define CTRL(x) (x-'A'+1)
@@ -58,17 +50,7 @@ void flag_popup(void);
 void crecover_file(unsigned long inode_zones[]);
 int recover_mode(void);
 void interactive_main(void);
-
-/* nc_dir.c */
-int directory_popup(unsigned long bnr);
-
-/* nc_block.c */
-void cdump_block(unsigned long nr, unsigned char *dind, int win_start, int win_size);
-void cwrite_block(unsigned long block_nr, void *data_buffer, int *mod_yes);
-int block_mode(void);
-
-/* nc_inode.c */
-int inode_mode(void);
-
+void dump_scroll(WINDOW *win, int i, int window_offset, int win_col, int banner_size, 
+		 char **banner, char **help_text, int fancy);
 
 
