@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.38 2001/02/26 19:02:40 scottheavner Exp $
+ *  $Id: nc_lde.c,v 1.39 2001/11/26 05:19:55 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -1032,6 +1032,7 @@ void interactive_main(void)
       printf("* Your shell's TERM variable is unset.\n");
     }
     printf("* Try something like 'export TERM=vt100' or 'setenv TERM vt100'\n");
+    printf("* On older distros, you might try 'export TERMPATH=/usr/lib/terminfo' first.\n");
     return;
   }
   cbreak();
