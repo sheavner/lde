@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1995  Scott D. Heavner
  *
- *  $Id: keymap.h,v 1.4 1996/06/01 04:56:39 sdh Exp $
+ *  $Id: keymap.h,v 1.5 1996/09/15 04:10:33 sdh Exp $
  *
  */
 #ifndef KEYMAP_H
@@ -56,6 +56,7 @@ enum lde_actions {
   CMD_RECOVERY_MODE,        /* Switch to recovery mode */
   CMD_RECOVERY_MODE_MC,     /* Switch to recovery mode, set to recover current inode */
   CMD_DO_RECOVER,           /* Recover file in fake inode to disk */
+  CMD_CLR_RECOVER,          /* Clear all entries in fake inode */
   CMD_CHECK_RECOVER,        /* Check recoverability of fake inode */
   CMD_PREV_INODE,           /* Back up one inode */
   CMD_NEXT_INODE,           /* Forward one inode */
