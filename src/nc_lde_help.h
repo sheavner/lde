@@ -3,6 +3,8 @@
  *
  *  Copyright (C) 1994,1995  Scott D. Heavner
  *
+ *  $Id: nc_lde_help.h,v 1.6 1998/01/17 18:08:58 sdh Exp $
+ *
  */
 #ifndef LDE_NC_LDE_HELP_H
 #define LDE_NC_LDE_HELP_H

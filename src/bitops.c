@@ -3,6 +3,8 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
+ *  $Id: bitops.c,v 1.4 1998/01/17 18:10:56 sdh Exp $
+ *
  *  Pulled from Ted's ext2fs v0.5 library code, updated to use
  *  kernel bitops if available.  Otherwise fall back to Ted's C.
  *  For this application, cli() and sti() are not required, but if
