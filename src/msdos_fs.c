@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.6 1998/01/17 17:45:17 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.7 1998/01/23 04:04:27 sdh Exp $
  */
 
 /* 
@@ -28,6 +28,10 @@ static struct Generic_Inode *DOS_read_inode(unsigned long nr);
 static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
 static void DOS_sb_init(void * sb_buffer);
 static unsigned long DOS_map_inode(unsigned long ino);
+static int DOS_write_inode_NOTYET(unsigned long ino,
+				struct Generic_Inode *GInode);
+static int DOS_one_i__ul(unsigned long nr);
+static int DOS_zero_i__ul(unsigned long nr);
 
 static struct inode_fields DOS_inode_fields = {
   0,   /*   unsigned short i_mode; */
@@ -85,6 +89,25 @@ static struct fs_constants DOS_constants = {
 };
 
 static struct Generic_Inode DOS_junk_inode;
+
+/* Always returns 0 */
+static int DOS_write_inode_NOTYET(unsigned long ino,
+				struct Generic_Inode *GInode)
+{
+  return 0;
+}
+
+/* Returns 1 always */
+static int DOS_one_i__ul(unsigned long nr)
+{
+  return 1;
+}
+
+/* Returns 0 always */
+static int DOS_zero_i__ul(unsigned long nr)
+{
+  return 0;
+}
 
 static unsigned long DOS_map_inode(unsigned long ino)
 {
@@ -205,11 +228,14 @@ void DOS_init(void *sb_buffer)
   sb->namelen = MSDOS_NAME+2;
   sb->dirsize = sizeof(struct msdos_dir_entry);
 
-  FS_cmd.inode_in_use = (int (*)(unsigned long n)) NOFS_one;
-  FS_cmd.zone_in_use = (int (*)(unsigned long n)) NOFS_one;
+  FS_cmd.inode_in_use = DOS_one_i__ul;
+  FS_cmd.zone_in_use = DOS_one_i__ul;
+  FS_cmd.zone_is_bad = DOS_zero_i__ul;
+  FS_cmd.is_system_block = DOS_zero_i__ul;
+
   FS_cmd.dir_entry = DOS_dir_entry;
   FS_cmd.read_inode = DOS_read_inode;
-  FS_cmd.write_inode = (int (*)(unsigned long inode_nr, struct Generic_Inode *GInode)) NOFS_null_call;
+  FS_cmd.write_inode = DOS_write_inode_NOTYET;
   FS_cmd.map_inode = DOS_map_inode;
 }
 
