@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.24 2001/11/26 03:10:41 scottheavner Exp $
+ *  $Id: xiafs.c,v 1.25 2002/01/12 01:18:45 scottheavner Exp $
  */
 
 #include <string.h>
@@ -239,6 +239,15 @@ int XIAFS_test(void *sb_buffer, int use_offset)
 {
   struct xiafs_super_block *Super;
   Super = sb_buffer;
+
+  if ( !use_offset ) {
+    use_offset = (int) ( (void *)(&(Super->s_magic)) -
+                         (void *)(&(Super->s_zone_size)) ) ;
+    if ( *(__u32 *)(sb_buffer + use_offset) == _XIAFS_SUPER_MAGIC )
+       return 1;
+    else
+       return 0;
+  }
 
   if (Super->s_magic == _XIAFS_SUPER_MAGIC) {
     if (use_offset) lde_warn("Found xia_fs on device");
