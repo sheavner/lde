@@ -16,18 +16,30 @@ AC_DEFUN(AC_CHECK_KERNEL_BITOPS,[
                 AC_DEFINE(NO_KERNEL_BITOPS)
         fi
 
-        AC_CACHE_CHECK(for test_le_bit in asm/bitops.h, 
-                       ac_cv_has_test_le_bit,
+        AC_CACHE_CHECK(for ext2_test_bit in asm/bitops.h, 
+                       ac_cv_has_ext2_test_bit,
                        AC_TRY_LINK([#include <asm/bitops.h>],
-                                   [long i=0; test_le_bit(1,&i);return i;],
-                                   ac_cv_has_test_le_bit="yes",
-                                   ac_cv_has_test_le_bit="no"
+                                   [long i=0; ext2_test_bit(1,&i);return i;],
+                                   ac_cv_has_ext2_test_bit="yes",
+                                   ac_cv_has_ext2_test_bit="no"
                         ) 
         )
-        if test x$ac_cv_has_test_le_bit = xyes ; then
-		AC_DEFINE(HAVE_TEST_LE_BIT)
+        if test x$ac_cv_has_ext2_test_bit = xyes ; then
+		AC_DEFINE(HAVE_EXT2_TEST_BIT)
+	else
+	        AC_CACHE_CHECK(for test_le_bit in asm/bitops.h, 
+       	               ac_cv_has_test_le_bit,
+       	               AC_TRY_LINK([#include <asm/bitops.h>],
+       	                           [long i=0; test_le_bit(1,&i);return i;],
+       	                           ac_cv_has_test_le_bit="yes",
+       	                           ac_cv_has_test_le_bit="no"
+       	                ) 
+        	)
+        	if test x$ac_cv_has_test_le_bit = xyes ; then
+			AC_DEFINE(HAVE_TEST_LE_BIT)
+        	fi
         fi
-	
+
 ])
 
 dnl Check for cli/sti functions
