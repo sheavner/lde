@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.16 1996/09/15 04:11:16 sdh Exp $
+ *  $Id: nc_block.c,v 1.17 1996/10/11 00:33:54 sdh Exp $
  */
 
 #include <stdio.h>
@@ -308,20 +308,20 @@ int block_mode(void) {
 
       case CMD_FIND_INODE:
       case CMD_FIND_INODE_MC: /* Find an inode which references this block */
-        warn("Searching for inode containing block 0x%lX . . .",current_block);
+        lde_warn("Searching for inode containing block 0x%lX . . .",current_block);
 	if ( (search_iptr = find_inode(current_block, search_iptr)) ) {
-	  warn("Block is indexed under inode 0x%lX.  Repeat to search for more occurances.",search_iptr);
+	  lde_warn("Block is indexed under inode 0x%lX.  Repeat to search for more occurances.",search_iptr);
 	  if (c==CMD_FIND_INODE_MC) {
 	    current_inode = search_iptr;
 	    return CMD_INODE_MODE;
 	  }
 	} else {
 	  if (lde_flags.quit_now)
-	    warn("Search terminated.");
+	    lde_warn("Search terminated.");
 	  else if (lde_flags.search_all)
-	    warn("Unable to find inode referenece.");
+	    lde_warn("Unable to find inode referenece.");
 	  else
-	    warn("Unable to find inode referenece try activating the --all option.");
+	    lde_warn("Unable to find inode referenece try activating the --all option.");
 	  search_iptr = 0L;
 	}
 	break;
@@ -349,7 +349,7 @@ int block_mode(void) {
       case CMD_COPY: /* Copy block to copy buffer */
 	if (!copy_buffer) copy_buffer = malloc(sb->blocksize);
 	memcpy(copy_buffer,block_buffer,sb->blocksize);
-	warn("Block (%lu) copied into copy buffer.",current_block);
+	lde_warn("Block (%lu) copied into copy buffer.",current_block);
 	break;
 
       case CMD_PASTE: /* Paste block from copy buffer */
@@ -357,7 +357,7 @@ int block_mode(void) {
 	  flags.modified = flags.redraw = 1;
 	  memcpy(block_buffer, copy_buffer, sb->blocksize);
 	  if (!lde_flags.write_ok) 
-	    warn("Turn on write permissions before saving this block");
+	    lde_warn("Turn on write permissions before saving this block");
 	}
 	break;
 
@@ -365,7 +365,7 @@ int block_mode(void) {
 	flags.edit_block = 1;
 	icount = 0;
 	if (!lde_flags.write_ok)
-	  warn("Disk not writeable, change status flags with (F)");
+	  lde_warn("Disk not writeable, change status flags with (F)");
 	break;
 
       case CMD_VIEW_AS_DIR: /* View the current block as a directory */
@@ -385,7 +385,7 @@ int block_mode(void) {
 	    cur_col = cur_row = 0;
 	  flags.redraw = 1;
 	} else
-	  warn("Block (0x%lX) out of range in block_mode().",temp_ptr);
+	  lde_warn("Block (0x%lX) out of range in block_mode().",temp_ptr);
 	break;
 
       case CMD_FLAG_ADJUST: /* Popup menu of user adjustable flags */
@@ -401,7 +401,7 @@ int block_mode(void) {
 	  current_inode = temp_ptr;
 	  return CMD_INODE_MODE;
 	} else
-	  warn("Inode (%lX) out of range in block_mode().",temp_ptr);
+	  lde_warn("Inode (%lX) out of range in block_mode().",temp_ptr);
 	break;
 
       case CMD_EXIT_PROG: /* Switch to another mode */

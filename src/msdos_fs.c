@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.3 1996/06/01 04:57:53 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.4 1996/10/11 00:33:04 sdh Exp $
  */
 
 /* 
@@ -187,7 +187,7 @@ int DOS_test(void *sb_buffer)
   Boot = sb_buffer;
 
   if ( !(strncmp(Boot->system_id,"MSDOS",5)) || !(strncmp(Boot->system_id,"IBM  ",5)) ) {
-    warn("Found msdos_fs on device");
+    lde_warn("Found msdos_fs on device");
     return 1;
   }
 

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.10 1996/06/01 05:00:46 sdh Exp $
+ *  $Id: xiafs.c,v 1.11 1996/10/11 00:36:49 sdh Exp $
  */
 
 #include <ctype.h>
@@ -89,7 +89,7 @@ static struct Generic_Inode* XIAFS_read_inode(unsigned long nr)
   int i;
 
   if ((nr<1)||(nr>sb->ninodes)) {
-    warn("inode (%lu) out of range in XIAFS_read_inode",nr);
+    lde_warn("inode (%lu) out of range in XIAFS_read_inode",nr);
     nr = 1;
   }
 
@@ -238,7 +238,7 @@ int XIAFS_test(void *sb_buffer)
   Super = sb_buffer;
 
   if (Super->s_magic == _XIAFS_SUPER_MAGIC) {
-    warn("Found xia_fs on device");
+    lde_warn("Found xia_fs on device");
     return 1;
   }
 

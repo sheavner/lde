@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.9 1996/06/01 04:57:20 sdh Exp $
+ *  $Id: minix.c,v 1.10 1996/10/11 00:32:42 sdh Exp $
  */
 
 /* 
@@ -93,7 +93,7 @@ static struct Generic_Inode* MINIX_read_inode(unsigned long inode_nr)
   int i;
 
   if ((inode_nr<1)||(inode_nr>sb->ninodes)) {
-    warn("inode (%lu) out of range in MINIX_read_inode",inode_nr);
+    lde_warn("inode (%lu) out of range in MINIX_read_inode",inode_nr);
     return NOFS_init_junk_inode();
   }
 
@@ -216,38 +216,38 @@ void MINIX_read_tables()
 
   /* Check super block info, don't die here -- just print warnings */
   if (sb->zonesize != 0 || sb->blocksize != 1024)
-    warn("Only 1k blocks/zones supported");
+    lde_warn("Only 1k blocks/zones supported");
   
   if (!sb->imap_blocks || sb->imap_blocks > sb->I_MAP_SLOTS)
-    warn("bad s_imap_blocks field in super-block");
+    lde_warn("bad s_imap_blocks field in super-block");
   
   if (!sb->zmap_blocks || sb->zmap_blocks > sb->Z_MAP_SLOTS)
-    warn("bad s_zmap_blocks field in super-block");
+    lde_warn("bad s_zmap_blocks field in super-block");
 
   if (sb->norm_first_data_zone != sb->first_data_zone)
-    warn("Warning: Firstzone != Norm_firstzone");
+    lde_warn("Warning: Firstzone != Norm_firstzone");
 
   /* Do seek to proper block */
   #if WHY_THE_HELL_WAS_FIRST_ZONE_HERE
   if (lseek(CURR_DEVICE, ((sb->first_data_zone+1UL)*sb->blocksize), SEEK_SET) != 
       ((sb->first_data_zone+1UL)*sb->blocksize))
-    warn("Unable to seek block 0x%lX in minix_read_tables",sb->first_data_zone+1UL);
+    lde_warn("Unable to seek block 0x%lX in minix_read_tables",sb->first_data_zone+1UL);
   #endif
   if (lseek(CURR_DEVICE, (fsc->FIRST_MAP_BLOCK*sb->blocksize), SEEK_SET) != 
       (fsc->FIRST_MAP_BLOCK*sb->blocksize))
-    warn("Unable to seek block 0x%lX in minix_read_tables",fsc->FIRST_MAP_BLOCK);
+    lde_warn("Unable to seek block 0x%lX in minix_read_tables",fsc->FIRST_MAP_BLOCK);
 
   /* Now read in tables */
   if (sb->imap_blocks*sb->blocksize != read(CURR_DEVICE,inode_map,sb->imap_blocks*sb->blocksize)) {
-    warn("Unable to read inode map");
+    lde_warn("Unable to read inode map");
     bzero(inode_map, sb->imap_blocks*sb->blocksize);
   }
   if (sb->zmap_blocks*sb->blocksize != read(CURR_DEVICE,zone_map,sb->zmap_blocks*sb->blocksize)) {
-    warn("Unable to read zone map");
+    lde_warn("Unable to read zone map");
     bzero(zone_map, sb->zmap_blocks*sb->blocksize);
   }
   if (INODE_BUFFER_SIZE != read(CURR_DEVICE,inode_buffer,INODE_BUFFER_SIZE)) {
-    warn("Unable to read inodes");
+    lde_warn("Unable to read inodes");
     bzero(inode_buffer, INODE_BUFFER_SIZE);
   }
 }
@@ -285,7 +285,7 @@ int MINIX_test(void *buffer)
   Super = (void *) (buffer + 1024);
 
   if ( (Super->s_magic == MINIX_SUPER_MAGIC) || (Super->s_magic == MINIX_SUPER_MAGIC2) ) {
-    warn("Found a minixfs on device.");
+    lde_warn("Found a minixfs on device.");
     return 1;
   }
 

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.24 1996/10/11 00:06:51 sdh Exp $
+ *  $Id: nc_lde.c,v 1.25 1996/10/11 00:34:57 sdh Exp $
  */
 
 #include <stdio.h>
@@ -621,7 +621,7 @@ void flag_popup(void)
         if (!lde_flags.paranoid)
 	  lde_flags.write_ok = 1 - lde_flags.write_ok;
 	else
-	  warn("Device opened read only, do not specify '--paranoid' on the command line");
+	  lde_warn("Device opened read only, do not specify '--paranoid' on the command line");
 	redraw = 1;
         break;
       case 'A':
@@ -693,14 +693,14 @@ void crecover_file(unsigned long inode_zones[])
       }
     }
   } else if ( (fp = open(recover_file_name,O_WRONLY|O_CREAT,0644)) < 0 )
-    warn("Cannot open file '%s'",recover_file_name);
+    lde_warn("Cannot open file '%s'",recover_file_name);
 
   if (fp > 0) {
     recover_file(fp, inode_zones);
     close(fp);
-    warn("Recovered data written to '%s'", recover_file_name);
+    lde_warn("Recovered data written to '%s'", recover_file_name);
   } else {
-    warn("Error opening '%s'",recover_file_name);
+    lde_warn("Error opening '%s'",recover_file_name);
   }
 
 }

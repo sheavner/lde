@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.16 1996/09/23 04:26:49 sdh Exp $
+ *  $Id: main_lde.c,v 1.17 1996/10/11 00:32:02 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -88,7 +88,7 @@ static int check_mount(char *device_name)
 
   mtab = malloc(statbuf.st_size+1);
   if (mtab==NULL)
-    warn("Out of memory reading /etc/mtab");
+    lde_warn("Out of memory reading /etc/mtab");
   read(fd, mtab, statbuf.st_size);
   close(fd);
 
@@ -117,7 +117,7 @@ int check_root(void)
   GInode = FS_cmd.read_inode(fsc->ROOT_INODE);
 
   if (!S_ISDIR(GInode->i_mode)) {
-    warn("root inode isn't a directory");
+    lde_warn("root inode isn't a directory");
     return 1;
   }
   return 0;
@@ -134,7 +134,7 @@ void read_tables(int fs_type)
    */
  
   super_block_buffer = cache_read_block(0UL, FORCE_READ);
-  warn("User requested %s filesystem. Checking device . . .",text_names[fs_type]);
+  lde_warn("User requested %s filesystem. Checking device . . .",text_names[fs_type]);
   if ( ((fs_type==AUTODETECT)&&(MINIX_test(super_block_buffer))) || (fs_type==MINIX) ) {
     MINIX_init(super_block_buffer);
   } else if ( ((fs_type==AUTODETECT)&&(EXT2_test(super_block_buffer))) || (fs_type==EXT2) ) {
@@ -144,7 +144,7 @@ void read_tables(int fs_type)
   } else if ( ((fs_type==AUTODETECT)&&(DOS_test(super_block_buffer))) || (fs_type==DOS) ) {
     DOS_init(super_block_buffer);
   } else {
-    warn("No file system found on device");
+    lde_warn("No file system found on device");
     NOFS_init(super_block_buffer);
   }
 }
@@ -251,7 +251,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 
       case 'V': /* Display version */
       case 'v':
-	warn("This is %s (version %s).",program_name,VERSION);
+	lde_warn("This is %s (version %s).",program_name,VERSION);
 	exit(0);
 	break;
       case 'a': /* Search disk space marked in use as well as unused */
@@ -303,7 +303,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	  i++;
 	}
 	if (opts->fs_type==AUTODETECT) {
-	  warn("`%s' type not recognized.",optarg);
+	  lde_warn("`%s' type not recognized.",optarg);
 	  i = NONE;
 	  printf("Supported file systems include: ");
 	  while (text_names[i]) {
@@ -334,7 +334,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	    }
 	    close(i);
 	  } else {
-	    warn("Can't open search file: %s",opts->search_string);
+	    lde_warn("Can't open search file: %s",opts->search_string);
 	  }
 	}
 	break;
@@ -344,7 +344,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       case 'L': /* Set length for search string */
 	opts->search_len = read_num(optarg);
         if (opts->search_len>MAX_BLOCK_SIZE) {
-	  warn("Search length reset to %d blocks.",MAX_BLOCK_SIZE);
+	  lde_warn("Search length reset to %d blocks.",MAX_BLOCK_SIZE);
 	  opts->search_len = MAX_BLOCK_SIZE;
 	}
 	break;
@@ -373,7 +373,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
   }
 
   if ( (optind != argc - 1) || ( !(device_name = argv[optind]) ) ) {
-    warn("Illegal device name specified.");
+    lde_warn("Illegal device name specified.");
     usage ();
   }
 
@@ -413,7 +413,7 @@ void main(int argc, char ** argv)
     warn = no_warn;
 
   if (check_mount(device_name)&&!lde_flags.paranoid)
-    warn("Device \"%s\" is mounted, be careful",device_name);
+    lde_warn("Device \"%s\" is mounted, be careful",device_name);
 
 #ifndef PARANOID
   if (!lde_flags.paranoid) {
@@ -421,12 +421,12 @@ void main(int argc, char ** argv)
   } else
 #endif
   {
-    warn("Paranoid flag set.  Opening device \"%s\" read-only.",device_name);
+    lde_warn("Paranoid flag set.  Opening device \"%s\" read-only.",device_name);
     CURR_DEVICE = open(device_name,O_RDONLY);
   }
   
   if (CURR_DEVICE < 0) {
-    warn("Unable to open '%s'",device_name);
+    lde_warn("Unable to open '%s'",device_name);
     exit(1);
   }
 

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.13 1996/06/01 05:00:20 sdh Exp $
+ *  $Id: tty_lde.c,v 1.14 1996/10/11 00:36:18 sdh Exp $
  */
 
 #include <stdio.h>
@@ -112,9 +112,9 @@ char * cache_read_block (unsigned long block_nr, int force)
 
       if (lseek (CURR_DEVICE, cache_block_nr * sb->blocksize, SEEK_SET) !=
 	  cache_block_nr * sb->blocksize)                          
-	warn("Read error: unable to seek to block  in cache_read_block", block_nr);
+	lde_warn("Read error: unable to seek to block  in cache_read_block", block_nr);
       else if ( read (CURR_DEVICE, cache, read_size) != read_size)
-	  warn("Unable to read full block (%lu) in cache_read_block",block_nr);
+	  lde_warn("Unable to read full block (%lu) in cache_read_block",block_nr);
     }
   return cache;
 }
@@ -124,18 +124,18 @@ int write_block(unsigned long block_nr, void *data_buffer)
   size_t write_count;
 
   if (!lde_flags.write_ok) {
-    warn("Disk not writable, block (%lu) not written",block_nr);
+    lde_warn("Disk not writable, block (%lu) not written",block_nr);
     return -1;
   }
 #ifndef PARANOID
   if (lseek (CURR_DEVICE, block_nr * sb->blocksize, SEEK_SET) !=
       block_nr * sb->blocksize) {
-    warn("Write error: unable to seek to block (%lu) in write_block", block_nr);
+    lde_warn("Write error: unable to seek to block (%lu) in write_block", block_nr);
     return -1;
   } else {
     write_count = (size_t) lookup_blocksize(block_nr);
     if (write (CURR_DEVICE, data_buffer, write_count) != write_count) {
-      warn("Write error: unable to write block (%d) in write_block",block_nr);
+      lde_warn("Write error: unable to write block (%d) in write_block",block_nr);
       return -1;
     }
   }

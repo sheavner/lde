@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.12 1996/06/01 04:56:20 sdh Exp $
+ *  $Id: ext2fs.c,v 1.13 1996/10/11 00:31:06 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -132,7 +132,7 @@ static struct Generic_Inode *EXT2_read_inode (unsigned long ino)
   EXT2_last_inode = ino;
 
   if ((ino<1)||(ino>sb->ninodes)) {
-    warn("inode (%lu) out of range in EXT2_read_inode", ino);
+    lde_warn("inode (%lu) out of range in EXT2_read_inode", ino);
     EXT2_last_inode = ino = 1;
   }
 
@@ -321,7 +321,7 @@ static void EXT2_read_tables()
    */
   
   if (sb->first_data_zone != 1UL) {
-    warn("Warning: First block (%lu)"
+    lde_warn("Warning: First block (%lu)"
 	    " != Normal first block (%lu)",
 	    sb->first_data_zone, 1UL);
   }
@@ -378,7 +378,7 @@ int EXT2_test(void *sb_buffer)
   Super = (void *)(sb_buffer+1024);
 
    if (Super->s_magic == EXT2_SUPER_MAGIC) {
-     warn("Found ext2fs on device.");
+     lde_warn("Found ext2fs on device.");
      return 1;
    }
    return 0;

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.11 1996/09/15 18:53:56 sdh Exp $
+ *  $Id: recover.c,v 1.12 1996/10/11 00:35:40 sdh Exp $
  */
 
 #include <stdio.h>
@@ -128,7 +128,7 @@ int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *ma
       } else {
 	*mapped_block = 0UL;
 	if (!warn_once) {
-	  warn("Teach me how to handle triple indirect blocks :)");
+	  lde_warn("Teach me how to handle triple indirect blocks :)");
 	  warn_once = 1;
 	}
 	return (EMB_3IND_NOT_YET);
@@ -176,9 +176,9 @@ void recover_file(int fp,unsigned long zone_index[])
     dind = cache_read_block(nr,CACHEABLE);
     if (nr) {
       write_count = (size_t) lookup_blocksize(nr);
-      /* warn("Setting write count block size %d",write_count); */
+      /* lde_warn("Setting write count block size %d",write_count); */
       if (write (fp, dind, write_count) != write_count) {
-	warn("Write error: unable to write block (%ld) to recover file, recover aborted",nr);
+	lde_warn("Write error: unable to write block (%ld) to recover file, recover aborted",nr);
 	return;
       }
     }
@@ -199,7 +199,7 @@ int check_recover_file(unsigned long zone_index[])
   while (1) {
     if (lde_flags.quit_now) {
       lde_flags.quit_now = 0;
-      warn("Search terminated.");
+      lde_warn("Search terminated.");
       return 1;
     }
     if ((result=map_block(zone_index,j,&nr))) {
@@ -213,21 +213,21 @@ int check_recover_file(unsigned long zone_index[])
       }
     }
     if ((nr)&&FS_cmd.zone_in_use(nr)) {
-      warn("Block %ld (0x%lX) in use by another file. Hit any key to continue (q=abort, l=lookup inode).",nr,nr);
+      lde_warn("Block %ld (0x%lX) in use by another file. Hit any key to continue (q=abort, l=lookup inode).",nr,nr);
       result = mgetch();
       if (result == 'q') {
-        warn("Check aborted.");
+        lde_warn("Check aborted.");
 	return 1;
       }	else if (result == 'l') {
         while (1) {
-	  warn("Searching for inode reference . . .");
+	  lde_warn("Searching for inode reference . . .");
           lookedup = find_inode(nr, lookedup);
 	  if (lookedup == 0UL) {
-	    warn("Can't find an inode referencing block %ld (0x%lX).  Hit any key to continue.",nr,nr);
+	    lde_warn("Can't find an inode referencing block %ld (0x%lX).  Hit any key to continue.",nr,nr);
 	    (void) mgetch();
 	    break;
 	  } else {
-	    warn("Block %ld (0x%lX) is used by inode %ld (0x%lX).  Hit any key to continue search ('q' to quit).",
+	    lde_warn("Block %ld (0x%lX) is used by inode %ld (0x%lX).  Hit any key to continue search ('q' to quit).",
 		 nr,nr,lookedup,lookedup);
 	    if (tolower(mgetch())=='q') {
 	      break;
@@ -241,9 +241,9 @@ int check_recover_file(unsigned long zone_index[])
   }
   
   if (!cr_result) {
-    warn("Check complete, file looks recoverable.");
+    lde_warn("Check complete, file looks recoverable.");
   } else {
-    warn("Check complete.  Recovery may not be possible.");
+    lde_warn("Check complete.  Recovery may not be possible.");
   }
   
   return cr_result;
@@ -338,7 +338,7 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 
   /* Where should we start the search? */
   if (start_nr!=1UL) {
-    warn("Resuming search from block 0x%lX",start_nr);
+    lde_warn("Resuming search from block 0x%lX",start_nr);
     nr = start_nr;
   } else {
     nr=sb->first_data_zone;
@@ -347,7 +347,7 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
   for (/*nr set above*/;nr<sb->nzones;nr++) {
 
     if (lde_flags.quit_now) {
-      warn("Search aborted at block 0x%lX",nr);
+      lde_warn("Search aborted at block 0x%lX",nr);
       break;
     }
 
