@@ -1,3 +1,11 @@
+2002-01-12    Scott Heavner
+
+	- autoconf stuff, detect timeb struct, headers
+	- add --nosymbolic flag to help auto testsuite ignore uid->username
+	  mapping that will vary on every system
+	- minimize warnings in code in swiped/ (mostly switching to ansi
+	  prototypes)
+
 2002-01-11    Scott Heavner
 
 	* Release: 2.6.0
