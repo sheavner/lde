@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.11 1998/01/17 17:45:14 sdh Exp $
+ *  $Id: minix.c,v 1.12 1998/06/20 17:47:57 sdh Exp $
  */
 
 /* 
@@ -158,6 +158,19 @@ int MINIX_zone_in_use(unsigned long inode_nr)
   return test_bit((inode_nr-sb->first_data_zone+1),zone_map);
 }
 
+/* Checks if a data block is part of the ext2 system (i.e. not a data block) */
+int MINIX_is_system_block(unsigned long nr)
+{
+  int i;
+
+  /* norm_first_data_zone is first zone after bitmaps and inode table */
+  if (nr <  sb->norm_first_data_zone)
+    return 1;
+
+  /* How about that, it wasn't a system block */
+  return 0;
+}
+
 static char *MINIX_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr)
 {
   static char cname[32];
@@ -267,8 +280,10 @@ void MINIX_init(void *sb_buffer)
     sb->dirsize = 32;
   }
 
-  FS_cmd.inode_in_use = MINIX_inode_in_use;
-  FS_cmd.zone_in_use  = MINIX_zone_in_use;
+  FS_cmd.inode_in_use     = MINIX_inode_in_use;
+  FS_cmd.zone_in_use      = MINIX_zone_in_use;
+  FS_cmd.is_system_block  = MINIX_is_system_block;
+
   FS_cmd.dir_entry    = MINIX_dir_entry;
   FS_cmd.read_inode   = MINIX_read_inode;
   FS_cmd.write_inode  = MINIX_write_inode;
