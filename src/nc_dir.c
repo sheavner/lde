@@ -4,7 +4,7 @@
  *  Copyright (C) 1994  Scott D. Heavner
  *  Sections Copyright (c) 2002 John Quirk
  *
- *  $Id: nc_dir.c,v 1.23 2002/02/01 03:35:20 scottheavner Exp $
+ *  $Id: nc_dir.c,v 1.24 2002/05/29 06:02:08 scottheavner Exp $
  */
 
 #include <string.h>
@@ -82,8 +82,8 @@ static int dump_dir_entry(WINDOW *win, int i, int off, lde_buffer *block_buffer,
   char *fname = NULL;
 #else
   char fname[40]; /* this is the cliped name string */
-  char deleted = ' ';
 #endif /* JQDIR */
+  char deleted = ' ';
   struct Generic_Inode *GInode;
   lde_dirent d = { 0 };
   unsigned long inode_nr;
