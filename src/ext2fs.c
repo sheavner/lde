@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.1 1994/03/19 17:07:03 sdh Exp $
+ *  $Id: ext2fs.c,v 1.2 1994/03/19 19:29:46 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -40,7 +40,6 @@ struct fs_constants EXT2_constants = {
 };
 
 unsigned long group_desc_count;
-char * bad_map = NULL;
 struct ext2_group_desc * group_desc = NULL;
 
 static EXT2_last_inode = 0;
@@ -131,40 +130,57 @@ unsigned long EXT2_zoneindex(unsigned long nr, unsigned long znr)
   return inode->i_block[znr];
 }
 
-static void EXT2_read_inode_bitmap ()
+static int inode_cache = -1;
+static void EXT2_read_inode_bitmap (unsigned long nr)
 {
   int i;
-  char * inode_bitmap = inode_map;
   
-  for (i = 0; i < group_desc_count; i++)
-    {
-      if (lseek (CURR_DEVICE, group_desc[i].bg_inode_bitmap * sb->blocksize,
-		 SEEK_SET) !=
-	  group_desc[i].bg_inode_bitmap * sb->blocksize)
-	die ("seek failed in read_inode_bitmap");
-      if (read (CURR_DEVICE, inode_bitmap, sb->s_inodes_per_group / 8) !=
-	  sb->s_inodes_per_group / 8)
-	die ("read failed in read_inode_bitmap");
-      inode_bitmap += sb->s_inodes_per_group / 8;
-    }
+  i = nr / sb->s_inodes_per_group;
+
+  if ( i != inode_cache ) {
+    inode_cache = i;
+    if (lseek (CURR_DEVICE, group_desc[i].bg_inode_bitmap * sb->blocksize,
+	       SEEK_SET) !=
+	group_desc[i].bg_inode_bitmap * sb->blocksize)
+      die ("seek failed in EXT2_read_inode_bitmap");
+    if (read (CURR_DEVICE, inode_map, sb->s_inodes_per_group / 8) !=
+	sb->s_inodes_per_group / 8)
+      die ("read failed in EXT2_read_inode_bitmap");
+  }
 }
 
-static void EXT2_read_block_bitmap ()
+int EXT2_inode_in_use(unsigned long nr)
+{
+  nr--;
+  EXT2_read_inode_bitmap(nr);
+  return bit(inode_map,nr%sb->s_inodes_per_group);
+}
+
+static int block_cache = -1;
+static void EXT2_read_block_bitmap(unsigned long nr)
 {
   int i;
-  char * block_bitmap = zone_map;
   
-  for (i = 0; i < group_desc_count; i++)
-    {
-      if (lseek (CURR_DEVICE, group_desc[i].bg_block_bitmap * sb->blocksize,
-		 SEEK_SET) !=
-	  group_desc[i].bg_block_bitmap * sb->blocksize)
-	die ("seek failed in read_block_bitmap");
-      if (read (CURR_DEVICE, block_bitmap, sb->s_blocks_per_group / 8) !=
-	  sb->s_blocks_per_group / 8)
-	die ("read failed in read_block_bitmap");
-      block_bitmap += sb->s_blocks_per_group / 8;
-    }
+  i = nr / sb->s_blocks_per_group;
+
+  if ( i != block_cache ) {
+    block_cache = i;
+    if (lseek (CURR_DEVICE, group_desc[i].bg_block_bitmap * sb->blocksize,
+	       SEEK_SET) !=
+	group_desc[i].bg_block_bitmap * sb->blocksize)
+      die ("seek failed in EXT2_read_block_bitmap");
+    if (read (CURR_DEVICE, zone_map, sb->s_blocks_per_group / 8) !=
+	sb->s_blocks_per_group / 8)
+      die ("read failed in EXT2_read_block_bitmap");
+  }
+}
+
+int EXT2_zone_in_use(unsigned long nr)
+{
+  if (nr < sb->first_data_zone) return 1;
+  nr -= sb->first_data_zone;
+  EXT2_read_block_bitmap(nr);
+  return bit(zone_map,nr%sb->s_blocks_per_group);
 }
                                                                                                                                 
 void EXT2_read_tables()
@@ -172,8 +188,6 @@ void EXT2_read_tables()
   int i, addr_per_block, inode_blocks_per_group;
   unsigned long group_desc_size;
   unsigned long desc_blocks;
-  unsigned short * inode_count = NULL;
-  unsigned short * block_count = NULL;
   char notify[100];
   long desc_loc;
 
@@ -201,33 +215,27 @@ void EXT2_read_tables()
   if (read (CURR_DEVICE, group_desc, group_desc_size) != group_desc_size)
     die ("Unable to read group descriptors");
 
-  block_count = malloc(sb->nzones * sizeof (*block_count));
-  if (!block_count)
-    die ("Unable to allocate buffer for block count");
-
-  inode_map = malloc ((sb->ninodes / 8) + 1);
+  inode_map = malloc ((sb->s_blocks_per_group / 8) + 1);
   sb->imap_blocks = sb->ninodes / 8 / sb->blocksize + 1;
   if (!inode_map)
     die ("Unable to allocate inodes bitmap");
-  memset (inode_map, 0, (sb->ninodes / 8) + 1);
-  EXT2_read_inode_bitmap();
+  memset (inode_map, 0, (sb->s_blocks_per_group / 8) + 1);
+  EXT2_read_inode_bitmap((unsigned long) 1);
 
   i = sb->nzones * group_desc_count;
   sb->zmap_blocks = i/sb->blocksize;
-  zone_map = malloc(i);
+  zone_map = malloc((sb->s_blocks_per_group/8) +1 );
   if (!zone_map)
     die ("Unable to allocate blocks bitmap");
-  memset (zone_map, 0, i);
-  EXT2_read_block_bitmap();
+  memset (zone_map, 0,(sb->s_blocks_per_group/8) +1 );
+  EXT2_read_block_bitmap((unsigned long) 1);
 
+/*
   bad_map = malloc (((sb->nzones - FIRSTBLOCK) / 8) + 1);
   if (!bad_map)
     die ("Unable to allocate bad block bitmap");
   memset (bad_map, 0, ((sb->nzones - FIRSTBLOCK) / 8) + 1);
-
-  inode_count = malloc ((sb->ninodes + 1) * sizeof (*inode_count));
-  if (!inode_count)
-    die ("Unable to allocate buffer for inode count");
+ */
 
   if (NORM_FIRSTBLOCK != FIRSTBLOCK) {
     sprintf(notify, "Warning: First block (%lu)"
@@ -275,6 +283,9 @@ void EXT2_init(char * sb_buffer)
   DInode.i_gid = EXT2_i_gid;
   DInode.i_links_count = EXT2_i_links_count;
   DInode.i_zone = EXT2_zoneindex;
+
+  FS_cmd.inode_in_use = EXT2_inode_in_use;
+  FS_cmd.zone_in_use = EXT2_zone_in_use;
 
   EXT2_read_tables();
 
