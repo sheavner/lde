@@ -1,3 +1,11 @@
+2002-01-27    Scott Heavner
+
+	- bigendian directory entries for ext2 and xiafs (minix already ok).
+	  Still need to do iso9660 + msdos.
+
+	- Merge in some of John's changes.  These are easily disabled and
+	  won't disrupt the other code.  Tag STABLE_27_JAN_2002.
+
 2002-01-14    Scott Heavner
 
 	- Add bigendian support for ext2, minix, xiafs types.  Autodetect
