@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.23 1998/05/30 18:20:09 sdh Exp $
+ *  $Id: nc_block.c,v 1.24 1998/06/05 21:23:22 sdh Exp $
  */
 
 #include <stdio.h>
@@ -436,13 +436,14 @@ int block_mode(void) {
       /* Don't do anything yet, but allow mouse handler and edit
        * parser a chance at the result of getch if dontwait is clear */
 
-    } else if (IS_MOUSE(c)) {      /* Handle mouse events here, before
+    } else if (IS_LDE_MOUSE(c)) {  /* Handle mouse events here, before
 				    * lookup_key() and edit code */
 #     ifdef BETA_CODE
-      if ( (MOUSE_X(c)>HOFF) && (MOUSE_Y(c)>HEADER_SIZE) && 
-	   (MOUSE_X(c)<=(HOFF+WIN_COL)) && (MOUSE_Y(c)<=(HEADER_SIZE+VERT)) )  {
-	curs.row = MOUSE_Y(c)-HEADER_SIZE-1;  /* Row calc is easy */
-	curs.col = MOUSE_X(c)-HOFF-1;         /* Col will depend on display mode */
+      if ( (LDE_MOUSEX(c)>HOFF) && (LDE_MOUSEY(c)>HEADER_SIZE) && 
+	   (LDE_MOUSEX(c)<=(HOFF+WIN_COL)) &&
+           (LDE_MOUSEY(c)<=(HEADER_SIZE+VERT)) )  {
+	curs.row = LDE_MOUSEY(c)-HEADER_SIZE-1;/* Row calc is easy */
+	curs.col = LDE_MOUSEX(c)-HOFF-1;       /* Col will depend on mode */
 	if (curs.rs==16) {                    /* Hex/Ascii mode is tougher */
 	  if (curs.col >= 64) {               /* In ascii portion */
 	    curs.col -= 64;

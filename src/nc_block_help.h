@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994,1995  Scott D. Heavner
  *
- *  $Id: nc_block_help.h,v 1.6 1998/01/17 17:45:21 sdh Exp $
+ *  $Id: nc_block_help.h,v 1.7 1998/06/05 21:23:33 sdh Exp $
  */
 #ifndef LDE_NC_BLOCK_HELP_H
 #define LDE_NC_BLOCK_HELP_H
@@ -96,23 +96,23 @@ static lde_keymap blockmode_keymap[] = {
   { 'P', CMD_PASTE },
   { 'w', CMD_DO_RECOVER },
   { 'W', CMD_DO_RECOVER },
-  { CTRL('W'), CMD_WRITE_CHANGES },
-  { CTRL('A'), CMD_ABORT_EDIT },
-  { CTRL('V'), CMD_NEXT_SCREEN },
-  { CTRL('D'), CMD_NEXT_SCREEN },
+  { LDE_CTRL('W'), CMD_WRITE_CHANGES },
+  { LDE_CTRL('A'), CMD_ABORT_EDIT },
+  { LDE_CTRL('V'), CMD_NEXT_SCREEN },
+  { LDE_CTRL('D'), CMD_NEXT_SCREEN },
   { KEY_NPAGE, CMD_NEXT_SCREEN },
-  { CTRL('U'), CMD_PREV_SCREEN },
-  { META('v'), CMD_PREV_SCREEN },
+  { LDE_CTRL('U'), CMD_PREV_SCREEN },
+  { LDE_META('v'), CMD_PREV_SCREEN },
   { KEY_PPAGE, CMD_PREV_SCREEN },
   { 'h', CMD_PREV_FIELD },
   { 'H', CMD_PREV_FIELD },
-  { CTRL('B'), CMD_PREV_FIELD },
+  { LDE_CTRL('B'), CMD_PREV_FIELD },
   { KEY_BACKSPACE, CMD_PREV_FIELD },
   { KEY_DC, CMD_PREV_FIELD },
   { KEY_LEFT, CMD_PREV_FIELD },
   { 'l', CMD_NEXT_FIELD },
   { 'L', CMD_NEXT_FIELD },
-  { CTRL('F'), CMD_NEXT_FIELD },
+  { LDE_CTRL('F'), CMD_NEXT_FIELD },
   { KEY_RIGHT, CMD_NEXT_FIELD },
   { '+', CMD_NEXT_BLOCK },
   { KEY_SRIGHT, CMD_NEXT_BLOCK },
@@ -120,10 +120,10 @@ static lde_keymap blockmode_keymap[] = {
   { KEY_SLEFT, CMD_PREV_BLOCK },
   { 'f',CMD_FLAG_ADJUST },
   { 'F',CMD_FLAG_ADJUST },
-  { CTRL('I'),CMD_TOGGLE_ASCII },
+  { LDE_CTRL('I'),CMD_TOGGLE_ASCII },
   { 'A',CMD_ALL_ASCII },
-  { CTRL('R'),CMD_FIND_INODE },
-  { META('r'),CMD_FIND_INODE_MC },
+  { LDE_CTRL('R'),CMD_FIND_INODE },
+  { LDE_META('r'),CMD_FIND_INODE_MC },
   { 0, 0 }
 };
 

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.29 1998/05/30 17:49:24 sdh Exp $
+ *  $Id: nc_lde.c,v 1.30 1998/06/05 21:23:42 sdh Exp $
  */
 
 #include <stdio.h>
@@ -57,11 +57,11 @@ int nc_mgetch(void)
 {
   int c;
 
-  if ( (c=getch()) == ESC ) {
-    if ( (c=getch()) == ESC )
+  if ( (c=getch()) == LDE_ESC ) {
+    if ( (c=getch()) == LDE_ESC )
       return c;
     else
-      return META(c);
+      return LDE_META(c);
   }
 
   return c;
@@ -332,37 +332,37 @@ int do_popup_menu(lde_menu menu[], lde_keymap keys[])
 
   while ( (c = mgetch()) ) {
     switch (c) {
-      case CTRL('P'):
+      case LDE_CTRL('P'):
       case KEY_UP:
       case 'k':
       case 'K':
 	if (highlight>0) highlight--;
 	break;
-      case CTRL('N'):
+      case LDE_CTRL('N'):
       case KEY_DOWN:
       case 'j':
       case 'J':
 	if (highlight<(window_length-1)) highlight++;
 	break;
-      case CTRL('A'):
-      case ESC:
+      case LDE_CTRL('A'):
+      case LDE_ESC:
 	delwin(win);
 	delwin(bigwin);
 	refresh_all();
 	return 0;
       case KEY_ENTER:
-      case CTRL('M'):
-      case CTRL('J'):
+      case LDE_CTRL('M'):
+      case LDE_CTRL('J'):
 	delwin(win);
 	delwin(bigwin);
 	refresh_all();
 	return menu[highlight].action_code;
       default:
-	if ( IS_MOUSE(c) ) {
+	if ( IS_LDE_MOUSE(c) ) {
 	  /* check x */
 	  result = 0;
-	  if ( MOUSE_X(c) < window_width ) {
-	    c = MOUSE_Y(c) - HEADER_SIZE - 2;
+	  if ( LDE_MOUSEX(c) < window_width ) {
+	    c = LDE_MOUSEY(c) - HEADER_SIZE - 2;
 	    if ((c>=0)&&(c<length)) {
 	      result = menu[c].action_code; 
 	    }
@@ -651,9 +651,9 @@ void flag_popup(void)
     redraw = 0;
 
     /* Allow mouse clicks */
-    if (IS_MOUSE(c)) {
-      if ( (MOUSE_X(c)>HOFF) && (MOUSE_Y(c)>vstart) && (MOUSE_X(c)<(HOFF+WIN_COL)) && (MOUSE_Y(c)<(vstart+vsize)) )  {
-	c=choices[MOUSE_Y(c)-vstart-2];
+    if (IS_LDE_MOUSE(c)) {
+      if ( (LDE_MOUSEX(c)>HOFF) && (LDE_MOUSEY(c)>vstart) && (LDE_MOUSEX(c)<(HOFF+WIN_COL)) && (LDE_MOUSEY(c)<(vstart+vsize)) )  {
+	c=choices[LDE_MOUSEY(c)-vstart-2];
       } else {
 	c = 'q';
       }
@@ -694,7 +694,7 @@ void flag_popup(void)
         lde_flags.blanked_indirects = 1 - lde_flags.blanked_indirects;
 	redraw = 1;
         break;
-      case CTRL('L'):
+      case LDE_CTRL('L'):
         refresh_all();
         break;
       case ' ':
@@ -918,8 +918,8 @@ int lookup_key(int c, lde_keymap *kmap)
   int i;
 
   /* A mouse click in the header window should popup a menu */
-  if (IS_MOUSE(c)) {
-    if (MOUSE_Y(c)<=HEADER_SIZE) {
+  if (IS_LDE_MOUSE(c)) {
+    if (LDE_MOUSEY(c)<=HEADER_SIZE) {
       return CMD_CALL_MENU;
     } else {
       return c&0xFFFFFF00;
@@ -979,12 +979,12 @@ char *text_key(int c, lde_keymap *kmap, int skip)
       memset(return_string,0,5);
 
       /* Look for meta and ctrl keys */
-      if (IS_META(c)) {
+      if (IS_LDE_META(c)) {
 	strcpy(return_string,"M-");
-	c = INV_META(c);
-      } else if (IS_CTRL(c)) {
+	c = INV_LDE_META(c);
+      } else if (IS_LDE_CTRL(c)) {
 	strcpy(return_string,"C-");
-	c = INV_CTRL(c);
+	c = INV_LDE_CTRL(c);
       } else {
 	strcpy(return_string," ");
       }

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.15 1998/01/17 17:45:24 sdh Exp $
+ *  $Id: nc_dir.c,v 1.16 1998/06/05 21:23:07 sdh Exp $
  */
 
 #include <strings.h>
@@ -39,17 +39,17 @@ static lde_keymap dirmode_keymap[] = {
   { 'i', CMD_SET_CURRENT_INODE },
   { 'I', CMD_INODE_MODE_MC },
   { 'Q', CMD_EXIT },
-  { ESC, CMD_EXIT },
+  { LDE_ESC, CMD_EXIT },
   { 'd', CMD_EXPAND_SUBDIR },
-  { CTRL('J'), CMD_EXPAND_SUBDIR },
-  { CTRL('M'), CMD_EXPAND_SUBDIR },
+  { LDE_CTRL('J'), CMD_EXPAND_SUBDIR },
+  { LDE_CTRL('M'), CMD_EXPAND_SUBDIR },
   { 'D', CMD_EXPAND_SUBDIR_MC },
   { KEY_NPAGE, CMD_NEXT_SCREEN },
-  { CTRL('V'), CMD_NEXT_SCREEN },
-  { CTRL('D'), CMD_NEXT_SCREEN },
-  { META('V'), CMD_PREV_SCREEN },
+  { LDE_CTRL('V'), CMD_NEXT_SCREEN },
+  { LDE_CTRL('D'), CMD_NEXT_SCREEN },
+  { LDE_META('V'), CMD_PREV_SCREEN },
   { KEY_PPAGE, CMD_PREV_SCREEN },
-  { CTRL('U'), CMD_PREV_SCREEN },
+  { LDE_CTRL('U'), CMD_PREV_SCREEN },
   { 0, 0 }
 };
 
