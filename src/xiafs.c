@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.29 2002/01/14 21:19:08 scottheavner Exp $
+ *  $Id: xiafs.c,v 1.30 2002/01/27 22:58:19 scottheavner Exp $
  */
 
 #include <string.h>
@@ -163,7 +163,7 @@ static char* XIAFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *ino
 
   /* Directories are variable length, we have to examine all the previous ones to get to the current one */
   for (j=0; j<i; j++) {
-    dir = (void *)dir + dir->d_rec_len;
+    dir = (void *)dir + ldeswab16(dir->d_rec_len);
     if ( (void *)dir >= end ) {
       return (cname);
     }
@@ -171,7 +171,7 @@ static char* XIAFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *ino
 
   /* Test for overflow, could be spanning multiple blocks */
   if ( (void *)dir + sizeof(dir->d_ino) <= end ) { 
-    *inode_nr = dir->d_ino;
+    *inode_nr = ldeswab32(dir->d_ino);
   }
 
   /* Chance this could overflow ? */
