@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.15 1998/06/20 17:50:00 sdh Exp $
+ *  $Id: xiafs.c,v 1.16 1998/07/03 19:02:17 sdh Exp $
  */
 
 #include <string.h>
@@ -215,10 +215,8 @@ void XIAFS_scrub(int flag)
 {
   struct xiafs_super_block Super;
 
-  if (lseek(CURR_DEVICE,0,SEEK_SET))
-    die("unable to seek block in XIAFS_scrub() prior to read");
-
-  if (sizeof(struct xiafs_super_block) != read(CURR_DEVICE, &Super, sizeof(struct xiafs_super_block)))
+  if (sizeof(struct xiafs_super_block) != 
+      nocache_read_block(0, &Super, sizeof(struct xiafs_super_block)))
     die("unable to read super block in XIAFS_scrub()");
 
   if (flag > 0)
@@ -226,10 +224,11 @@ void XIAFS_scrub(int flag)
   else
     Super.s_magic = _XIAFS_SUPER_MAGIC;
 
-  if (lseek(CURR_DEVICE,0,SEEK_SET))
+  if (lde_lseek(0))
     die("unable to seek block in XIAFS_scrub() prior to write");
 
-  if (sizeof(struct xiafs_super_block) != write(CURR_DEVICE, &Super, sizeof(struct xiafs_super_block)))
+  if ( sizeof(struct xiafs_super_block) != 
+       write(CURR_DEVICE, &Super, sizeof(struct xiafs_super_block)) )
     die("unable to write super block in XIAFS_scrub()");
 }
 
