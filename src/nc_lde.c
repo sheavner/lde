@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.21 1996/09/15 05:11:52 sdh Exp $
+ *  $Id: nc_lde.c,v 1.22 1996/09/15 05:19:29 sdh Exp $
  */
 
 #include <stdio.h>
@@ -689,13 +689,22 @@ int recover_mode(void)
   int j,c,next_cmd=CMD_REFRESH;
   unsigned long a;
   char recover_labels[INODE_BLKS];
+  int vstart,vsize=fsc->N_BLOCKS;
 
   /* Fill in keys used to change blocks in recover mode */
   for (j=REC_FILE0; j<REC_FILE_LAST; j++)
     recover_labels[j-REC_FILE0] = (text_key(j,recover_keymap,0))[1];
 
+  /* Do some bounds checking on our window */
+  if (VERT>vsize) {
+    vstart = ((VERT-vsize)/2+HEADER_SIZE);
+  } else {
+    vsize  = VERT;
+    vstart = HEADER_SIZE;
+  }
+
   clobber_window(workspace); 
-  workspace = newwin(fsc->N_BLOCKS+1,WIN_COL,((VERT-fsc->N_BLOCKS-1)/2+HEADER_SIZE),HOFF);
+  workspace = newwin(vsize,WIN_COL,vstart,HOFF);
   werase(workspace);
   
   display_trailer("Change blocks with adjacent characters.  Q to quit.  R to dump to file");
