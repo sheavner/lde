@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.25 1998/06/14 21:20:53 sdh Exp $
+ *  $Id: recover.c,v 1.26 1998/06/21 06:57:16 sdh Exp $
  */
 
 #include <stdio.h>
@@ -121,16 +121,10 @@ static int hacked_map_block(unsigned long zone_index[],
 {
   int result;
 
-  /* Adjust desired block by our skip count */
-  blknr -= *skipped_block;
-
   /* Lookup block, return any error */
   result = hacked_map_block_helper(zone_index,blknr,mapped_block);
   if (result!=EMB_NO_ERROR)
     return result;
-
-  /* else
-    return result; */
 
   *mapped_block += *skipped_block;
 
@@ -141,11 +135,9 @@ static int hacked_map_block(unsigned long zone_index[],
 	  FS_cmd.is_system_block(*mapped_block) ) {
     (*skipped_block)++;
     if ( ++(*mapped_block) > sb->nzones)
-      break;
+      return (EMB_WAY_OUT_OF_RANGE);
   }
 
-  if (*mapped_block > sb->nzones)
-    return (EMB_WAY_OUT_OF_RANGE);
   return EMB_NO_ERROR;
 }
 #endif
