@@ -4,7 +4,7 @@ dnl Autoconf requires the name of a unique file in the source tree
 AC_INIT(../src/main_lde.c)
 dnl AC_CONFIG_HEADER(lde_autoconf.h)
 
-LDEVERSION=2.6.0
+LDEVERSION=2.6.0CVS
 AC_SUBST(LDEVERSION)
 
 AC_SUBST(STATIC_LDFLAGS)
