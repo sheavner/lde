@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.27 2001/11/26 03:10:41 scottheavner Exp $
+ *  $Id: ext2fs.c,v 1.28 2002/01/14 17:27:15 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -133,7 +133,9 @@ static struct Generic_Inode *EXT2_read_inode (unsigned long ino)
 {
   static unsigned long EXT2_last_inode = 0; /* cacheable inode */
   static struct Generic_Inode GInode;
+  struct ext2_inode *Inode;
   char * inode_buffer;
+  int    i;
 
   if (EXT2_last_inode == ino) return &GInode;
   EXT2_last_inode = ino;
@@ -144,11 +146,29 @@ static struct Generic_Inode *EXT2_read_inode (unsigned long ino)
   }
 
   inode_buffer = cache_read_block(EXT2_map_inode(ino),NULL,CACHEABLE);
-  memcpy (&GInode, 
-	  ((struct ext2_inode *) inode_buffer +
-	   ((ino - 1) % sb->s_inodes_per_group) %
-	   (sb->blocksize/fsc->INODE_SIZE)),
-	  sizeof (struct ext2_inode));
+  Inode = ( (struct ext2_inode *) inode_buffer +
+            ((ino - 1) % sb->s_inodes_per_group) %
+            (sb->blocksize/fsc->INODE_SIZE) ) ;
+  GInode.i_mode        = (unsigned short) ldeswab16(Inode->i_mode);
+  GInode.i_uid         = (unsigned short) ldeswab16(Inode->i_uid);
+  GInode.i_size        = (unsigned long)  ldeswab32(Inode->i_size);
+  GInode.i_atime       = (unsigned long)  ldeswab32(Inode->i_atime);
+  GInode.i_ctime       = (unsigned long)  ldeswab32(Inode->i_ctime);
+  GInode.i_mtime       = (unsigned long)  ldeswab32(Inode->i_mtime);
+  GInode.i_dtime       = (unsigned long)  ldeswab32(Inode->i_dtime);
+  GInode.i_gid         = (unsigned short) ldeswab16(Inode->i_gid);
+  GInode.i_links_count = (unsigned short) ldeswab16(Inode->i_links_count);
+  GInode.i_blocks      = (unsigned long)  ldeswab32(Inode->i_blocks);
+  GInode.i_flags       = (unsigned long)  ldeswab32(Inode->i_flags);
+  GInode.i_version     = (unsigned long)  ldeswab32(Inode->i_version);
+  GInode.i_file_acl    = (unsigned long)  ldeswab32(Inode->i_file_acl);
+  GInode.i_dir_acl     = (unsigned long)  ldeswab32(Inode->i_dir_acl);
+  GInode.i_faddr       = (unsigned long)  ldeswab32(Inode->i_faddr);
+  GInode.i_frag        = (unsigned char)  Inode->osd2.linux2.l_i_frag;
+  GInode.i_fsize       = (unsigned char)  Inode->osd2.linux2.l_i_fsize;
+
+  for (i=0; i<INODE_BLKS; i++)
+    GInode.i_zone[i] = (unsigned long)  ldeswab32(Inode->i_block[i]);
 
   return &GInode;
 }
@@ -323,6 +343,7 @@ static void EXT2_read_tables()
 {
   size_t        isize, addr_per_block, inode_blocks_per_group;
   unsigned long desc_loc, desc_blocks;
+  int           i;
 
   /* Free up any memory we may have previously allocated 
    *  (I don't think this will ever happen -- EXT2_read_tables is only
@@ -361,6 +382,15 @@ static void EXT2_read_tables()
        group_desc_size)
     die ("EXT2_read_tables: Unable to read group descriptors");
 
+  for (i = 0; i < group_desc_count; i++) {
+    group_desc[i].bg_block_bitmap = ldeswab32(group_desc[i].bg_block_bitmap);
+    group_desc[i].bg_inode_bitmap = ldeswab32(group_desc[i].bg_inode_bitmap);
+    group_desc[i].bg_inode_table = ldeswab32(group_desc[i].bg_inode_table);
+    group_desc[i].bg_free_blocks_count = ldeswab32(group_desc[i].bg_free_blocks_count);
+    group_desc[i].bg_free_inodes_count = ldeswab32(group_desc[i].bg_free_inodes_count);
+    group_desc[i].bg_used_dirs_count = ldeswab32(group_desc[i].bg_used_dirs_count);
+  }
+
   /* Allocate and read in inode map */
   isize = sb->s_inodes_per_group / 8;
 #ifndef READ_PART_TABLES
@@ -396,15 +426,15 @@ static void EXT2_sb_init(void *sb_buffer)
   struct ext2_super_block *Super;
   Super = (void *)(sb_buffer+1024);
 
-  sb->ninodes            = Super->s_inodes_count;
-  sb->nzones             = Super->s_blocks_count;
-  sb->first_data_zone    = Super->s_first_data_block;
+  sb->ninodes            = ldeswab32(Super->s_inodes_count);
+  sb->nzones             = ldeswab32(Super->s_blocks_count);
+  sb->first_data_zone    = ldeswab32(Super->s_first_data_block);
   sb->max_size           = 0;
-  sb->zonesize           = Super->s_log_block_size;
-  sb->blocksize          = EXT2_MIN_BLOCK_SIZE << Super->s_log_block_size;
-  sb->magic              = Super->s_magic;
-  sb->s_inodes_per_group = Super->s_inodes_per_group;
-  sb->s_blocks_per_group = Super->s_blocks_per_group;
+  sb->zonesize           = ldeswab32(Super->s_log_block_size);
+  sb->blocksize          = EXT2_MIN_BLOCK_SIZE << sb->zonesize;
+  sb->magic              = ldeswab16(Super->s_magic);
+  sb->s_inodes_per_group = ldeswab32(Super->s_inodes_per_group);
+  sb->s_blocks_per_group = ldeswab32(Super->s_blocks_per_group);
   sb->imap_blocks        = (sb->ninodes / 8 / sb->blocksize) + 1;
   sb->zmap_blocks        = sb->nzones / 8 / sb->blocksize + 1;
 
@@ -451,7 +481,7 @@ int EXT2_test(void *sb_buffer, int use_offset)
   else
     Super = (void *)(sb_buffer);
 
-   if (Super->s_magic == EXT2_SUPER_MAGIC) {
+   if (Super->s_magic == ldeswab16(EXT2_SUPER_MAGIC)) {
      if (use_offset) lde_warn("Found ext2fs on device.");
      return 1;
    }

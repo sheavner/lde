@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.33 2002/01/13 04:17:13 scottheavner Exp $
+ *  $Id: lde.h,v 1.34 2002/01/14 17:27:15 scottheavner Exp $
  */
 
 #ifndef LDE_H
@@ -236,6 +236,7 @@ volatile struct _lde_flags {
   int blanked_indirects;  /* Set for Linux 2.0.* to work around blanked indirect blocks */
   int logtofile;
   int nosymbolic_guid;
+  int byteswap;
 } lde_flags;
 
 extern struct sbinfo *sb;
@@ -271,5 +272,34 @@ extern int current_error;
 /* #define unmark_inode(x) (clrbit(inode_map,(x)),changed=1) */
 /* #define mark_zone(x) (setbit(zone_map,(x)-sb->first_dat_zone+1),changed=1) */
 /* #define unmark_zone(x) (clrbit(zone_map,(x)-sb->first_data_zone+1),changed=1) */
+
+
+/* Byte swapping routines, taken from linux kernel v2.2.19 */
+#define ___ldeswab16(x) \
+        ((__u16)( \
+                (((__u16)(x) & (__u16)0x00ffU) << 8) | \
+                (((__u16)(x) & (__u16)0xff00U) >> 8) ))
+
+#define ___ldeswab32(x) \
+        ((__u32)( \
+                (((__u32)(x) & (__u32)0x000000ffUL) << 24) | \
+                (((__u32)(x) & (__u32)0x0000ff00UL) <<  8) | \
+                (((__u32)(x) & (__u32)0x00ff0000UL) >>  8) | \
+                (((__u32)(x) & (__u32)0xff000000UL) >> 24) ))
+
+#define ___ldeswab64(x) \
+        ((__u64)( \
+                (__u64)(((__u64)(x) & (__u64)0x00000000000000ffULL) << 56) | \
+                (__u64)(((__u64)(x) & (__u64)0x000000000000ff00ULL) << 40) | \
+                (__u64)(((__u64)(x) & (__u64)0x0000000000ff0000ULL) << 24) | \
+                (__u64)(((__u64)(x) & (__u64)0x00000000ff000000ULL) <<  8) | \
+                (__u64)(((__u64)(x) & (__u64)0x000000ff00000000ULL) >>  8) | \
+                (__u64)(((__u64)(x) & (__u64)0x0000ff0000000000ULL) >> 24) | \
+                (__u64)(((__u64)(x) & (__u64)0x00ff000000000000ULL) >> 40) | \
+                (__u64)(((__u64)(x) & (__u64)0xff00000000000000ULL) >> 56) ))
+
+#define ldeswab16(x) ((lde_flags.byteswap)?(___ldeswab16(x)):(x))
+#define ldeswab32(x) ((lde_flags.byteswap)?(___ldeswab32(x)):(x))
+#define ldeswab64(x) ((lde_flags.byteswap)?(___ldeswab64(x)):(x))
 
 #endif /* LDE_H */
