@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.28 2002/01/11 18:30:41 scottheavner Exp $
+ *  $Id: tty_lde.c,v 1.29 2002/01/13 03:50:31 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -17,8 +17,12 @@
 #include <fcntl.h>
 #endif
 #include <time.h>
+#if HAVE_PWD_H
 #include <pwd.h>
+#endif
+#if HAVE_GRP_H
 #include <grp.h>
+#endif
 #include <errno.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -354,8 +358,12 @@ void dump_inode(unsigned long nr)
   int j;
   char f_mode[12];
   struct Generic_Inode *GInode;
+#if HAVE_GETPWUID
   struct passwd *NC_PASS = NULL;
+#endif
+#if HAVE_GETGRGID
   struct group *NC_GROUP = NULL;
+#endif
 
   GInode = FS_cmd.read_inode(nr);
 
@@ -375,18 +383,22 @@ void dump_inode(unsigned long nr)
   printf("%10.10s	 ",f_mode);
   /* UID field */
   if (fsc->inode->i_uid) {
+#if HAVE_GETPWUID
     if ((NC_PASS = getpwuid(GInode->i_uid))!=NULL)
       printf("%-8s ",NC_PASS->pw_name);
     else
+#endif
       printf("%-8d ",GInode->i_uid);
   } else {
     printf("         ");
   }
   /* GID field */
   if (fsc->inode->i_gid) {
+#if HAVE_GETGRGID
     if ((NC_GROUP = getgrgid(GInode->i_gid))!=NULL)
       printf("%-8s ",NC_GROUP->gr_name);
     else
+#endif
       printf("%-8d ",GInode->i_gid);
   } else {
     printf("         ");
@@ -425,8 +437,10 @@ void dump_inode(unsigned long nr)
   if (fsc->inode->i_uid) {
     printf("UID:                   ");
     printf("%05d",GInode->i_uid);
+#if HAVE_GETPWUID
     if (NC_PASS != NULL)
       printf(" (%s)",NC_PASS->pw_name);
+#endif
     printf("\n");
   }
 
@@ -434,8 +448,10 @@ void dump_inode(unsigned long nr)
   if (fsc->inode->i_gid) {
     printf("GID:                   ");
     printf("%05d",GInode->i_gid);
+#if HAVE_GETGRGID
     if (NC_GROUP != NULL)
       printf(" (%s)",NC_GROUP->gr_name);
+#endif
     printf("\n");
   }
 
