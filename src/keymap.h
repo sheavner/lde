@@ -1,11 +1,3 @@
-/*
- *  lde/keymap.h -- The Linux Disk Editor
- *
- *  Copyright (C) 1995  Scott D. Heavner
- *
- *  $Id: keymap.h,v 1.2 1995/06/01 06:01:02 sdh Exp $
- *
- */
 #ifndef KEYMAP_H
 #define KEYMAP_H
 
