@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.27 2001/02/07 18:31:13 sdh Exp $
+ *  $Id: main_lde.c,v 1.28 2001/02/21 00:04:55 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -216,7 +216,7 @@ static void usage(void)
 
 static void long_usage(void)
 {
-  fprintf(stderr,"This is %s (version %s), Usage %s %s\n",program_name,VERSION,program_name,USAGE_STRING);
+  fprintf(stderr,"This is %s (version %s), Usage %s %s\n",program_name,LDE_VERSION,program_name,USAGE_STRING);
                 /* 12345678900123456789012345678901234567890123456789012345678901234567890123456789% */
   fprintf(stderr,"   -i {number}          Dump inode to stdout (-I all inodes after {number})\n"
 	         "   -b {number}          Dump block to stdout (-B all blocks after {number})\n"
@@ -317,7 +317,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 
       case 'V': /* Display version */
       case 'v':
-	lde_warn("This is %s (version %s).",program_name,VERSION);
+	lde_warn("This is %s (version %s).",program_name,LDE_VERSION);
 	exit(0);
 	break;
       case 'a': /* Search disk space marked in use as well as unused */

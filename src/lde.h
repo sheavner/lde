@@ -3,14 +3,14 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.26 2001/02/07 18:31:13 sdh Exp $
+ *  $Id: lde.h,v 1.27 2001/02/21 00:04:55 sdh Exp $
  */
 
 #ifndef LDE_H
 #define LDE_H
 
-#ifndef VERSION
-#define VERSION "2.4"
+#ifndef LDE_VERSION
+#define LDE_VERSION "2.6"
 #endif
 
 extern char *program_name;

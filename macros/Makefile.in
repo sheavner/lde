@@ -7,7 +7,7 @@
 srcdir = @srcdir@
 VPATH = @srcdir@
 
-VERSION=@LDEVERSION@
+LDE_VERSION=@LDEVERSION@
 
 .EXPORT_ALL_VARIABLES:
 
@@ -52,7 +52,7 @@ program_name = lde
 ###############################################################################
 QUIET_CFLAGS=@shutup@
 CPPFLAGS=@CPPFLAGS@ @DEFS@ @CURSES_INCLUDEDIR@
-CFLAGS=-DVERSION=\"$(VERSION)\" $(CPPFLAGS) @CFLAGS@
+CFLAGS=-DLDE_VERSION=\"$(LDE_VERSION)\" $(CPPFLAGS) @CFLAGS@
 LDFLAGS=@LDFLAGS@
 LIBS=@LIBS@ @CURSES_LIBS@
 
