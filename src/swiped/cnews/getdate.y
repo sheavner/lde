@@ -17,8 +17,11 @@
 #include <sys/time.h>
 #endif
 #define	timezone	tmzn	/* ugly hack for obscure name clash */
-#include "../../swiped.h"
 
+#if HAVE_SYS_TIMEB_H
+#include <sys/timeb.h>
+time_t lde_getdate(char *p, struct timeb *now);
+#endif
 
 #define daysec (24L*60L*60L)
 
