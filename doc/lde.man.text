@@ -536,55 +536,55 @@ LDE(8)              Linux Programmer's Manual              LDE(8)
 
               ^R     Look up inode which references this block.
 
-              Search for a string.  You will be prompted for a
-              case-sensative
-                     search  string.   The  search  will proceede
-                     from the current block, if a match is found,
-                     the  block  pointer will be advanced and the
-                     matching block will be displayed.
+              /      Search for a string.  You will  be  prompted
+                     for  a  case-sensative  search  string.  The
+                     search will proceede from the current block,
+                     if  a match is found, the block pointer will
+                     be advanced and the matching block  will  be
+                     displayed.
 
        Recover Mode:
 
-       In recover mode, the tagged blocks are displayed  and  may
-       be  edited  by  hand.   When they are correct the user can
-       dump the file.  The user is prompted for a filename  which
+       In  recover  mode, the tagged blocks are displayed and may
+       be edited by hand.  When they are  correct  the  user  can
+       dump  the file.  The user is prompted for a filename which
        can be 80 chars, the default file is "./RECOVER.file".
 
 
               0123456789!@#$%^
-                     Will  prompt  the  user  to  enter a numeric
-                     value for the specified  block  index.   The
-                     format  of  the  input should be the same as
+                     Will prompt the  user  to  enter  a  numeric
+                     value  for  the  specified block index.  The
+                     format of the input should be  the  same  as
                      that described in inode mode.
 
-              c      Check that all the blocks marked for  recov-
-                     ery  are  unused.  Complete recovery will be
-                     impossible if any  blocks  are  reported  in
-                     use,  but  you  might  be  able to salvage a
+              c      Check  that all the blocks marked for recov-
+                     ery are unused.  Complete recovery  will  be
+                     impossible  if  any  blocks  are reported in
+                     use, but you might  be  able  to  salvage  a
                      large chunk of your file.
 
               r      Write out the recovered file.
 
-              u      Unmark all blocks.  The recovery inode  will
+              u      Unmark  all blocks.  The recovery inode will
                      be filled with zeroes.
 
        Directory View
 
-       Accessable  from  inode and block mode.  In block mode, it
-       formats the current block as a  directory  entry  with  no
-       syntax  checking  (i.e. it might not really be a directory
-       block).  In inode mode, it  uses  the  block  pointers  to
-       determine  what  to  display.  You can use the up and down
-       arrow keys to scroll the display if  there  are  too  many
+       Accessable from inode and block mode.  In block  mode,  it
+       formats  the  current  block  as a directory entry with no
+       syntax checking (i.e. it might not really be  a  directory
+       block).   In  inode  mode,  it  uses the block pointers to
+       determine what to display.  You can use the  up  and  down
+       arrow  keys  to  scroll  the display if there are too many
        entries to display at once.
 
 
        d      If the cursor is on a directory, it will follow the
-              link and display that directory. Use D  to  do  the
+              link  and  display  that directory. Use D to do the
               same and set the current inode to the new directory
               inode.
 
-       i      Set the current inode to the inode under  the  cur-
+       i      Set  the  current inode to the inode under the cur-
               sor.
 
 
@@ -598,12 +598,12 @@ Linux 2.0               23 September 1996                       9
 LDE(8)              Linux Programmer's Manual              LDE(8)
 
 
-       I      Set  the  current  inode and immediately view it in
+       I      Set the current inode and immediately  view  it  in
               inode mode.
 
        n, p   Next/previous block in directory.  If the directory
-              being  viewed  is indexed by the current inode, you
-              can step to the  next  or  previous  block  in  the
+              being viewed is indexed by the current  inode,  you
+              can  step  to  the  next  or  previous block in the
               chain.
 
 
@@ -612,43 +612,43 @@ EXAMPLES (command line)
               Display inodes 1-10 on the screen.
 
        lde -b 34 /dev/hda1 | more
-              Display  block  34  on the screen (formatted in hex
+              Display block 34 on the screen  (formatted  in  hex
               and ascii).
 
        lde -D 100 -N 51 /dev/hda1 > MyOuput
-              Cat blocks 100-150 to stdout (binary  data),  which
+              Cat  blocks  100-150 to stdout (binary data), which
               is equivalent to
 
-              dd   if=/dev/hda1   of=MyOutput   bs=1024  count=51
+              dd  if=/dev/hda1   of=MyOutput   bs=1024   count=51
               skip=100
 
        lde -I 1 --recoverable /dev/hda5
-              Display all inodes on  /dev/hda5  which  have  been
+              Display  all  inodes  on  /dev/hda5 which have been
               deleted, but can be recovered.
 
        lde -I 1 --recoverable /dev/hda5 | grep "Sep 23"
-              Display  all  inodes  on  /dev/hda5 which have been
-              deleted today September 23, but can  be  recovered.
+              Display all inodes on  /dev/hda5  which  have  been
+              deleted  today  September 23, but can be recovered.
               The date format is that of ctime(3):
 
                      "Wed Jun 30 21:49:08 1993"
 
-              Note:  the day will have a leading space if is less
+              Note: the day will have a leading space if is  less
               than 10.
 
        lde -b 100 --ilookup /dev/hda1
-              Find first  inode  that  references  block  100  on
-              /dev/hda1  (to  search for multiple occurances, use
+              Find  first  inode  that  references  block  100 on
+              /dev/hda1 (to search for multiple  occurances,  use
               the curses interface).
 
        lde --paranoid -T tgz --ilookup --recoverable /dev/hda5
               Find all tgz files which have been deleted, display
-              possible  inodes  and  check  if  it is possible to
-              recover the files, open the file system  read  only
+              possible inodes and check  if  it  is  possible  to
+              recover  the  files, open the file system read only
               while searching.
 
-       See  docs/UNERASE  included  with the lde distribution for
-       more examples and instructions for  the  best  way  to  go
+       See docs/UNERASE included with the  lde  distribution  for
+       more  examples  and  instructions  for  the best way to go
        about restoring files.
 
 
@@ -670,8 +670,8 @@ SEE ALSO
 AUTHOR
        Scott D. Heavner (sdh@po.cwru.edu)
 
-
-
+       For more info, see the lde  project  page  at  sourceforge
+       <http://lde.sourceforge.net/>.
 
 
 

@@ -530,7 +530,8 @@ or octal).
 .TP
 .B ^R
 Look up inode which references this block.
-.TP /
+.TP
+.B /
 Search for a string.  You will be prompted for a case-sensative
 search string.  The search will proceede from the current block, if
 a match is found, the block pointer will be advanced and the matching
@@ -662,3 +663,6 @@ and instructions for the best way to go about restoring files.
 .BR debugfs (8)
 .SH AUTHOR
 Scott D. Heavner (sdh@po.cwru.edu)
+.PP
+For more info, see the lde project page at sourceforge
+.IR "<http://lde\.sourceforge\.net/>" "."
