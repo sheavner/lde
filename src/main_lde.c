@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.12 1996/09/14 02:44:13 sdh Exp $
+ *  $Id: main_lde.c,v 1.13 1996/09/15 04:06:36 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -398,14 +398,18 @@ void main(int argc, char ** argv)
   if (main_opts.dumper) /* Supress warnings when dumping to stdio */
     warn = no_warn;
 
-  if (check_mount(device_name)&&!lde_flags.paranoid) warn("DEVICE: %s is mounted, be careful",device_name);
+  if (check_mount(device_name)&&!lde_flags.paranoid)
+    warn("Device \"%s\" is mounted, be careful",device_name);
 
 #ifndef PARANOID
-  if (!lde_flags.paranoid)
+  if (!lde_flags.paranoid) {
     CURR_DEVICE = open(device_name,O_RDWR);
-  else
+  } else
 #endif
+  {
+    warn("Paranoid flag set.  Opening device \"%s\" read-only.",device_name);
     CURR_DEVICE = open(device_name,O_RDONLY);
+  }
   
   if (CURR_DEVICE < 0) {
     warn("Unable to open '%s'",device_name);
