@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.h,v 1.3 1996/09/14 02:39:10 sdh Exp $
+ *  $Id: recover.h,v 1.4 1996/09/15 19:22:33 sdh Exp $
  */
 
 unsigned long block_pointer(unsigned char *ind, unsigned long blknr, int zone_entry_size);
@@ -12,7 +12,7 @@ void recover_file(int fp,unsigned long zone_index[]);
 int check_recover_file(unsigned long zone_index[]);
 unsigned long find_inode(unsigned long nr, unsigned long last_nr);
 void parse_grep(void);
-void search_fs(unsigned char *search_string, int search_len, int search_off);
+void search_fs(unsigned char *search_string, int search_len, int search_off, unsigned long start_nr);
 
 enum map_block_errors { EMB_NO_ERROR=0, 
 			EMB_3IND_NOT_YET=-200,  /* Sorry, I haven't progammed this yet, stop checking when encountered */
