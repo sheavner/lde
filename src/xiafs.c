@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.14 1998/06/05 20:59:39 sdh Exp $
+ *  $Id: xiafs.c,v 1.15 1998/06/20 17:50:00 sdh Exp $
  */
 
 #include <string.h>
@@ -197,8 +197,10 @@ int XIAFS_init(void *sb_buffer)
 
   XIAFS_sb_init(sb_buffer);
 
-  FS_cmd.inode_in_use = MINIX_inode_in_use;
-  FS_cmd.zone_in_use  = MINIX_zone_in_use;
+  FS_cmd.inode_in_use     = MINIX_inode_in_use;
+  FS_cmd.zone_in_use      = MINIX_zone_in_use;
+  FS_cmd.is_system_block  = MINIX_is_system_block;
+
   FS_cmd.dir_entry    = XIAFS_dir_entry;
   FS_cmd.read_inode   = XIAFS_read_inode;
   FS_cmd.write_inode  = XIAFS_write_inode;
