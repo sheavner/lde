@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: iso9660.c,v 1.4 2001/02/26 19:02:40 scottheavner Exp $
+ *  $Id: iso9660.c,v 1.5 2001/02/26 21:18:29 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -261,7 +261,6 @@ int ISO9660_test(void *sb_buffer)
 
   s[0] = testbuffer[2];
   s[1] = testbuffer[3];
-  lde_warn(s);
 
   if (!strncmp("CD001",testbuffer,5)) {
     lde_warn("Found iso9660 filesystem on device");
