@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.13 1995/06/01 06:41:56 sdh Exp $
+ *  $Id: lde.h,v 1.14 1995/06/01 22:37:12 sdh Exp $
  */
 
 #ifndef VERSION
@@ -24,7 +24,7 @@ void mode_string(unsigned short mode, char *str);
 
 #define MAX_NAME_LEN      30
 #define MAX_BLOCK_POINTER 200
-#define MAX_BLOCK_SIZE    EXT2_MAX_BLOCK_SIZE
+#define MAX_BLOCK_SIZE    4096  /* must be at least EXT2_MAX_BLOCK_SIZE or whatever the biggest FS we are using */
 
 #define INODE_BLKS 15 /* EXT2_N_BLOCKS or higher -- can't use EXT2 references after
 		       * mulitiple architecture support was added to ext2.
