@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.22 1996/09/15 05:19:29 sdh Exp $
+ *  $Id: nc_lde.c,v 1.23 1996/09/15 19:22:14 sdh Exp $
  */
 
 #include <stdio.h>
@@ -592,8 +592,17 @@ void flag_popup(void)
 {
   WINDOW *win;
   int c, redraw, flag;
+  int vstart,vsize=8;
 
-  win = newwin(7,WIN_COL,((VERT-8)/2+HEADER_SIZE),HOFF);
+  /* Do some bounds checking on our window */
+  if (VERT>vsize) {
+    vstart = ((VERT-vsize)/2+HEADER_SIZE);
+  } else {
+    vsize  = LINES-HEADER_SIZE-TRAILER_SIZE;
+    vstart = HEADER_SIZE;
+  }
+
+  win = newwin(vsize,WIN_COL,vstart,HOFF);
   werase(win);
 
   flag = 1; c = ' ';
@@ -620,6 +629,11 @@ void flag_popup(void)
         lde_flags.search_all = 1 - lde_flags.search_all;
 	redraw = 1;
         break;
+      case 'F':
+      case 'f':
+        lde_flags.always_append = 1 - lde_flags.always_append;
+	redraw = 1;
+        break;
       case 'N':
       case 'n':
         lde_flags.quiet = 1 - lde_flags.quiet;
@@ -638,9 +652,10 @@ void flag_popup(void)
     box(win,0,0);
     wattroff(win,RED_ON_BLACK);
     mvwprintw(win,1,15,"A: (%-3s) Search all blocks",lde_flags.search_all ? "YES" : "NO");
-    mvwprintw(win,2,15,"N: (%-3s) Noise is off -- i.e. quiet",lde_flags.quiet ? "YES" : "NO");
-    mvwprintw(win,3,15,"W: (%-3s) OK to write to file system",lde_flags.write_ok ? "YES" : "NO");
-    mvwprintw(win,5,15,"Q: return to editing");
+    mvwprintw(win,2,15,"F: (%-3s) Always append existing file ?",lde_flags.always_append ? "YES" : "NO");
+    mvwprintw(win,3,15,"N: (%-3s) Noise is off -- i.e. quiet",lde_flags.quiet ? "YES" : "NO");
+    mvwprintw(win,4,15,"W: (%-3s) OK to write to file system",lde_flags.write_ok ? "YES" : "NO");
+    mvwprintw(win,6,15,"Q: return to editing");
     wrefresh(win);
   }
 }
@@ -662,17 +677,21 @@ void crecover_file(unsigned long inode_zones[])
   if ( (fp = open(recover_file_name,O_RDONLY)) > 0 ) {
     close(fp);
     fp = 0;
-    switch (cquery("File exists, append data [Yes/Overwrite/Quit]: ","ynq","")) {
-      case 'y':
-        fp = open(recover_file_name,O_WRONLY|O_APPEND);
-	break;
-      case 'o':
-	fp = open(recover_file_name,O_WRONLY|O_TRUNC);
-	break;
-      default:
-	fp = 0;
-	break;
+    if (lde_flags.always_append) {
+      fp = open(recover_file_name,O_WRONLY|O_APPEND);
+    } else {
+      switch (cquery("File exists, append data [Yes/Overwrite/Quit]: ","ynq","")) {
+        case 'y':
+	  fp = open(recover_file_name,O_WRONLY|O_APPEND);
+	  break;
+        case 'o':
+	  fp = open(recover_file_name,O_WRONLY|O_TRUNC);
+	  break;
+        default:
+	  return;
+	  break;
       }
+    }
   } else if ( (fp = open(recover_file_name,O_WRONLY|O_CREAT,0644)) < 0 )
     warn("Cannot open file '%s'",recover_file_name);
 
@@ -680,7 +699,10 @@ void crecover_file(unsigned long inode_zones[])
     recover_file(fp, inode_zones);
     close(fp);
     warn("Recovered data written to '%s'", recover_file_name);
+  } else {
+    warn("Error opening '%s'",recover_file_name);
   }
+
 }
   
 /* This lists all the tagged inodes */
