@@ -1,3 +1,34 @@
+2002-01-11    Scott Heavner
+
+	* Release: 2.6.0
+
+	* main_lde.c: 
+	  - cygwin hack for sigint handler
+	  - reactivate --indirects
+	  - message formatting
+
+	* recover.c:
+	  - Fix search for things that look like indirect blocks.
+	  - Shorten warning message for curses interface.
+	  - Fix test to rvs lookup inode_nr when checking file recoverability
+	  - Adjust order some more in allfs.h -- move NONE past last autodetect
+	  - fix --superscan, bad pointer which messed up display
+	  - cleanup cygwin warnings
+
+	* xiafs.c:
+	  - Fix xiafs scan for 512 byte blocks, SB definition already
+	    includes a 512 byte deadspace, subtract it for some tests ...
+	    i.e --superscan
+
+	* nc_lde.c: cleanup cygwin warnings
+
+	* tty_lde.c: cleanup cygwin warnings
+
+	* allfs.h:
+	  - Adjust order some more in allfs.h -- move NONE past last autodetect
+	  - Convert from dos text format to unix.
+
+
 2002-01-10    Scott Heavner
 
 	* lde.h/main_lde.c: drop bitfields from lde_flags structure, waste
