@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.30 2002/01/27 22:58:19 scottheavner Exp $
+ *  $Id: xiafs.c,v 1.31 2002/02/01 03:35:20 scottheavner Exp $
  */
 
 #include <string.h>
@@ -24,7 +24,7 @@
 
 static struct Generic_Inode* XIAFS_read_inode(unsigned long nr);
 static int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode);
-static char* XIAFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
+static int XIAFS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d);
 static void XIAFS_sb_init(void * sb_buffer);
 
 static struct inode_fields XIAFS_inode_fields = {
@@ -110,9 +110,9 @@ static struct Generic_Inode* XIAFS_read_inode(unsigned long nr)
   GInode.i_links_count = (unsigned short) ldeswab16(Inode->i_nlinks);
   
   for (i=0; i<XIAFS_constants.N_DIRECT; i++)
-    GInode.i_zone[i] = (unsigned long) ldeswab32(Inode->i_zone[i]);
-  GInode.i_zone[XIAFS_constants.INDIRECT] = (unsigned long) ldeswab32(Inode->i_ind_zone);
-  GInode.i_zone[XIAFS_constants.X2_INDIRECT] = (unsigned long) ldeswab32(Inode->i_dind_zone);
+    GInode.i_zone[i] = (unsigned long) ldeswab32(Inode->i_zone[i]) & 0xffffff ;
+  GInode.i_zone[XIAFS_constants.INDIRECT] = (unsigned long) ldeswab32(Inode->i_ind_zone) & 0xffffff;
+  GInode.i_zone[XIAFS_constants.X2_INDIRECT] = (unsigned long) ldeswab32(Inode->i_dind_zone) & 0xffffff;
   for (i=XIAFS_constants.N_BLOCKS; i<INODE_BLKS; i++)
     GInode.i_zone[i] = 0UL;
 
@@ -127,19 +127,22 @@ static int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode)
 
   Inode = ((struct xiafs_inode *) inode_buffer) - 1 + nr;
 
-  Inode->i_mode        = (unsigned short) GInode->i_mode;
-  Inode->i_uid         = (unsigned short) GInode->i_uid;
-  Inode->i_size        = (unsigned long)  GInode->i_size;
-  Inode->i_atime       = (unsigned long)  GInode->i_atime;
-  Inode->i_ctime       = (unsigned long)  GInode->i_ctime;
-  Inode->i_mtime       = (unsigned long)  GInode->i_mtime;
-  Inode->i_gid         = (unsigned short) GInode->i_gid;
-  Inode->i_nlinks      = (unsigned short) GInode->i_links_count;
+  Inode->i_mode        = ldeswab16(GInode->i_mode);
+  Inode->i_uid         = ldeswab16(GInode->i_uid);
+  Inode->i_size        = ldeswab32(GInode->i_size);
+  Inode->i_atime       = ldeswab32(GInode->i_atime);
+  Inode->i_ctime       = ldeswab32(GInode->i_ctime);
+  Inode->i_mtime       = ldeswab32(GInode->i_mtime);
+  Inode->i_gid         = ldeswab16(GInode->i_gid);
+  Inode->i_nlinks      = ldeswab16(GInode->i_links_count);
   
   for (i=0; i<XIAFS_constants.N_DIRECT; i++)
-    Inode->i_zone[i] = (unsigned short) GInode->i_zone[i];
-  Inode->i_ind_zone = (unsigned short) GInode->i_zone[XIAFS_constants.INDIRECT];
-  Inode->i_dind_zone = (unsigned short) GInode->i_zone[XIAFS_constants.X2_INDIRECT];
+    Inode->i_zone[i] = ldeswab32( (GInode->i_zone[i] & 0xffffff) | 
+				  (Inode->i_zone[i] & 0xff000000) );
+  Inode->i_ind_zone  = ldeswab32( (GInode->i_zone[XIAFS_constants.INDIRECT] & 0xffffff) | 
+				  (Inode->i_ind_zone & 0xff000000) );
+  Inode->i_dind_zone = ldeswab32( (GInode->i_zone[XIAFS_constants.X2_INDIRECT] & 0xffffff) |
+				  (Inode->i_dind_zone & 0xff000000) );
 
   bnr = (nr-1)/sb->INODES_PER_BLOCK + sb->imap_blocks + 1 + sb->zmap_blocks;
 
@@ -147,45 +150,67 @@ static int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode)
 }
 
 /* Could use some optimization maybe??  -- Same as ext2's */
-static char* XIAFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr)
+static int XIAFS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
 {
   static char cname[_XIAFS_NAME_LEN+1];
 
-  int j, name_len;
+  int j, name_len, rec_len, retval = 0;
   void *end;
   struct xiafs_direct *dir;
 
   dir = (void *) block_buffer->start;
   end = block_buffer->start + block_buffer->size;
 
-  *inode_nr = 0;
+  bzero(d,sizeof(lde_dirent));
+  d->name = cname;
   cname[0] = 0;
 
   /* Directories are variable length, we have to examine all the previous ones to get to the current one */
   for (j=0; j<i; j++) {
-    dir = (void *)dir + ldeswab16(dir->d_rec_len);
+
+    if ( (void *)&(dir->d_name_len) >= end ) {
+      return 0;
+    }
+    rec_len = XIA_DIR_REC_LEN(dir->d_name_len);
+
+    /* Test we haven't moved pointer past end of allocated memory */
+    if ( (void *)&(dir->d_rec_len) >= end ) {
+      return 0;
+    }
+
+    if ( rec_len < ldeswab16(dir->d_rec_len) ) {
+      d->isdel = 1;
+    }
+
+    dir = (void *)dir + rec_len ;
+
     if ( (void *)dir >= end ) {
-      return (cname);
+      return 0;
     }
   }
 
   /* Test for overflow, could be spanning multiple blocks */
   if ( (void *)dir + sizeof(dir->d_ino) <= end ) { 
-    *inode_nr = ldeswab32(dir->d_ino);
+    d->inode_nr = ldeswab32(dir->d_ino);
+    if (d->inode_nr) retval = 1;
   }
 
   /* Chance this could overflow ? */
-  name_len = (int)dir->d_name_len;
-  if ( (void *)dir->d_name + name_len > end ) {
-    name_len = end - (void *)dir->d_name;
-  }
-  if ( name_len > _XIAFS_NAME_LEN ) {
-    name_len = _XIAFS_NAME_LEN;
-  }
-  strncpy(cname, dir->d_name, name_len);
-  cname[name_len] = 0;
+  if ( (void *)&(dir->d_name_len) < end ) {
+    name_len = (int)dir->d_name_len;
+    if ( (void *)dir->d_name + name_len > end ) {
+      name_len = end - (void *)dir->d_name;
+    }
+    if ( name_len > _XIAFS_NAME_LEN ) {
+      name_len = _XIAFS_NAME_LEN;
+    }
+    strncpy(cname, dir->d_name, name_len);
+    cname[name_len] = 0;
     
-  return cname;
+    if (name_len) retval = 1;
+  }
+    
+  return retval;
 
 
 }

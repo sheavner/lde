@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.37 2002/01/27 23:11:51 scottheavner Exp $
+ *  $Id: lde.h,v 1.38 2002/02/01 03:35:19 scottheavner Exp $
  */
 
 #ifndef LDE_H
@@ -43,6 +43,13 @@ struct _lde_buffer {
   void *start;
 };
 typedef struct _lde_buffer lde_buffer;
+
+struct _lde_dirent {
+  unsigned long inode_nr;
+  char *name;
+  int isdel;
+};
+typedef struct _lde_dirent lde_dirent;
 
 #define EMPTY_LDE_BUFFER { 0UL, NULL }
 
@@ -215,7 +222,7 @@ struct {
      -- inode tables, block bitmaps, etc, etc */
   int (*is_system_block)(unsigned long nr);
   /* Get dir name and inode number */
-  char* (*dir_entry)(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
+  int (*dir_entry)(int i, lde_buffer *block_buffer, lde_dirent *d);
   /* Copies the FS specific inode into a generic inode structure */
   struct Generic_Inode* (*read_inode)(unsigned long inode_nr);
   /* Copies the generic inode to a FS specific one, then write it to disk */

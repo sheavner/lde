@@ -62,6 +62,16 @@ struct xiafs_direct {
     __s8   d_name[_XIAFS_NAME_LEN+1];
 };
 
+/*
+ * XIA_DIR_PAD defines the directory entries boundaries
+ *
+ * NOTE: It must be a multiple of 4
+ */
+#define XIA_DIR_PAD		 	4
+#define XIA_DIR_ROUND 			(XIA_DIR_PAD - 1)
+#define XIA_DIR_REC_LEN(name_len)	(((name_len) + 8 + XIA_DIR_ROUND) & \
+					 ~XIA_DIR_ROUND)
+
 #endif  /* _XIA_FS_H */
 
 

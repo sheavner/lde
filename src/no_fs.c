@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.19 2002/01/30 20:47:32 scottheavner Exp $
+ *  $Id: no_fs.c,v 1.20 2002/02/01 03:35:20 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -15,6 +15,7 @@
  *   No file system specified.  Block edits ok.
  */
 #include <sys/stat.h>
+#include <string.h>
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -25,7 +26,7 @@
 #include "recover.h"
 
 static struct Generic_Inode *NOFS_read_inode(unsigned long nr);
-static char* NOFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
+static int NOFS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d);
 static void NOFS_sb_init(char * sb_buffer, unsigned long blocksize);
 static int NOFS_write_inode_NOT(unsigned long ino,
 				struct Generic_Inode *GInode);
@@ -141,11 +142,12 @@ static int NOFS_zero_i__ul(unsigned long nr)
 }
 
 /* Returns an empty string */
-static char* NOFS_dir_entry(int i, lde_buffer *block_buffer, 
-			    unsigned long *inode_nr)
+static int NOFS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
 {
-  *inode_nr = 1UL;
-  return ( (char *) "" );
+  bzero(d,sizeof(lde_dirent));
+  d->inode_nr = 1UL;
+  d->name = "";
+  return 0;
 }
 
 

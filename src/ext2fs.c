@@ -4,7 +4,7 @@
  *  Copyright (C) 1994  Scott D. Heavner
  *  Portions Copyright (C) 2002 John Quirk
  *
- *  $Id: ext2fs.c,v 1.36 2002/01/30 20:47:32 scottheavner Exp $
+ *  $Id: ext2fs.c,v 1.37 2002/02/01 03:35:19 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -38,8 +38,7 @@ static int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode);
 static int EXT2_inode_in_use(unsigned long nr);
 static int EXT2_zone_in_use(unsigned long nr);
 static int EXT2_is_system_block(unsigned long nr);
-static char* EXT2_dir_entry(int i, lde_buffer *block_buffer, 
-			    unsigned long *inode_nr);
+static int EXT2_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d);
 static void EXT2_read_tables(void);
 static void EXT2_sb_init(void * sb_buffer);
 
@@ -317,20 +316,23 @@ static int EXT2_zone_in_use(unsigned long nr)
   return lde_test_bit(nr,zone_map);
 }
 
-/* Could use some optimization maybe?? -- same as xiafs's */
-static char* EXT2_dir_entry(int i, lde_buffer *block_buffer,
-			    unsigned long *inode_nr)
+/* Could use some optimization maybe?? -- same as xiafs's
+ * - Update to include return value:
+ *    1 when inodenr != 0 or name is non-null
+ */
+int EXT2_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
 {
   static char cname[EXT2_NAME_LEN+1];
 
-  int j, name_len;
+  int j, name_len, retval = 0;
   void *end;
   struct ext2_dir_entry_2 *dir;
 
   dir = (void *) block_buffer->start;
   end = block_buffer->start + block_buffer->size;
 
-  *inode_nr = 0;
+  bzero(d,sizeof(lde_dirent));
+  d->name = cname;
   cname[0] = 0;
 
   /* Directories are variable length, we have to examine all the previous ones to get to the current one */
@@ -338,24 +340,26 @@ static char* EXT2_dir_entry(int i, lde_buffer *block_buffer,
 
     /* Test we haven't moved pointer past end of allocated memory */
     if ( (void *)&(dir->rec_len) >= end ) {
-      return (cname);
+      return 0;
     }
 
 #ifdef JQDIR
-    if(lde_flags.displaydeleted)
+    if(lde_flags.displaydeleted) {
       dir = (void *)dir + EXT2_next_entry(dir, end);
-    else
+      d->isdel = EXT2_is_deleted();
+    } else
 #endif
       dir = (void *)dir + ldeswab16(dir->rec_len);
 
     if ( (void *)dir >= end ) {
-      return (cname);
+      return 0;
     }
   }
 
   /* Test for overflow, could be spanning multiple blocks */
   if ( (void *)dir + sizeof(dir->inode) <= end ) { 
-    *inode_nr = ldeswab32(dir->inode);
+    d->inode_nr = ldeswab32(dir->inode);
+    if (d->inode_nr) retval = 1;
   }
 
   /* Chance this could overflow ? */
@@ -369,13 +373,14 @@ static char* EXT2_dir_entry(int i, lde_buffer *block_buffer,
     }
     strncpy(cname, dir->name, name_len);
     cname[name_len] = 0;
+    if (name_len) retval = 1;
   }
 
 #ifdef JQDIR
   dir_last = dir; /* set so we can access in other code */  
 #endif /* JQDIR */
 
-  return cname;
+  return retval;
 }
 
 /* Reads the inode/block in use tables from disk */
@@ -619,9 +624,12 @@ int EXT2_dir_undelete(int entry, lde_buffer *buffer)
   char *fname;
   struct Generic_Inode *GInode, dotNode;
   struct ext2_dir_entry_2 *ent1 , *ent2;
+  lde_dirent d;
   
   i = 0;
-  fname = EXT2_dir_entry(i, buffer, &inode_nr);
+  EXT2_dir_entry(i, buffer, &d);
+  fname = d.name;
+  inode_nr = d.inode_nr;
   if(inode_nr == 0)
     {
       lde_warn("Bad current directory");
@@ -636,7 +644,9 @@ int EXT2_dir_undelete(int entry, lde_buffer *buffer)
       return 1;
     }
   i = 1;
-  fname = EXT2_dir_entry(i,buffer,&inode_nr);
+  EXT2_dir_entry(i,buffer,&d);
+  inode_nr = d.inode_nr;
+  fname = d.name;
   if(inode_nr ==0 )
     {
       lde_warn("bad parent directory");
@@ -655,7 +665,9 @@ int EXT2_dir_undelete(int entry, lde_buffer *buffer)
  * If we get here the basic directory info seems valid so now we look
  * for our entry
  */
-  fname = EXT2_dir_entry(entry,buffer,&inode_nr);
+  EXT2_dir_entry(entry,buffer,&d);
+  fname = d.name;
+  inode_nr = d.inode_nr;
   ent1 = 	dir_last; /* actual directory entry */
   GInode = EXT2_read_inode(inode_nr);
   if(GInode->i_links_count != 0)
@@ -669,7 +681,9 @@ int EXT2_dir_undelete(int entry, lde_buffer *buffer)
       /* Yes, Now look for last valid entry */
       for( i = 1; i < entry; i++)
 	{
-	  fname = EXT2_dir_entry(i,buffer,&inode_nr);
+	  EXT2_dir_entry(i,buffer,&d);
+	  fname = d.name;
+	  inode_nr = d.inode_nr;
 	  if ((ldeswab16(dir_last->rec_len) + (void *)dir_last) >(void*) ent1)
 	    break;
 	}
@@ -728,18 +742,18 @@ static int ext2_check_valid_name(__u8 len, char *name)
   return(0);
 }
 
-void EXT2_dir_check_entry(int entry, lde_buffer *buffer)
+int EXT2_dir_check_entry(int entry, lde_buffer *buffer)
 {
-  unsigned long inode_nr;
-  char *fname;
+  lde_dirent d;
   struct Generic_Inode *GInode;
   
-  fname = EXT2_dir_entry(entry,buffer,&inode_nr);
-  GInode = EXT2_read_inode(inode_nr);
+  if (!EXT2_dir_entry(entry,buffer,&d)) return 0;
+
+  GInode = EXT2_read_inode(d.inode_nr);
   /*Check size and block count make size correct for block count */
   if( GInode->i_size == 0 && GInode->i_blocks !=0)
     GInode->i_size = GInode->i_blocks * 512;
-  check_recover_file(GInode->i_zone,GInode->i_size);
+  return check_recover_file(GInode->i_zone,GInode->i_size);
 }
 
 #endif /* JQDIR */

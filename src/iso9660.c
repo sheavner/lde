@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: iso9660.c,v 1.8 2002/01/30 20:47:32 scottheavner Exp $
+ *  $Id: iso9660.c,v 1.9 2002/02/01 03:35:19 scottheavner Exp $
  *
  *  There really isn't anything here, all it does is detects it + treats it as nofs!
  *
@@ -22,7 +22,7 @@
 #include "recover.h"
 
 static struct Generic_Inode *ISO9660_read_inode(unsigned long nr);
-static char* ISO9660_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
+static int ISO9660_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d);
 static void ISO9660_sb_init(char * sb_buffer);
 static int ISO9660_write_inode_NOT(unsigned long ino,
 				struct Generic_Inode *GInode);
@@ -139,11 +139,12 @@ static int ISO9660_zero_i__ul(unsigned long nr)
 }
 
 /* Returns an empty string */
-static char* ISO9660_dir_entry(int i, lde_buffer *block_buffer, 
-			    unsigned long *inode_nr)
+static int ISO9660_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
 {
-  *inode_nr = 1UL;
-  return ( (char *) "" );
+  bzero(d,sizeof(lde_dirent));
+  d->inode_nr = 1UL;
+  d->name = "";
+  return 0;
 }
 
 

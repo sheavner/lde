@@ -4,7 +4,7 @@
  *  Copyright (C) 1994  Scott D. Heavner
  *  Sections Copyright (c) 2002 John Quirk
  *
- *  $Id: nc_dir.c,v 1.22 2002/01/30 20:47:32 scottheavner Exp $
+ *  $Id: nc_dir.c,v 1.23 2002/02/01 03:35:20 scottheavner Exp $
  */
 
 #include <string.h>
@@ -30,6 +30,9 @@ static int reread_dir(lde_buffer *block_buffer, unsigned long bnr);
 #include <unistd.h>  /* chown, chdir */
 #include "ext2fs.h"
 static void clip_string(char *fname,char *fname1, int clip);
+/* A little routine to keep track of where we are reitive to start point.*/
+static void showpath(char *fname, unsigned long inode_nbr );
+static void freepath(void);
 #endif /* JQDIR */
 
 /* Help for directory_popup() function */
@@ -78,31 +81,37 @@ static int dump_dir_entry(WINDOW *win, int i, int off, lde_buffer *block_buffer,
 #ifndef JQDIR
   char *fname = NULL;
 #else
-  char *fname1 = NULL;
   char fname[40]; /* this is the cliped name string */
   char deleted = ' ';
 #endif /* JQDIR */
   struct Generic_Inode *GInode;
+  lde_dirent d = { 0 };
   unsigned long inode_nr;
   char f_mode[12] = "----------";
+
+  int  attr = 0;
   
+  if (!FS_cmd.dir_entry(i+off, block_buffer, &d)) return 0;
+  inode_nr = d.inode_nr;
+
 #ifndef JQDIR
-  fname = FS_cmd.dir_entry(i+off, block_buffer, &inode_nr);
-  if (!strlen(fname)) return 0;
+  fname = d.name;
 #else
-  fname1 = FS_cmd.dir_entry(i+off, block_buffer, &inode_nr);
-  if (!strlen(fname1)) return 0;
-  clip_string(fname,fname1,40);
-	 
-  if (is_deleted()) {
+  clip_string(fname,d.name,40);
+#endif
+
+  /* Highlight deleted entries */
+  if (d.isdel) {
     if(highlight)
-      wattron(win,BLACK_ON_CYAN);
+      attr = BLACK_ON_CYAN;
     else
-      wattron(win,GREEN_ON_BLACK);		
-  } else
-#endif /* JQDIR */
-    if(highlight)
-      wattron(win,WHITE_ON_RED);
+      attr = GREEN_ON_BLACK;
+  } else if(highlight) {
+    attr = WHITE_ON_RED;
+  }
+  if (attr) {
+      wattron(win,attr);
+  }
       
   if (inode_nr > sb->ninodes) inode_nr = 0UL;
   if (inode_nr) {
@@ -110,40 +119,25 @@ static int dump_dir_entry(WINDOW *win, int i, int off, lde_buffer *block_buffer,
     mode_string( (unsigned short)GInode->i_mode, f_mode);
     f_mode[10] = 0; 
     
-    /* Use COLS-38 to fill to 1 col before edge of screen, COLS-37 makes a mess */
-#ifndef JQDIR
-    mvwprintw(win,i,0,"0x%8.8lX: %9s %3d %9ld %-*s", inode_nr,
-	      f_mode, GInode->i_links_count,
-	      GInode->i_size, COLS-38, fname);
-#else
     if(GInode->i_links_count == 0)
       deleted = 'D';
     else
-      deleted = ' '; 
+      deleted = ' ';
+
     mvwprintw(win,i,0,"%c 0x%8.8lX: %9s %3d %9ld %-*s",deleted, inode_nr,
 	      f_mode, GInode->i_links_count,
 	      GInode->i_size, COLS-40, fname);
-#endif
   } else {
-#ifndef JQDIR
-    mvwprintw(win,i,0,"0x%8.8lX: %24s %-*s", inode_nr,
-	      " ", COLS-38, fname);
-#else
+
     mvwprintw(win,i,0,"  0x%8.8lX: %24s %-*s", inode_nr,
 	      " ", COLS-40, fname);
-#endif /* JQDIR */
+
   }
 
-#ifdef JQDIR
-  if (is_deleted()) {
-    if(highlight)
-      wattroff(win,BLACK_ON_CYAN);
-    else
-      wattroff(win,GREEN_ON_BLACK);
-  } else 
-#endif
-    if(highlight)
-      wattroff(win,WHITE_ON_RED);
+  /* Turn off highlighting */
+  if (attr) {
+      wattroff(win,attr);
+  }
   
   return 1;
 }
@@ -206,11 +200,11 @@ static void redraw_dir_window(WINDOW *win,int max_entries, int screen_off, lde_b
 static int reread_dir(lde_buffer *block_buffer, unsigned long bnr)
 {
   int i;
-  unsigned long inode_nr;
+  lde_dirent d;
 
   if (bnr)
     memcpy(block_buffer->start, cache_read_block(bnr,NULL,CACHEABLE),block_buffer->size);
-  for (i=-1; strlen(FS_cmd.dir_entry(++i, block_buffer, &inode_nr)); );
+  for (i=0; FS_cmd.dir_entry(i, block_buffer, &d); i++);
   return (--i);
 }
 
@@ -258,6 +252,7 @@ int directory_popup(unsigned long bnr, unsigned long inode_nr, unsigned long ipo
 {
   int c, max_entries, screen_off, current, last;
   lde_buffer _block_buffer = EMPTY_LDE_BUFFER, *block_buffer = &_block_buffer;
+  lde_dirent d;
   struct Generic_Inode *GInode;
   WINDOW *win;
   char *fname = NULL;
@@ -287,7 +282,8 @@ int directory_popup(unsigned long bnr, unsigned long inode_nr, unsigned long ipo
     switch (c) {
       case CMD_SET_CURRENT_INODE: /* Set this inode to be the current inode */
       case CMD_INODE_MODE_MC:
-	(void) FS_cmd.dir_entry(current+screen_off, block_buffer, &inode_nr);
+	(void) FS_cmd.dir_entry(current+screen_off, block_buffer, &d);
+	inode_nr = d.inode_nr;
 	if (inode_nr) {
 	  current_inode = inode_nr;
 	  update_header();
@@ -315,7 +311,9 @@ int directory_popup(unsigned long bnr, unsigned long inode_nr, unsigned long ipo
 
       case CMD_EXPAND_SUBDIR: /* Expand this subdirectory - 'D' also sets current inode to be this subdir */
       case CMD_EXPAND_SUBDIR_MC:
-	fname = FS_cmd.dir_entry(current+screen_off, block_buffer, &inode_nr);
+	(void) FS_cmd.dir_entry(current+screen_off, block_buffer, &d);
+	fname = d.name;
+	inode_nr = d.inode_nr;
 	if (inode_nr) {
 	  GInode = FS_cmd.read_inode(inode_nr);
 	  if (S_ISDIR(GInode->i_mode)) {
@@ -425,7 +423,9 @@ int directory_popup(unsigned long bnr, unsigned long inode_nr, unsigned long ipo
 	    break;
 	  }
 
-	  fname = FS_cmd.dir_entry(current+screen_off, block_buffer, &inode_nr);
+	  (void) FS_cmd.dir_entry(current+screen_off, block_buffer, &d);
+	  fname = d.name;
+	  inode_nr = d.inode_nr;
 	  if((fp = fopen(fname,"w+")) == NULL) {
 	    lde_warn("Unable to open file %s",fname);
 	    error_popup();
@@ -471,7 +471,7 @@ struct {
 static int where=0;
 
 
-void freepath() /* clears data structure in readness for new path */
+static void freepath() /* clears data structure in readness for new path */
 {
 	int i;
 	for (i=where; i > 0 ; i--)
@@ -489,7 +489,7 @@ void freepath() /* clears data structure in readness for new path */
 
 /* this keeps track of where we are */
 
-void showpath( char * fname, unsigned long inode_nbr)
+static void showpath( char * fname, unsigned long inode_nbr)
 {
 	int len, i;
 
@@ -529,14 +529,8 @@ void showpath( char * fname, unsigned long inode_nbr)
 		strcat(rel_path,dir_list[i].fname);
 	}
 }
-int is_deleted()
-{
-	if(!strcmp(fsc->text_name,"ext2"))
-		return EXT2_is_deleted();
-	else
-		return 1;
-}	
-void clip_string(char *fname,char *fname1, int clip)
+
+static void clip_string(char *fname,char *fname1, int clip)
 {
         strncpy(fname,fname1,clip);
         fname[clip-1]= 0;

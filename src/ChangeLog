@@ -1,3 +1,20 @@
+2002-01-31    Scott Heavner
+
+	- major bug in xiafs code, was casting inode's block pointer to
+	  unsigned short, from what I can figure out looking in the old
+	  kernel code, it's really an u24 value stored in a u32 space on
+	  the disk.  The old kernels were careful not to modify the upper
+	  8 bits of this value, I can't figure out what it's for after a
+	  quick glance at the kernel.  Update expected test results as
+	  this changed some test output.
+	
+	- change fs dependent XXX_dir_entry to return 1 when it finds
+	  data, 0 when no data.  Returns data in an lde_dirent structure.
+	  Each FS must zero the whole struct then only fill in the parts
+	  it uses.  Now each fs passes back an isdel flag, for minix it
+	  isn't much help as the inode is 0 and you're not going to get
+	  any information out of it.
+	
 2002-01-30    Scott Heavner
 
 	- bigendian support completed for all fs's

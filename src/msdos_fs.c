@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.22 2002/01/30 20:47:32 scottheavner Exp $
+ *  $Id: msdos_fs.c,v 1.23 2002/02/01 03:35:20 scottheavner Exp $
  */
 
 /* 
@@ -35,7 +35,7 @@
 #endif
 
 static struct Generic_Inode *DOS_read_inode(unsigned long nr);
-static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
+static int DOS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d);
 static void DOS_sb_init(void * sb_buffer);
 static unsigned long DOS_map_inode(unsigned long ino);
 static int DOS_write_inode_NOTYET(unsigned long ino,
@@ -226,19 +226,23 @@ static struct Generic_Inode *DOS_read_inode(unsigned long nr)
   return &DOS_junk_inode;
 }
 
-static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr)
+static int DOS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
 {
   static char cname[MSDOS_NAME+2+14];
   struct msdos_dir_entry *dir;
   struct msdos_dir_slot  *slot;
+  int retval = 0;
+
+  bzero(d,sizeof(lde_dirent));
+  d->name = cname;
 
   if (i*sb->dirsize >= block_buffer->size) {
     cname[0] = 0;
   } else {
     dir = block_buffer->start+(i*sb->dirsize);
 
-    *inode_nr = (unsigned long) ldeswab16(dir->start) + (((unsigned long)ldeswab16(dir->starthi))<<16);
-    DOS_dir_inode = *inode_nr;
+    d->inode_nr = (unsigned long) ldeswab16(dir->start) + (((unsigned long)ldeswab16(dir->starthi))<<16);
+    DOS_dir_inode = d->inode_nr;
 
     slot = (void *)dir;
     if ( (slot->attr == 0xF) && (!slot->reserved) ) {
@@ -267,8 +271,8 @@ static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode
        /* nc_dir.c:get_inode_info() gets pissy if dir length == 0 */
        DOS_junk_inode.i_size = sb->zonesize*sb->blocksize;
        /* .. seems to show up as inode 0 fairly often -- bump it to 2 */
-       if (*inode_nr==0UL)
-          *inode_nr = 2UL;
+       if (d->inode_nr==0UL)
+          d->inode_nr = 2UL;
     } else {
        DOS_junk_inode.i_mode |= S_IFREG;
     }
@@ -279,8 +283,10 @@ static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode
     DOS_junk_inode.i_ctime = date_dos2unix(ldeswab16(dir->ctime),ldeswab16(dir->cdate));
     DOS_junk_inode.i_atime = date_dos2unix(0,ldeswab16(dir->adate));
     DOS_junk_inode.i_mtime = date_dos2unix(ldeswab16(dir->time),ldeswab16(dir->date));
+
+    retval = 1;
   }
-  return (cname);
+  return retval;
 }
 
 /* This is used to pull the correct block from the inode block table which
