@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.13 1996/09/15 04:06:36 sdh Exp $
+ *  $Id: main_lde.c,v 1.14 1996/09/15 19:21:30 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -72,7 +72,7 @@ struct fs_constants *fsc = NULL;
 
 int CURR_DEVICE = 0;
 volatile struct _lde_flags lde_flags = 
-  { 0, 0, 0, 0, 0, 0, 0, 0 } ;
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } ;
 
 
 /* Check if device is mounted, return 1 if is mounted else 0 */
@@ -172,11 +172,14 @@ static void long_usage(void)
   printf("   -T type:     Search disk for data. type = {gz, tgz, script, or use filename}\n");
   printf("   -L ##:             Search length (when using specified filename)\n");
   printf("   -O ##:             Search offset (when using specified filename)\n");
+  printf("   -N ##:             Starting search block (defaults to first data zone)\n");
   printf("   --indirects:       Search filesystem for things that look like indirect blocks.\n");
   printf("   --ilookup:         Lookup inodes for all matches when searching.\n");
+  printf("   --recoverable:     Check to see if inode is reoverable (requires --ilookup).\n");
   printf("   -t fstype:   Overide the autodetect. fstype = {no, minix, xiafs, ext2fs, msdos}\n");
   printf("   --help:      Output this screen\n");
   printf("   --paranoid:  Open the device read only.\n");
+  printf("   --append:    Always append to recovery file (if file exists).\n");
   printf("   --quiet:     Turn off warning beeps.\n");
   printf("   --version:   Print version information\n");
   printf("   --write:     Allow writes to the device.\n");
@@ -191,7 +194,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
   struct _search_types search_types[] = {
       { "tgz", gzip_tar_type, 4, 0 },
       { "gz", gzip_type, 2, 0},
-      { "script", "#!/b", 4, 0 },
+      { "script", "#!/", 3, 0 },
       { "", NULL, 0, 0 }
   };
   struct option long_options[] =
@@ -214,6 +217,8 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       {"length",1,0,'L'},
       {"indirects",0,0,'!'},
       {"ilookup",0,0,'@'},
+      {"recoverable",0,0,'#'},
+      {"append",0,0,'%'},
       {0, 0, 0, 0}
     };
 
@@ -267,6 +272,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	opts->dumper = dump_block;
 	break;
       case 'n': /* limit number of inodes/blocks dumped */
+      case 'N':
 	opts->dump_end = read_num(optarg);
 	break;
       case 'D': 
@@ -352,6 +358,12 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	break;
       case '@': /* Lookup inodes on search matches. */
 	lde_flags.inode_lookup = 1;
+	break;
+      case '#': /* Check for recoverablilty on search matches. */
+	lde_flags.check_recover = 1;
+	break;
+      case '%': /* Always append data when recovery file exists */
+	lde_flags.always_append = 1;
 	break;
       case 'h': /* HELP */
       case 'H':
@@ -457,7 +469,7 @@ void main(int argc, char ** argv)
     parse_grep();
     exit(0);
   } else if (main_opts.search_string!=NULL) {
-    search_fs(main_opts.search_string, main_opts.search_len, main_opts.search_off);
+    search_fs(main_opts.search_string, main_opts.search_len, main_opts.search_off,main_opts.dump_end);
     exit(0);
   }
 
