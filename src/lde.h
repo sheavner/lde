@@ -3,14 +3,12 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.19 1996/10/11 00:37:56 sdh Exp $
+ *  $Id: lde.h,v 1.20 1996/10/12 20:36:48 sdh Exp $
  */
 
 #ifndef VERSION
-#define VERSION "2.3"
+#define VERSION "2.4"
 #endif
-
-#include <sys/timeb.h>        /* Include this here for getdate() prototype below */
 
 extern char *program_name;
 extern char *device_name;
@@ -21,12 +19,6 @@ void read_tables(int fs_type);
 int check_root(void);
 void (*lde_warn)(char *fmt, ...);
 int  (*mgetch)(void);
-
-/* swiped/fileutils-3.12/filemode.c  */
-void mode_string(unsigned short mode, char *str);
-
-/* swiped/cnews/getdate.y */
-time_t getdate(char *p, struct timeb *now);
 
 #define MAX_NAME_LEN      30
 #define MAX_BLOCK_POINTER 200
