@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.34 2003/12/03 18:07:20 scottheavner Exp $
+ *  $Id: nc_block.c,v 1.35 2003/12/03 18:27:32 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -499,7 +499,7 @@ has command */
 #     endif /* BETA_CODE */
     } else if (flags.edit_block) {          /* Handle edit keys in edit mode */
       if (flags.ascii_mode) {
-	if isprint(c) {
+	if (isprint(c)) {
 	  curs.data[calc_offset(&curs)] = c;
 	  flags.highlight = flags.modified = flags.dontwait = 1;
 	  c = CMD_NEXT_FIELD; /* Advance the cursor */
