@@ -1,3 +1,23 @@
+2002-01-30    Scott Heavner
+
+	- bigendian support completed for all fs's
+	- drop unused code from iso9660, export a routine from nofs.c
+	- cleanup kernel ext2_fs.h header, drop kernel ifdefs, drop
+	  #defines for os dependent inode structure members
+	- fix what could be a huge problem with ext2 inode writes,
+	  was going under very old assumption that ext2inode + lde's
+	  generic inode had the same definitions.  Update code to re-read
+	  inode from disk and copy over any fields that lde knows about,
+	  will prevent zeroing of fields that lde ignores!!!!!!!
+	- ext2 directory code could potentially access memory outside
+	  the block of data it's working with.  When we read data from
+	  the disk, the directory records may be cut off at a block boundry,
+	  need more checks before we blindly access stucture members
+	  which may extend past our memory.
+	- update john's code for bigendian machines. this code still
+	  could walk past the end of the directory memory, esp. 
+	  ext2_check_valid_name.
+
 2002-01-27    Scott Heavner
 
 	- bigendian directory entries for ext2 and xiafs (minix already ok).

@@ -4,7 +4,7 @@
  *  Copyright (C) 1994  Scott D. Heavner
  *  Sections Copyright (c) 2002 John Quirk
  *
- *  $Id: nc_dir.c,v 1.21 2002/01/28 01:04:25 scottheavner Exp $
+ *  $Id: nc_dir.c,v 1.22 2002/01/30 20:47:32 scottheavner Exp $
  */
 
 #include <string.h>
@@ -27,6 +27,8 @@ static void redraw_dir_window(WINDOW *win,int max_entries, int screen_off, lde_b
 static int reread_dir(lde_buffer *block_buffer, unsigned long bnr);
 
 #ifdef JQDIR
+#include <unistd.h>  /* chown, chdir */
+#include "ext2fs.h"
 static void clip_string(char *fname,char *fname1, int clip);
 #endif /* JQDIR */
 
@@ -466,7 +468,7 @@ struct {
 		char *fname;       /* point to filename */
 } dir_list[30];
 
-static where=0;
+static int where=0;
 
 
 void freepath() /* clears data structure in readness for new path */

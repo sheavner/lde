@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.18 2001/11/26 03:10:41 scottheavner Exp $
+ *  $Id: no_fs.c,v 1.19 2002/01/30 20:47:32 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -32,7 +32,6 @@ static int NOFS_write_inode_NOT(unsigned long ino,
 static int NOFS_one_i__ul(unsigned long nr);
 static unsigned long NOFS_one_ul__ul(unsigned long nr);
 static int NOFS_zero_i__ul(unsigned long nr);
-static unsigned long NOFS_get_device_size(void);
 
 static struct inode_fields NOFS_inode_fields = {
   0, /*   unsigned short i_mode; */
@@ -234,7 +233,7 @@ static int valid_offset (unsigned long offset)
 }
 
 /* Returns the number of blocks in a partition */
-static unsigned long NOFS_get_device_size(void)
+unsigned long NOFS_get_device_size(void)
 {
   unsigned long high, low;
 

@@ -3,15 +3,10 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: iso9660.c,v 1.7 2001/11/26 03:10:41 scottheavner Exp $
+ *  $Id: iso9660.c,v 1.8 2002/01/30 20:47:32 scottheavner Exp $
  *
- *  The following routines were taken almost verbatim from
- *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
- *       NOFS_get_device_size()
- *       valid_offset()
- */
-
-/* 
+ *  There really isn't anything here, all it does is detects it + treats it as nofs!
+ *
  *   No file system specified.  Block edits ok.
  */
 #include <sys/stat.h>
@@ -26,18 +21,17 @@
 #include "iso9660.h"
 #include "recover.h"
 
-static struct Generic_Inode *NOFS_read_inode(unsigned long nr);
-static char* NOFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
-static void NOFS_sb_init(char * sb_buffer);
-static int NOFS_write_inode_NOT(unsigned long ino,
+static struct Generic_Inode *ISO9660_read_inode(unsigned long nr);
+static char* ISO9660_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
+static void ISO9660_sb_init(char * sb_buffer);
+static int ISO9660_write_inode_NOT(unsigned long ino,
 				struct Generic_Inode *GInode);
-static int NOFS_one_i__ul(unsigned long nr);
-static unsigned long NOFS_one_ul__ul(unsigned long nr);
-static int NOFS_zero_i__ul(unsigned long nr);
-static unsigned long NOFS_get_device_size(void);
+static int ISO9660_one_i__ul(unsigned long nr);
+static unsigned long ISO9660_one_ul__ul(unsigned long nr);
+static int ISO9660_zero_i__ul(unsigned long nr);
 static struct Generic_Inode *ISO9660_init_junk_inode(void);
 
-static struct inode_fields NOFS_inode_fields = {
+static struct inode_fields ISO9660_inode_fields = {
   0, /*   unsigned short i_mode; */
   0, /*   unsigned short i_uid; */
   0, /*   unsigned long  i_size; */
@@ -77,7 +71,7 @@ static struct inode_fields NOFS_inode_fields = {
   1, /*   unsigned long  i_reserved2[2]; */
 };
 
-static struct fs_constants NOFS_constants = {
+static struct fs_constants ISO9660_constants = {
   1,                            /* int ROOT_INODE */
   4,                            /* int INODE_SIZE */
   1,                            /* unsigned short N_DIRECT */
@@ -88,7 +82,7 @@ static struct fs_constants NOFS_constants = {
   1,                            /* unsigned long  FIRST_MAP_BLOCK */
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
-  &NOFS_inode_fields,
+  &ISO9660_inode_fields,
   "iso9660",                    /* char *text_name */
   16*2048                       /* unsigned long supertest_offset */
 };
@@ -114,38 +108,38 @@ static struct Generic_Inode *ISO9660_init_junk_inode(void)
   return &ISO9660_junk_inode;
 }
 
-static struct Generic_Inode *NOFS_read_inode(unsigned long nr)
+static struct Generic_Inode *ISO9660_read_inode(unsigned long nr)
 {
   return &ISO9660_junk_inode;
 }
 
 /* Always returns 0 */
-static int NOFS_write_inode_NOT(unsigned long ino,
+static int ISO9660_write_inode_NOT(unsigned long ino,
 				struct Generic_Inode *GInode)
 {
   return 0;
 }
 
 /* Returns 1 always */
-static int NOFS_one_i__ul(unsigned long nr)
+static int ISO9660_one_i__ul(unsigned long nr)
 {
   return 1;
 }
 
 /* Returns 1 always */
-static unsigned long NOFS_one_ul__ul(unsigned long nr)
+static unsigned long ISO9660_one_ul__ul(unsigned long nr)
 {
   return 1;
 }
 
 /* Returns 0 always */
-static int NOFS_zero_i__ul(unsigned long nr)
+static int ISO9660_zero_i__ul(unsigned long nr)
 {
   return 0;
 }
 
 /* Returns an empty string */
-static char* NOFS_dir_entry(int i, lde_buffer *block_buffer, 
+static char* ISO9660_dir_entry(int i, lde_buffer *block_buffer, 
 			    unsigned long *inode_nr)
 {
   *inode_nr = 1UL;
@@ -153,7 +147,7 @@ static char* NOFS_dir_entry(int i, lde_buffer *block_buffer,
 }
 
 
-static void NOFS_sb_init(char * sb_buffer)
+static void ISO9660_sb_init(char * sb_buffer)
 {
   static int firsttime=1;
   struct stat statbuf;
@@ -201,65 +195,31 @@ static void NOFS_sb_init(char * sb_buffer)
 
 void ISO9660_init(void * sb_buffer)
 {
-  fsc = &NOFS_constants;
+  fsc = &ISO9660_constants;
 
-  NOFS_sb_init(sb_buffer);
+  ISO9660_sb_init(sb_buffer);
 
   (void) ISO9660_init_junk_inode();
 
   sb->namelen = 1;
   sb->dirsize = 1;
 
-  FS_cmd.inode_in_use = NOFS_one_i__ul;
-  FS_cmd.zone_in_use = NOFS_one_i__ul;
-  FS_cmd.zone_is_bad = NOFS_zero_i__ul;
-  FS_cmd.is_system_block = NOFS_zero_i__ul;
+  FS_cmd.inode_in_use = ISO9660_one_i__ul;
+  FS_cmd.zone_in_use = ISO9660_one_i__ul;
+  FS_cmd.zone_is_bad = ISO9660_zero_i__ul;
+  FS_cmd.is_system_block = ISO9660_zero_i__ul;
   
-  FS_cmd.dir_entry = NOFS_dir_entry;
-  FS_cmd.read_inode = NOFS_read_inode;
-  FS_cmd.write_inode = NOFS_write_inode_NOT;
-  FS_cmd.map_inode = NOFS_one_ul__ul;
+  FS_cmd.dir_entry = ISO9660_dir_entry;
+  FS_cmd.read_inode = ISO9660_read_inode;
+  FS_cmd.write_inode = ISO9660_write_inode_NOT;
+  FS_cmd.map_inode = ISO9660_one_ul__ul;
   FS_cmd.map_block = map_block;
 }
-
-static int valid_offset (unsigned long offset)
-{
-  char ch;
-  
-  if ( (lde_seek_block(offset) == offset) &&
-       (read (CURR_DEVICE, &ch, 1) == 1) )
-    return 1;
-
-  return 0;
-}
-
-/* Returns the number of blocks in a partition */
-static unsigned long NOFS_get_device_size(void)
-{
-  unsigned long high, low;
-
-  /* Do binary search to find the size of the partition.  */
-  low = 0;
-  for (high = 1024; valid_offset (high); high *= 2)
-    low = high;
-  while (low < high - 1)
-    {
-      const unsigned long mid = (low + high) / 2;
-      
-      if (valid_offset (mid))
-	low = mid;
-      else
-	high = mid;
-    }
-  lde_seek_block(0);
-  return (low + 1);
-}
-
 
 int ISO9660_test(void *sb_buffer, int use_offset)
 {
   if (use_offset)
-    sb_buffer += NOFS_constants.supertest_offset;
+    sb_buffer += ISO9660_constants.supertest_offset;
 
   if (!strncmp("CD001",sb_buffer+1,5)) {
     if (use_offset) lde_warn("Found iso9660 filesystem on device");

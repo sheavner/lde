@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.21 2002/01/14 18:53:35 scottheavner Exp $
+ *  $Id: msdos_fs.c,v 1.22 2002/01/30 20:47:32 scottheavner Exp $
  */
 
 /* 
@@ -237,7 +237,7 @@ static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode
   } else {
     dir = block_buffer->start+(i*sb->dirsize);
 
-    *inode_nr = (unsigned long) dir->start + (((unsigned long)dir->starthi)<<16);
+    *inode_nr = (unsigned long) ldeswab16(dir->start) + (((unsigned long)ldeswab16(dir->starthi))<<16);
     DOS_dir_inode = *inode_nr;
 
     slot = (void *)dir;
@@ -261,7 +261,7 @@ static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode
     }
 
     DOS_junk_inode.i_mode = S_IRUSR|S_IROTH|S_IRGRP;
-    DOS_junk_inode.i_size = dir->size;
+    DOS_junk_inode.i_size = ldeswab32(dir->size);
     if (dir->attr&ATTR_DIR) {
        DOS_junk_inode.i_mode |= S_IFDIR|S_IXOTH|S_IXUSR|S_IXGRP;
        /* nc_dir.c:get_inode_info() gets pissy if dir length == 0 */
@@ -276,9 +276,9 @@ static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode
        DOS_junk_inode.i_mode |= S_IFSOCK;
     if (dir->attr&ATTR_RO)
        DOS_junk_inode.i_mode |= S_IWUSR|S_IWGRP|S_IWOTH;
-    DOS_junk_inode.i_ctime = date_dos2unix(dir->ctime,dir->cdate);
-    DOS_junk_inode.i_atime = date_dos2unix(0,dir->adate);
-    DOS_junk_inode.i_mtime = date_dos2unix(dir->time,dir->date);
+    DOS_junk_inode.i_ctime = date_dos2unix(ldeswab16(dir->ctime),ldeswab16(dir->cdate));
+    DOS_junk_inode.i_atime = date_dos2unix(0,ldeswab16(dir->adate));
+    DOS_junk_inode.i_mtime = date_dos2unix(ldeswab16(dir->time),ldeswab16(dir->date));
   }
   return (cname);
 }
@@ -308,10 +308,10 @@ static void DOS_sb_init(void *sb_buffer)
   struct fat_boot_sector *Boot;
   Boot = sb_buffer;
 
-  sb->blocksize = (unsigned long) align_ushort(Boot->sector_size);
-  sb->nzones = (unsigned long) align_ushort(Boot->sectors);
+  sb->blocksize = (unsigned long) ldeswab16(align_ushort(Boot->sector_size));
+  sb->nzones = (unsigned long) ldeswab16(align_ushort(Boot->sectors));
   if ( !sb->nzones )
-    sb->nzones = Boot->total_sect;
+    sb->nzones = ldeswab32(Boot->total_sect);
 
   sb->last_block_size = sb->blocksize;
 
@@ -322,13 +322,13 @@ static void DOS_sb_init(void *sb_buffer)
   sb->imap_blocks = 1;
   if (!Boot->fats)  /* Could this ever happen? */
      Boot->fats = 2;
-  if (Boot->fat_length)  /* FAT12/16 */
-     sb->zmap_blocks = Boot->fats*Boot->fat_length;
+  if (ldeswab16(Boot->fat_length))  /* FAT12/16 */
+     sb->zmap_blocks = Boot->fats*ldeswab16(Boot->fat_length);
   else {
-     sb->zmap_blocks = Boot->fats*Boot->fat32_length;
+     sb->zmap_blocks = Boot->fats*ldeswab32(Boot->fat32_length);
      fsc->INODE_SIZE = 4;
   }
-  sb->first_data_zone = Boot->reserved + sb->zmap_blocks - 2 * Boot->cluster_size;
+  sb->first_data_zone = ldeswab16(Boot->reserved) + sb->zmap_blocks - 2 * Boot->cluster_size;
   sb->max_size = 1;
   sb->zonesize = Boot->cluster_size;
   sb->magic = 0;
