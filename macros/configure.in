@@ -34,13 +34,32 @@ AC_CHECK_PROG(system,uname,`uname`,unknown)
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h unistd.h getopt.h pwd.h grp.h)
+dnl errno.h stdlib.h string.h sys/timeb.h
+AC_CHECK_HEADERS(fcntl.h unistd.h getopt.h pwd.h grp.h sys/timeb.h)
 
 dnl Determine variable sizes
 ACLDE_SETVARSIZES
 
 dnl Check that <asm/bitops.h> exists and works, if not will test for cli/sti
 AC_CHECK_KERNEL_BITOPS
+
+dnl Check for struct timeb
+AC_CACHE_CHECK(for struct timeb,
+	ac_cv_has_struct_timeb,
+	AC_TRY_LINK([
+#include <time.h>
+#ifdef HAVE_SYS_TIMEB_H
+#include <sys/timeb.h>
+#endif
+],
+		[struct timeb b ; b.time = 0; ftime(&b); return 0;],
+		ac_cv_has_struct_timeb="yes",
+		ac_cv_has_struct_timeb="no"
+	)
+)
+if test x$ac_cv_has_struct_timeb = xyes ; then
+	AC_DEFINE(HAVE_STRUCT_TIMEB)
+fi
 
 dnl See if we can find an lseek64
 AC_CHECK_FUNCS(lseek64,
@@ -218,20 +237,20 @@ dnl ************************************************************************
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
-AC_TYPE_UID_T
 AC_C_INLINE
-AC_TYPE_MODE_T
+dnl AC_C_VOLATILE (not in 2.13)
+
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
 AC_STRUCT_TM
 
 
 dnl Checks for library functions.
-dnl AC_FUNC_VPRINTF
-dnl AC_CHECK_FUNCS(ftime strstr strtol uname memmem)
+dnl AC_CHECK_FUNCS(bzero memset strchr strstr strtol uname)
 
 dnl ************************************************************************
 
+AC_FUNC_VPRINTF
 AC_CHECK_FUNCS(uname memmem)
 
 
@@ -244,7 +263,7 @@ Configuration:
   Compiler:                ${CC}
   Compiler flags:          ${CFLAGS} ${CURSES_INCLUDEDIR}
   Defines:                 ${DEFS}
-  Linker flags:            ${LDFLAGS} ${LDE_LDFLAGS} ${CURSES_LIBS}
+  Linker flags:            ${LDFLAGS} ${STATIC_LDFLAGS} ${CURSES_LIBS}
 
   Install path:            ${SBIN_LOCATION}, ${mandir}"
 echo ""

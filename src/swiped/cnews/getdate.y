@@ -5,12 +5,20 @@
 	/*	University of North Carolina at Chapel Hill	*/
 	/*	@(#)getdate.y	2.13	9/16/86 */
 
+#if HAVE_STRUCT_TIMEB /* If don't have this, forget it */
+
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <ctype.h>
 #include <time.h>
+#if TM_IN_SYS_TIME
+#include <sys/time.h>
+#endif
 #define	timezone	tmzn	/* ugly hack for obscure name clash */
-#include <sys/timeb.h>
+#include "../../swiped.h"
+
 
 #define daysec (24L*60L*60L)
 
@@ -26,6 +34,16 @@
 #define DAYLIGHT 1
 #define STANDARD 2
 #define MAYBE    3
+
+void yyerror(char *s);
+static time_t dateconv(int mm, int dd, int yy, int h, int m, 
+         int s, int mer, int zone, int dayflag);
+static time_t dayconv(int ord, int day, time_t now);
+static time_t timeconv(int hh, int mm, int ss, int mer);
+static time_t monthadd(time_t sdate, time_t relmonth);
+static time_t daylcorr(time_t future, time_t now);
+static int lookup(char *id);
+
 %}
 
 %%
@@ -111,15 +129,12 @@ static int mdays[12] =
 	{31, 0, 31,  30, 31, 30,  31, 31, 30,  31, 30, 31};
 #define epoch 1970
 
-extern struct tm *localtime();
-
 static time_t
-dateconv(mm, dd, yy, h, m, s, mer, zone, dayflag)
-int mm, dd, yy, h, m, s, mer, zone, dayflag;
+dateconv(int mm, int dd, int yy, int h, int m, 
+         int s, int mer, int zone, int dayflag)
 {
 	time_t tod, jdate;
 	register int i;
-	time_t timeconv();
 
 	if (yy < 0) yy = -yy;
 	if (yy < 70) yy += 2000; else if (yy < 100) yy += 1900;
@@ -139,12 +154,10 @@ int mm, dd, yy, h, m, s, mer, zone, dayflag;
 }
 
 static time_t
-dayconv(ord, day, now)
-int ord, day; time_t now;
+dayconv(int ord, int day, time_t now)
 {
 	register struct tm *loctime;
 	time_t tod;
-	time_t daylcorr();
 
 	tod = now;
 	loctime = localtime(&tod);
@@ -154,8 +167,7 @@ int ord, day; time_t now;
 }
 
 static time_t
-timeconv(hh, mm, ss, mer)
-register int hh, mm, ss, mer;
+timeconv(int hh, int mm, int ss, int mer)
 {
 	if (mm < 0 || mm > 59 || ss < 0 || ss > 59) return (-1);
 	switch (mer) {
@@ -170,12 +182,9 @@ register int hh, mm, ss, mer;
 }
 
 static time_t
-monthadd(sdate, relmonth)
-time_t sdate, relmonth;
+monthadd(time_t sdate, time_t relmonth)
 {
 	struct tm *ltime;
-	time_t dateconv();
-	time_t daylcorr();
 	int mm, yy;
 
 	if (relmonth == 0) return 0;
@@ -188,8 +197,7 @@ time_t sdate, relmonth;
 }
 
 static time_t
-daylcorr(future, now)
-time_t future, now;
+daylcorr(time_t future, time_t now)
 {
 	int fdayl, nowdayl;
 
@@ -422,11 +430,10 @@ static struct table milzone[] = {
 	{0, 0, 0}};
 
 static
-lookup(id)
-char *id;
+int lookup(char *id)
 {
 #define gotit (yylval=i->value,  i->type)
-#define getid for(j=idvar, k=id; *j++ = *k++; )
+#define getid for(j=idvar, k=id; (*j++ = *k++); )
 
 	char idvar[20];
 	register char *j, *k;
@@ -484,12 +491,9 @@ char *id;
 }
 
 time_t
-lde_getdate(p, now)
-char *p;
-struct timeb *now;
+lde_getdate(char *p, struct timeb *now)
 {
 #define mcheck(f)	if (f>1) err++
-	time_t monthadd();
 	int err;
 	struct tm *lt;
 	struct timeb ftz;
@@ -512,7 +516,7 @@ struct timeb *now;
 	hh = mm = ss = 0;
 	merid = 24;
 
-	if (err = yyparse()) return (-1);
+	if ((err = yyparse())) return (-1);
 
 	mcheck(timeflag);
 	mcheck(zoneflag);
@@ -542,5 +546,10 @@ struct timeb *now;
 	return sdate;
 }
 
-yyerror(s) char *s;
-{}
+#else
+
+#warning No struct timeb defined, you will not be able to edit inode times. ******************************************************************************
+
+#endif /* HAVE_STRUCT_TIMEB */
+
+void yyerror(char *s) {}
