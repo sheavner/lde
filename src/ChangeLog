@@ -1,3 +1,9 @@
+2002-05-28    Scott Heavner
+	- Fix segfault when specifying file type on command line,
+	  spotted & fixed by Tomas Jura.  Add tests to test script.
+	  (allfs.h, main_lde.c, recover.c)
+	- msdos_fs.c: Trap for division by zero in DOS_sb_init().
+
 2002-02-14    Scott Heavner
 	- Add 20 block cache to nocache_read_block instead of its cache of
 	  1.  nocache_read_block actually returns a struct, with its data

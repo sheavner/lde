@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.48 2002/02/14 19:44:51 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.49 2002/05/29 05:38:32 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -151,14 +151,15 @@ void read_tables(int fs_type, unsigned long blocksize)
   lde_warn("User requested %s filesystem. Checking device . . .",lde_typedata[fs_type].name);
 
   if ( fs_type == AUTODETECT ) {
-    for ( ++fs_type ; fs_type<LAST_FSTYPE; fs_type++) {
-      if (lde_typedata[fs_type].test(super_block_buffer,1)) {
+    for ( ++fs_type ; fs_type<LAST_AUTO_FSTYPE; fs_type++) {
+      if (lde_typedata[fs_type].test &&
+	  lde_typedata[fs_type].test(super_block_buffer,1)) {
 	break;
       }
     }
   }
 
-  if ( fs_type < LAST_FSTYPE ) {
+  if ( fs_type < LAST_AUTO_FSTYPE ) {
     lde_typedata[fs_type].init(super_block_buffer);
   } else {
     lde_warn("No file system found on device");
@@ -343,7 +344,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	opts->search_len = strlen(opts->search_string);
 	break;
       case 't': /* Specify the FS on the disk */
-	i = NONE;
+	i = AUTODETECT;
 	while (lde_typedata[i].name) {
 	  if (!strncmp(optarg, lde_typedata[i].name, strlen(optarg))) {
 	    opts->fs_type = i;
@@ -351,9 +352,9 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	  }
 	  i++;
 	}
-	if (opts->fs_type==AUTODETECT) {
+	if (!lde_typedata[i].name) {
 	  lde_warn("`%s' type not recognized.",optarg);
-	  i = NONE;
+	  i = AUTODETECT;
 	  fprintf(stderr,"Supported file systems include: ");
 	  while (lde_typedata[i].name) {
 	    fprintf(stderr,"\"%s\" ",lde_typedata[i].name);

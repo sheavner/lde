@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.23 2002/02/01 03:35:20 scottheavner Exp $
+ *  $Id: msdos_fs.c,v 1.24 2002/05/29 05:38:32 scottheavner Exp $
  */
 
 /* 
@@ -323,8 +323,14 @@ static void DOS_sb_init(void *sb_buffer)
 
   fsc->ROOT_INODE = 2;
 
+  if (Boot->cluster_size) {
+     sb->zonesize = Boot->cluster_size;
+  } else {
+     sb->zonesize = 64;
+  }
+
   /* In order to prevent division by zeroes, set junk entries to 1 */
-  sb->ninodes = sb->nzones/Boot->cluster_size;
+  sb->ninodes = sb->nzones/sb->zonesize;  /* /Boot->cluster_size */
   sb->imap_blocks = 1;
   if (!Boot->fats)  /* Could this ever happen? */
      Boot->fats = 2;
@@ -334,9 +340,8 @@ static void DOS_sb_init(void *sb_buffer)
      sb->zmap_blocks = Boot->fats*ldeswab32(Boot->fat32_length);
      fsc->INODE_SIZE = 4;
   }
-  sb->first_data_zone = ldeswab16(Boot->reserved) + sb->zmap_blocks - 2 * Boot->cluster_size;
+  sb->first_data_zone = ldeswab16(Boot->reserved) + sb->zmap_blocks - 2 * sb->zonesize; /* * Boot->cluster_size */
   sb->max_size = 1;
-  sb->zonesize = Boot->cluster_size;
   sb->magic = 0;
 
   sb->I_MAP_SLOTS = 1;

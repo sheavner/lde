@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2001  Scott D. Heavner
  *
- *  $Id: allfs.h,v 1.3 2002/01/12 01:51:57 scottheavner Exp $
+ *  $Id: allfs.h,v 1.4 2002/05/29 05:38:32 scottheavner Exp $
  */
 
 #ifndef LDE_ALLFS_H
@@ -28,7 +28,7 @@ extern struct _lde_typedata lde_typedata[];
 
 
 /* Order of enum must match order of LDE_ALLTYPES */
-enum lde_fstypes { AUTODETECT, EXT2, MINIX, DOS, ISO9660, XIAFS, LAST_FSTYPE, NONE };
+enum lde_fstypes { AUTODETECT, EXT2, MINIX, DOS, ISO9660, XIAFS, NONE, LAST_AUTO_FSTYPE=NONE, LAST_FSTYPE };
 
 
 #define LDE_ALLTYPES { \
@@ -38,8 +38,8 @@ enum lde_fstypes { AUTODETECT, EXT2, MINIX, DOS, ISO9660, XIAFS, LAST_FSTYPE, NO
   { "msdos", DOS_test, DOS_init }, \
   { "iso9660", ISO9660_test, ISO9660_init }, \
   { "xiafs", XIAFS_test, XIAFS_init }, \
-  { NULL, 0, 0 }, \
-  { "no file system", 0, 0 } \
+  { "no file system", 0, 0 }, \
+  { NULL, 0, 0 } \
 }
 
 #endif /* LDE_ALLFS_H */

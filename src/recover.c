@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.40 2002/01/30 22:42:10 scottheavner Exp $
+ *  $Id: recover.c,v 1.41 2002/05/29 05:38:32 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -839,7 +839,7 @@ int search_for_superblocks(int fs_type) {
   /* Want to do all searches on 512 byte boundries, in case something has gotten screwed up */
   NOFS_init(NULL,512);
 
-  if ( fs_type >= LAST_FSTYPE || fs_type < AUTODETECT ) {
+  if ( fs_type >= LAST_AUTO_FSTYPE || fs_type < AUTODETECT ) {
     lde_warn("Bad filetype specified (i.e. why would \"no\" have a superblock) . . . Aborting.");
     return -1;
   }
@@ -852,7 +852,7 @@ int search_for_superblocks(int fs_type) {
       break;
 
     if ( fs_type == AUTODETECT ) {
-      for ( i = AUTODETECT+1 ; i<LAST_FSTYPE; i++) {
+      for ( i = AUTODETECT+1 ; lde_typedata[i].test; i++) {
 	if (lde_typedata[i].test(buffer,0)) {
 	  lde_warn("Found %s superblock at 0x%lx",lde_typedata[i].name,sbnr);
 	}
