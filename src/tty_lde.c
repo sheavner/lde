@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.18 1998/01/18 06:35:09 sdh Exp $
+ *  $Id: tty_lde.c,v 1.19 1998/05/30 17:54:02 sdh Exp $
  */
 
 #include <stdio.h>
@@ -78,20 +78,22 @@ unsigned long read_num(char *cinput)
   unsigned long i;
 
   if  (strlen(cinput)>0) {
-    if ((cinput[0]=='$')||(cinput[0]=='x')||(cinput[0]=='X'))
+    if ((cinput[0]=='$')||(cinput[0]=='x')||(cinput[0]=='X')) {
       sscanf(cinput,"%*1c%lx", &i);
-    else if (cinput[0]=='\\')
+    } else if (cinput[0]=='\\') {
       sscanf(cinput,"%*1c%lo", &i);
-    else if (cinput[0]=='0')
-      if ((cinput[1]=='x')||(cinput[1]=='X'))
+    } else if (cinput[0]=='0') {
+      if ((cinput[1]=='x')||(cinput[1]=='X')) {
 	sscanf(cinput,"%*2c%lx", &i);
-      else
+      } else {
 	if (cinput[1]!=0)
 	  sscanf(cinput,"%*1c%lo", &i);
 	else
 	  i = 0;
-    else
+      }
+    } else {
       sscanf(cinput,"%lu", &i);
+    }
     return i;
   }
 

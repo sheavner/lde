@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.28 1998/01/24 01:48:04 sdh Exp $
+ *  $Id: nc_lde.c,v 1.29 1998/05/30 17:49:24 sdh Exp $
  */
 
 #include <stdio.h>
@@ -57,11 +57,12 @@ int nc_mgetch(void)
 {
   int c;
 
-  if ( (c=getch()) == ESC )
+  if ( (c=getch()) == ESC ) {
     if ( (c=getch()) == ESC )
       return c;
     else
       return META(c);
+  }
 
   return c;
 }
