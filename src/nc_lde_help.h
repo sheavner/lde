@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994,1995  Scott D. Heavner
  *
- *  $Id: nc_lde_help.h,v 1.7 1998/01/18 06:35:05 sdh Exp $
+ *  $Id: nc_lde_help.h,v 1.8 1998/06/05 21:07:14 sdh Exp $
  *
  */
 #ifndef LDE_NC_LDE_HELP_H
@@ -87,10 +87,10 @@ static lde_menu special_keys[] = {
   { KEY_NPAGE, "PDN" },
   { KEY_PPAGE, "PUP" },
   { KEY_ENTER, "ENT" },
-  { CTRL('M'), "CR" },
-  { CTRL('J'), "LF" },
-  { CTRL('I'), "TAB" },
-  { CTRL('['), "ESC" },
+  { LDE_CTRL('M'), "CR" },
+  { LDE_CTRL('J'), "LF" },
+  { LDE_CTRL('I'), "TAB" },
+  { LDE_CTRL('['), "ESC" },
   { 0, NULL }
 };
 
@@ -98,13 +98,13 @@ static lde_menu special_keys[] = {
 lde_keymap global_keymap[] = {
   { 'Q', CMD_EXIT_PROG },
   { 'q', CMD_EXIT },
-  { CTRL('L'), CMD_REFRESH },
+  { LDE_CTRL('L'), CMD_REFRESH },
   { '?', CMD_HELP },
   { KEY_F(1), CMD_HELP },
-  { META('h'), CMD_HELP },
+  { LDE_META('h'), CMD_HELP },
   { KEY_F(2), CMD_CALL_MENU },
   { 'z', CMD_CALL_MENU },
-  { CTRL('O'), CMD_CALL_MENU },
+  { LDE_CTRL('O'), CMD_CALL_MENU },
   { 'f', CMD_FLAG_ADJUST },
   { 'F', CMD_FLAG_ADJUST },
   { 'v', CMD_DISPLAY_LOG },
@@ -133,11 +133,11 @@ lde_keymap global_keymap[] = {
   { '%', REC_FILE13 },
   { '^', REC_FILE14 },
   { KEY_DOWN, CMD_NEXT_LINE },
-  { CTRL('N'), CMD_NEXT_LINE },
+  { LDE_CTRL('N'), CMD_NEXT_LINE },
   { 'J', CMD_NEXT_LINE },
   { 'j', CMD_NEXT_LINE },
   { KEY_UP, CMD_PREV_LINE },
-  { CTRL('P'), CMD_PREV_LINE },
+  { LDE_CTRL('P'), CMD_PREV_LINE },
   { 'K', CMD_PREV_LINE },
   { 'k', CMD_PREV_LINE },
   { 'N', CMD_NEXT_IND_BLOCK },
