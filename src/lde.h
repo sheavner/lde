@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.1 1994/03/19 17:16:07 sdh Exp $
+ *  $Id: lde.h,v 1.2 1994/03/19 19:28:35 sdh Exp $
  */
 
 #include <stdio.h>
@@ -24,31 +24,37 @@
 #include <grp.h>
 #include <pwd.h>
 
-#define VERSION "2.1beta"
+#define VERSION "2.1beta-2"
 extern char *program_name;
 extern char *device_name;
 
+/* main.c */
 volatile void fatal_error();
-long read_num();
 void read_tables();
-void dump_block();
-void ddump_block();
-void dump_inode();
 int check_root();
-long INODE_BLOCKS();
-long INODE_BUFFER_SIZE();
+void (*warn)();
+/* tty_lde.c */
+void tty_warn();
+long read_num();
+char *cache_read_block();
+void ddump_block();
+void dump_block();
+void dump_inode();
+char *entry_type();
+/* minix.c */
 void MINIX_init();
 int MINIX_test();
+unsigned long MINIX_null_call();
+/* xiafs.c */
 int XIAFS_init();
 int XIAFS_test();
+/* ext2fs.c */
 void EXT2_init();
 int EXT2_test();
+/* nc_lde.c */
 void interactive_main();
-unsigned long MINIX_null_call();
-char *entry_type();
+/* filemode.c */
 void mode_string();
-void (*warn)();
-char *cache_read_block();
 /* recover.c */
 void recover_file();
 unsigned long map_block();
@@ -151,6 +157,11 @@ struct {
 	unsigned long  (*i_zone)();   /* Pointers to blocks */
 } DInode;
 
+struct {
+	int (*inode_in_use)();		/* File mode */
+	int (*zone_in_use)();		/* File mode */
+} FS_cmd;
+
 struct _rec_flags {
   int search_all;
 } rec_flags;
@@ -164,6 +175,7 @@ extern struct fs_constants *fsc;
 
 extern char *inode_map;
 extern char *zone_map;
+extern char *bad_map;
 extern char *inode_buffer;
 extern unsigned char *inode_count;
 extern unsigned char *zone_count;
@@ -186,11 +198,10 @@ bitop(bit,"")
 bitop(setbit,"s")
 bitop(clrbit,"r")
 
-#define inode_in_use(x) (bit(inode_map,(x)))
-#define zone_in_use(x) (bit(zone_map,(x)-sb->first_data_zone+1))
+/* #define block_is_bad(x) (bit(bad_map, (x) - FIRSTBLOCK)) */
 
-#define mark_inode(x) (setbit(inode_map,(x)),changed=1)
-#define unmark_inode(x) (clrbit(inode_map,(x)),changed=1)
+/* #define mark_inode(x) (setbit(inode_map,(x)),changed=1) */
+/* #define unmark_inode(x) (clrbit(inode_map,(x)),changed=1) */
 
-#define mark_zone(x) (setbit(zone_map,(x)-sb->first_dat_zone+1),changed=1)
-#define unmark_zone(x) (clrbit(zone_map,(x)-sb->first_data_zone+1),changed=1)
+/* #define mark_zone(x) (setbit(zone_map,(x)-sb->first_dat_zone+1),changed=1) */
+/* #define unmark_zone(x) (clrbit(zone_map,(x)-sb->first_data_zone+1),changed=1) */
