@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.21 1998/01/24 01:42:41 sdh Exp $
+ *  $Id: recover.c,v 1.22 1998/01/24 02:02:20 sdh Exp $
  */
 
 #include <stdio.h>
@@ -37,7 +37,7 @@ unsigned long block_pointer(unsigned char *ind,
   }
 }
 
-#ifdef ALPHA_CODE
+#ifdef BETA_CODE
 /* Try to work around Linux <= 2.0.33 bug */ 
 /* This is used to pull the correct block from the inode block table which
  * should have been copied into zone_index */
@@ -415,7 +415,7 @@ int recover_file(int fp,unsigned long zone_index[],unsigned long filesize)
     }
 
     /* Lookup block number from inode */
-#ifdef ALPHA_CODE
+#ifdef BETA_CODE
     if (lde_flags.blanked_indirects) 
       result = hacked_map_block(zone_index,j,&nr,&skipped);
     else 
