@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.20 1996/10/12 20:36:48 sdh Exp $
+ *  $Id: lde.h,v 1.21 1996/10/13 17:34:16 sdh Exp $
  */
 
 #ifndef VERSION
@@ -238,7 +238,9 @@ extern unsigned char *zone_count;
 extern int CURR_DEVICE;
 
 /* Error logging functionality */
+#ifndef ERRORS_SAVED
 #define ERRORS_SAVED 30
+#endif
 extern char *error_save[ERRORS_SAVED];
 extern int current_error;
 
