@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.12 1996/10/11 00:35:40 sdh Exp $
+ *  $Id: recover.c,v 1.13 1996/10/11 00:42:48 sdh Exp $
  */
 
 #include <stdio.h>
@@ -378,10 +378,10 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 	    if ( (inode_nr = find_inode(nr, 0UL)) ) {
 	      printf(", check inode 0x%lX",inode_nr);
 	      if (lde_flags.check_recover) {
-		warn = no_warn;  /* Suppress output */
+		lde_warn = no_warn;  /* Suppress output */
 		GInode = FS_cmd.read_inode(nr);
 		printf(", recovery %spossible",(check_recover_file(GInode->i_zone)?"":"NOT ") );
-		warn = tty_warn; /* Reinstate output */
+		lde_warn = tty_warn; /* Reinstate output */
 	      }
 	    } else {
 	      printf(", no %sinode found",((lde_flags.search_all)?"":"unused ") );

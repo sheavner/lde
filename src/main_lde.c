@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.17 1996/10/11 00:32:02 sdh Exp $
+ *  $Id: main_lde.c,v 1.18 1996/10/11 00:43:46 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -404,13 +404,13 @@ void main(int argc, char ** argv)
   sigemptyset(&sa_mask);
   sigaction(SIGINT,&intaction,NULL);
 
-  warn = tty_warn;
+  lde_warn = tty_warn;
   mgetch = tty_mgetch;
 
   parse_cmdline(argc, argv, &main_opts);
 
   if (main_opts.dumper) /* Supress warnings when dumping to stdio */
-    warn = no_warn;
+    lde_warn = no_warn;
 
   if (check_mount(device_name)&&!lde_flags.paranoid)
     lde_warn("Device \"%s\" is mounted, be careful",device_name);
@@ -457,7 +457,7 @@ void main(int argc, char ** argv)
 
       /* Looks for recoverable inodes */
       if (lde_flags.check_recover) {
-	warn = no_warn;  /* Suppress output */
+	lde_warn = no_warn;  /* Suppress output */
 	for (nr=main_opts.dump_start; nr<main_opts.dump_end; nr++) {
 	  if (lde_flags.quit_now) {
 	    printf("Search aborted at inode 0x%lX\n",nr);
@@ -524,7 +524,7 @@ void main(int argc, char ** argv)
   }
 
 #ifdef LDE_CURSES
-  warn = nc_warn;
+  lde_warn = nc_warn;
   mgetch = nc_mgetch;
   interactive_main();
 #endif
