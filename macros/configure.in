@@ -34,7 +34,7 @@ AC_CHECK_PROG(system,uname,`uname`,unknown)
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h unistd.h getopt.h)
+AC_CHECK_HEADERS(fcntl.h unistd.h getopt.h pwd.h grp.h)
 
 dnl Determine variable sizes
 ACLDE_SETVARSIZES
@@ -80,7 +80,7 @@ ifdef([AC_COPYRIGHT],
 )
 
 dnl Has long getopt?
-AC_CHECK_FUNCS(getopt_long)
+AC_CHECK_FUNCS(getopt_long getpwuid getgrgid)
 
 dnl Can we override -Wall on swiped code. 
 AC_CC_NOWARN
