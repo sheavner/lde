@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.32 2002/01/27 23:11:51 scottheavner Exp $
+ *  $Id: nc_block.c,v 1.33 2002/02/11 22:17:03 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -223,6 +223,9 @@ static void update_block_help(void)
 }
 
 
+/* Make sure our memory copy of 2*curs->bps+1 blocks is updated,
+ *   and centered around our current block.  If not, re-read
+ *   necessary blocks from disk. */
 static int update_block_contents(cached_block **passed_block,
 				 unsigned long new_bnr,
 				 bm_cursor *curs, bm_irecord *iptr)
@@ -263,8 +266,8 @@ static int update_block_contents(cached_block **passed_block,
   /* Save return value for passed_block */
   *passed_block = this_block;
 
+  /* Make sure prev blocks are loaded into memory */
   cbptr = this_block;
-  /* Make sure next and prev are ok */
   for (i=1; i<=curs->bps; i++) {
     cbptr = cbptr->prev;
     if (iptr) {
@@ -284,6 +287,7 @@ static int update_block_contents(cached_block **passed_block,
     }
   }
 
+  /* Make sure next blocks are loaded into memory */
   cbptr = this_block;
   for (i=1; i<=curs->bps; i++) {
     cbptr = cbptr->next;
@@ -343,10 +347,13 @@ static int update_block_data(cached_block **passed_block,
 
   curs->eod = 0;
 
+  /* back up, cbptr=block we're interested in, which is in
+   *  center of linked list */
   cbptr = this_block;
   for (i=0; i<curs->bps; i++)
     cbptr = cbptr->prev;
 
+  /* Copy prev. blocks into cbuffer */
   for (i=0; i<curs->bps; i++) {
     if ( cbptr->size ) {
       memcpy(cbuffer,cbptr->data,cbptr->size);
@@ -356,6 +363,7 @@ static int update_block_data(cached_block **passed_block,
     cbptr = cbptr->next;
   }
 
+  /* Copy current block into cbuffer */
   cbptr = this_block;
   curs->sob = curs->sow = curs->eod;
   memcpy(cbuffer,this_block->data,this_block->size);
@@ -363,6 +371,7 @@ static int update_block_data(cached_block **passed_block,
   curs->eod += this_block->size;
   curs->eob = curs->eod;
 
+  /* Copy next blocks into cbuffer */
   for (i=0; i<curs->bps; i++) {
     cbptr = cbptr->next;
     if ( cbptr->size ) {
@@ -396,7 +405,7 @@ int block_mode(void) {
 
   /* Want to allocate enough room for two screenfuls of data, 
    * compute the size of one screen full here */
-  curs.bps = (VERT*(COLS-HOFF)+(sb->blocksize-1))/sb->blocksize;
+  curs.bps = (VERT*(COLS-HOFF)+(sb->blocksize-1))/sb->blocksize + 1;
 
   /* Allocate space for buffers, abort on error */
   curs.data = malloc(sb->blocksize*(2*curs.bps+1));
@@ -637,8 +646,11 @@ has command */
 	break;
 
       case CMD_PREV_SCREEN:
-	if (curs.sow - VERT*curs.rs >= 0)
+	if (curs.sow - VERT*curs.rs >= 0) {
 	  curs.sow -= VERT*curs.rs;
+	} else if (!(this_block->bnr)) {
+          curs.sow = 0;
+        }
 	if (calc_offset(&curs)<curs.sob) {
 
 	  /* It is possible we may need to go back more than one block */
@@ -654,6 +666,7 @@ has command */
 	  /* Not very robust yet: (curs.sob-c) should be a
 	   * multiple of blocksize */
 	  c = (curs.sob-c)-(curs.sob-curs.sow);
+          /* if ( c < -sb->blocksize ) lde_warn("C < blocksize - %d < %ld",c,sb->blocksize); */
 	  if (update_block_data(&this_block,tmp_block->bnr,
 				irecptr, &curs, &flags, c)) {
 	    curs.sow += VERT*curs.rs;
@@ -677,8 +690,11 @@ has command */
 	break;
 
       case CMD_PREV_SCREEN:
-	if (curs.sow - VERT*curs.rs >= 0)
+	if (curs.sow - VERT*curs.rs >= 0) {
 	  curs.sow -= VERT*curs.rs;
+	} else {
+          curs.sow = 0;
+        }
 	if ((calc_offset(&curs)<curs.sob)&&(this_block->prev->size)) {
 	  if (update_block_data(&this_block,this_block->prev->bnr,
 				irecptr, &curs, &flags,
