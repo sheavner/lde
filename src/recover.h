@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.h,v 1.6 1996/10/13 01:52:38 sdh Exp $
+ *  $Id: recover.h,v 1.7 1996/11/18 17:03:21 sdh Exp $
  */
 
 unsigned long block_pointer(unsigned char *ind, unsigned long blknr, int zone_entry_size);
@@ -24,8 +24,8 @@ enum map_block_errors { EMB_NO_ERROR=0,
 			EMB_IND_RANGE,          /* Indirect pointer itself is out of range, 
 						 * probably corrupt, move on to 2x indirect */
 			EMB_2IND_ZERO,          /* 2xIndirect pointer itself is zero, move on to 3x indirect */
-			EMB_2IND_RANGE,          /* Indirect pointer itself is out of range, 
-						  * probably corrupt, move on to 2x indirect */
+ 			EMB_2IND_RANGE,         /* 2xIndirect pointer itself is out of range, 
+						 * probably corrupt, move on to 2x indirect */
 			EMB_2IND_L1_ZERO,       /* Entry in 2xIndirect block is zero 
 						 * (entry doesn't point to an indirect block), 
 						 * move to next entry in block. */
@@ -33,10 +33,25 @@ enum map_block_errors { EMB_NO_ERROR=0,
 						 * (entry doesn't point to an indirect block), 
 						 * move to next entry in block. */
 			EMB_3IND_ZERO,          /* 3xIndirect pointer itself is zero, stop */
+ 			EMB_3IND_RANGE,         /* 3xIndirect pointer itself is out of range, 
+						 * probably corrupt, move on to 4x? indirect */
+			EMB_3IND_L1_ZERO,       /* Entry in 2xindirect block of 3xIndirect block is zero 
+						 * (entry doesn't point to an indirect block), 
+						 * move to next 2xindirect entry in block. */
+			EMB_3IND_L2_ZERO,       /* Entry in indirect block of 3xIndirect block is zero 
+						 * (entry doesn't point to an indirect block), 
+						 * move to next indirect block entry in block. */
+			EMB_3IND_L2_RANGE,      /* Entry in indirect block of 3xIndirect block is out of 
+						 * range (entry doesn't point to an indirect block), 
+						 * move to next indirect block entry in block. */
+			EMB_3IND_L1_RANGE,      /* Entry in 2xindirect block of 3xIndirect block is out of 
+						 * range (entry doesn't point to an indirect block), 
+						 * move to next indirect block entry in block. */
 			EMB_SKIP,               /* Skip to number returned in mapped block if below this error */ 
 			EMB_DIRECT_RANGE,       /* Block pointed to by direct pointer is out of range */
 			EMB_IND_LOOKED_RANGE,   /* Entry in indirect block is zero, move to next entry */ 
 			EMB_2IND_LOOKED_RANGE,  /* Block is zero, move to next entry */
+			EMB_3IND_LOOKED_RANGE,  /* Block is zero, move to next entry */
 
 			AZP_BAD_START,          /* Block is not indexed by current inode */
 			AZP_UNCHANGED,          /* Can't find next/prev block, current pointer unchanged */
