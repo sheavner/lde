@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.15 1998/01/12 01:32:04 sdh Exp $
+ *  $Id: ext2fs.c,v 1.16 1998/01/12 04:21:02 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -109,6 +109,7 @@ static struct fs_constants EXT2_constants = {
 static unsigned long group_desc_count;
 static struct ext2_group_desc * group_desc = NULL;
 
+/* Compute disk block containing desired inode */
 unsigned long EXT2_map_inode(unsigned long ino)
 {
   unsigned long group;
@@ -120,8 +121,7 @@ unsigned long EXT2_map_inode(unsigned long ino)
   return (unsigned long) group_desc[group].bg_inode_table + block;
 }
 
-#define INODE_POINTER 
-
+/* Read an inode from disk */
 static struct Generic_Inode *EXT2_read_inode (unsigned long ino)
 {
   static EXT2_last_inode = 0; /* cacheable inode */
@@ -146,6 +146,7 @@ static struct Generic_Inode *EXT2_read_inode (unsigned long ino)
   return &GInode;
 }
 
+/* Write a modified inode back to disk */
 static int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode)
 {
   char * inode_buffer;
@@ -166,6 +167,7 @@ static int inode_map_cache = -1;
 static int block_map_cache = -1;
 #endif
 
+/* Reads the table indicating used/unused inodes from disk */
 static void EXT2_read_inode_bitmap (unsigned long nr)
 {
   int i;
@@ -189,17 +191,19 @@ static void EXT2_read_inode_bitmap (unsigned long nr)
     local_map += sb->s_inodes_per_group / 8;
   }
 }
-  
+
+/* Checks if a particular inode is in use */
 static int EXT2_inode_in_use(unsigned long nr)
 {
   nr--;
 #ifdef READ_PART_TABLES
   EXT2_read_inode_bitmap(nr);
-  return test_bit(inode_map,nr%sb->s_inodes_per_group);
+  return test_bit(nr%sb->s_inodes_per_group,inode_map);
 #endif
   return test_bit(nr,inode_map);
 }
 
+/* Reads the table indicating used/unused data blocks from disk */
 static void EXT2_read_block_bitmap(unsigned long nr)
 {
   int i;
@@ -224,6 +228,7 @@ static void EXT2_read_block_bitmap(unsigned long nr)
   }
 }
   
+/* Checks if a particular data block is in use */
 static int EXT2_zone_in_use(unsigned long nr)
 {
   if (nr < sb->first_data_zone) return 1;
@@ -260,40 +265,57 @@ static char* EXT2_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inod
   return (EXT2_cname);
 }
 
+/* Reads the inode/block in use tables from disk */
 static void EXT2_read_tables()
 {
   int isize, addr_per_block, inode_blocks_per_group;
   unsigned long group_desc_size;
   unsigned long desc_blocks;
   long desc_loc;
-  
+
+  /* Free up any memory we may have previously allocated 
+   *  (I don't think this will ever happen -- EXT2_read_tables is only
+   *   called at startup) */
   if (inode_map) free(inode_map);
   if (zone_map) free(zone_map);
   
   addr_per_block = sb->blocksize/sizeof(unsigned long);
   inode_blocks_per_group = sb->s_inodes_per_group / (sb->blocksize/fsc->INODE_SIZE);
   
-  group_desc_count = (sb->nzones - sb->first_data_zone) / sb->s_blocks_per_group;
-  if ((group_desc_count * sb->s_blocks_per_group) != (sb->nzones - sb->first_data_zone))
-    group_desc_count++;
-  if (group_desc_count % (sb->blocksize / sizeof(struct ext2_group_desc)) )
-    desc_blocks = (group_desc_count / (sb->blocksize / sizeof(struct ext2_group_desc))) + 1;
-  else
-    desc_blocks = group_desc_count / (sb->blocksize / sizeof(struct ext2_group_desc));
+  /* Compute number of groups.  Add (sb->s_blocks_per_group - 1) to account for last
+   * group that may be incomplete */
+  group_desc_count = (sb->nzones - sb->first_data_zone + sb->s_blocks_per_group - 1) / sb->s_blocks_per_group;
+  if (!group_desc_count)
+    die ("No group descriptors.  Something is wrong with this ext2fs?");
+
+  /* Compute number of blocks used by groups 
+   * - 1st use desc_blocks as temp variable to compute number of descriptors per block  */
+  desc_blocks = sb->blocksize / sizeof(struct ext2_group_desc);
+  desc_blocks = (group_desc_count + desc_blocks - 1) / desc_blocks;
+
+  /* Figure out space for group descriptors in bytes and allocate */
   group_desc_size = desc_blocks * sb->blocksize;
   group_desc = (struct ext2_group_desc *) malloc(group_desc_size);
-  
   if (!group_desc)
     die ("Unable to allocate buffers for group descriptors");
+
+  /* Compute location of group descriptors on disk and read them in 
+   *  (What's the +1 for?) */
   desc_loc = (((EXT2_MIN_BLOCK_SIZE) / sb->blocksize) + 1) * sb->blocksize;
   if (lseek (CURR_DEVICE, desc_loc, SEEK_SET) != desc_loc)
     die ("seek failed");
   if (read (CURR_DEVICE, group_desc, group_desc_size) != group_desc_size)
     die ("Unable to read group descriptors");
   
+  /* Read in the inode allocation tables from disk, 
+   * 1) compute the size of the inode_map in memory . . .
+   *    - if reading partial tables, we only read in one group at a time
+   *    - else, read them all
+   * 2) Clear it (why?)
+   * 3) Read it from disk */
 #ifndef READ_PART_TABLES
   if (sb->ninodes > sb->s_inodes_per_group) /* Allocate room for at least one block */
-    isize = (sb->ninodes / 8) + 1;
+    isize = (group_desc_count * sb->s_inodes_per_group / 8) + 1;
   else
 #endif
     isize = (sb->s_inodes_per_group / 8) + 1;
@@ -305,11 +327,10 @@ static void EXT2_read_tables()
   
 #ifndef READ_PART_TABLES
   if (sb->nzones > sb->s_blocks_per_group) /* Allocate at least room for one block */
-    isize = (sb->nzones / 8) + 1;
+    isize = (group_desc_count * sb->s_blocks_per_group / 8) + 1;
   else
 #endif
     isize = (sb->s_blocks_per_group / 8) + 1;
-
   zone_map = (char *) malloc(isize);
   if (!zone_map)
     die ("Unable to allocate blocks bitmap");
@@ -322,7 +343,8 @@ static void EXT2_read_tables()
      die ("Unable to allocate bad block bitmap");
      memset (bad_map, 0, ((sb->nzones - sb->first_data_zone) / 8) + 1);
    */
-  
+
+  /* Why do we warn here? */  
   if (sb->first_data_zone != 1UL) {
     lde_warn("Warning: First block (%lu)"
 	    " != Normal first block (%lu)",
@@ -330,6 +352,7 @@ static void EXT2_read_tables()
   }
 }
 
+/* Copy superblock info from disk into lde's sb structure */
 static void EXT2_sb_init(void *sb_buffer)
 {
   double temp;
@@ -357,6 +380,9 @@ static void EXT2_sb_init(void *sb_buffer)
   sb->last_block_size = sb->blocksize;
 }
 
+/* After determining that we are working with an ext2 file system,
+ * init lde to use the proper function calls, fill in lde's superblock,
+ * and read the inode/block in use tables from disk. */
 void EXT2_init(void *sb_buffer)
 {
   fsc = &EXT2_constants;
@@ -375,6 +401,7 @@ void EXT2_init(void *sb_buffer)
   (void) check_root();
 }
 
+/* Tests if this disk/file has the EXT2MAGIC in the proper location */
 int EXT2_test(void *sb_buffer)
 {
   struct ext2_super_block *Super;
