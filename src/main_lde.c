@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.11 1996/06/01 04:57:03 sdh Exp $
+ *  $Id: main_lde.c,v 1.12 1996/09/14 02:44:13 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <signal.h>
 
 #include <sys/stat.h>
 
@@ -70,8 +71,8 @@ struct sbinfo sb2, *sb = &sb2;
 struct fs_constants *fsc = NULL;
 
 int CURR_DEVICE = 0;
-struct _lde_flags lde_flags = 
-  { 0, 0, 0, 0, 0, 0 } ;
+volatile struct _lde_flags lde_flags = 
+  { 0, 0, 0, 0, 0, 0, 0, 0 } ;
 
 
 /* Check if device is mounted, return 1 if is mounted else 0 */
@@ -93,11 +94,19 @@ static int check_mount(char *device_name)
   mtab[statbuf.st_size] = 0;
   if (strstr(mtab, device_name)) {
     free(mtab);
+    lde_flags.mounted = 1;
     return 1;
   } else {
     free(mtab);
+    lde_flags.mounted = 0;
     return 0;
   }
+}
+
+/* Define a handler for Interrupt signals: Ctrl-C */
+static void handle_sigint(void)
+{
+  lde_flags.quit_now = 1;
 }
 
 int check_root(void)
@@ -371,8 +380,15 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 void main(int argc, char ** argv)
 {
   int i;
-  
+
+  sigset_t sa_mask;
+  struct sigaction intaction = { (void *)handle_sigint, sa_mask, SA_RESTART, NULL };
+
   struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0, 0UL, 1UL, NULL, NULL };
+
+  /* Set things up to handle control-c:  just sets lde_flags.quit_now to 1 */
+  sigemptyset(&sa_mask);
+  sigaction(SIGINT,&intaction,NULL);
 
   warn = tty_warn;
   mgetch = tty_mgetch;
