@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.17 1996/10/11 00:33:54 sdh Exp $
+ *  $Id: nc_block.c,v 1.18 1996/10/11 02:44:04 sdh Exp $
  */
 
 #include <stdio.h>
@@ -34,14 +34,18 @@ void cdump_block(unsigned long nr, unsigned char *dind, int win_start, int win_s
 {
   int i,j,blocksize;
   unsigned char c;
-  char *block_status, block_not_used[10]=":NOT:USED:"; 
-  char block_is_used[10] = "::::::::::";
+  const char *block_status;
+  const char block_is_used[10]  = "::::::::::";
+  const char block_not_used[10] = ":NOT:USED:";
+  const char block_is_bad[10]   = ":BAD::BAD:";
  
   clobber_window(workspace); 
   workspace = newwin(VERT,(COLS-HOFF),HEADER_SIZE,HOFF);
   werase(workspace);
   
   block_status = (FS_cmd.zone_in_use(nr)) ? block_is_used : block_not_used; 
+  if (FS_cmd.zone_is_bad(nr))
+    block_status = block_is_bad;
   blocksize = lookup_blocksize(nr);
   j = 0;
 
