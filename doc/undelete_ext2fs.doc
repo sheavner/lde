@@ -1,0 +1,355 @@
+
+This document is my thoughts and ideas on adding the Auto undelete
+feature to LDE.
+
+Copyright John Quirk 2002 (c) released under the GPL open document license
+
+
+
+MOTIVATION: 
+I was cracked and was left with unbacked up 20gig drive and now with
+lots of unwanted free space. I did a search on the web and found that
+all was not lost. The only down side that most tools where really good
+at recovering Inodes and producing directory entries like #1234
+instead of Really_important_document. So the hunt began for a tool to
+do the job. This search proved fruitless as none where found so in the
+true open source tradition I found the closet tool to my needs and
+began to bend it to my needs. This tool was LDE. I looked at others
+but many where limited to the max size of a 2 gigabyte partition LDE
+was able to handle the larger disks so in the end it was the only
+choice. I also looked at the official tool kit from which ckfs and
+mkfs is derived but these did not have a nice interface, not that I am
+scared of the command line but with what I was trying to achieve I
+need what LDE offered a basic curse interface to navigate around my
+departed disk. This is to say there is nothing wrong with the ext2fs
+tools in fact some of the code in LDE comes from those tools but I was
+dealing with a very large number of deleted files and had to be able
+to navigate though the maze of descending directories.
+
+DESIGN GOALS:
+* Keep other parts of LDE working and current with current CVS
+  versions.
+* Make undeleting as painless as possible.
+* Warn if an undelete is not logical possible, but do it if user
+  requests.
+
+LIMITS:
+
+LDE was intended to be a Linux disk editor with an understanding of
+many disk formats. Scott has moved it in the direction of a general
+Unix disk editor I only wanted the ext2fs undelete ability so my code
+at this point is ext2fs focused.
+
+I also did not want to fiddle with bitmaps at this point - LDE does
+seem to have write support for this any way - so after an undelete is
+written to disk fsck has to be run.
+
+
+THE ROAD OF DISCOVERY:
+
+When I started this I knew very little about the internal ext2fs
+system that I had been using for years, it worked fine. I knew it
+didn't have an undelete tool like Norton but hey I was careful and
+never typed rm -rf * as root. But some one else sure did.
+
+Luckily and surprising ext2fs keeps a large amount of information on
+the disk after a delete.  The process appears to be the following -
+not taken from kernel source but from looking at lots of deleted disk
+blocks. The ext2fs directory entry is not a fixed size it consists of
+five fields. These are inode, record length, name length, file type,
+name. Note file type only appeared later in the ext2fs directory entry
+and this breaks a lot of older disk editors. At first glance it may
+seem that record length and name length are redundant entries but this
+is not the case as this allows the ext2 directory entries to be
+deleted.  Now to the delete process itself first the entry to be
+deleted is found. The entry size field of the entry that pointed to
+the deleted entry is adjusted to point the next valid entry or the end
+of the directory blocks so the deleted entry is simply removed from
+the list.  This is handy for us as all we have to do is put it back
+into the linked list. The Inodes link count is decremented and marked
+as deleted if this count goes to zero and moved to the free
+list. Again we just need to increase the link count by 1 to show the
+inode is used again, we would also need to move it back to the
+allocated list, this I leave to fsck at this stage.  Also during a
+delete any blocks allocated to the inode a freed so incrementing the
+link count on the inode will also have that Inode point to a list of
+possibly freed blocks. Again I have decided to let fsck sort out the
+mess.
+
+Another problem I found with directories that span multi blocks is
+that the first inode spot is zeroed at the beginning of the block and
+this makes it very hard recover a file from this but I have noticed if
+the files where created at a similar time the inode are in sequence so
+the inode can check to see if it belongs.
+
+Because it is possible have multiple hard links to a file it means
+that a deleted directory entry may point to a file that is was hard
+linked to in the past. In other words the file is not really deleted
+at all but just this link to it. So given this if an inode is reused
+there is really no way of know whether the file was allocated since
+the delete or if was a multi linked file.
+
+INDICATORS OF REUSED BLOCKS AND INODES:
+
+If the list of blocks in a deleted inode contains blocks that are not
+free.  Good chance file is lost for ever, parts may still be left in
+any free blocks.  This situation is best handled by having LDE write
+the file to another disk with the copy command. Once it safely on
+another disk you can look at the file and see how much is still there.
+Directory inodes when descended link back to different places in
+tree. Most likely a reused inode or badly corrupted directory entry.
+
+BRASS TACKS:
+
+The code that reads the deleted entries in the ext2fs directory tries
+to follow the linked list though the name_length part of the structure
+by using the EXT2_DIR_REC_LEN macro from the ext2fs header file to
+generate our version on the entry size field. from this we are able to
+tell if the next entries have been deleted. If our calculated size is
+smaller than the size returned by the official entry size we have a
+potentially deleted entry coming up. Next I check to see if the space
+left is big enough to fit a dir entry into if not we cannot have a
+valid deleted entry - it may have been ok once but we will be unable
+to get any useful data from so its best to ignore it.  Once I have
+found as possible deleted entry I set a flag to say this is so. Next
+we save a pointer to where the current link points, so we can recover
+if we end in corrupted directory entries. This part of the code was
+developed on live system looking at the /tmp directory - which is
+where I found many of my first assumptions to be wrong! Next we look
+ahead into the buffer at this entry we believe to be a deleted entry
+and do some checks to see it has any valid data. We check for an Inode
+in range, name size to be valid e.g. between 1 and max size. I do not
+check the entry size field cause I couldn't think of a way to test the
+boundaries at this point. I also ran into a bug in my code at this
+point if I was looking at partial directory blocks I could possibly
+point into a region of buffer space that didn't belong to me this
+caused many a core dump. If the entry looks bad at this point we
+recover to the next valid entry by creating a fake entry size to get
+things back on track. This done as follows if we are part way though a
+deleted list and find that we hit a patch of random data then the
+pointer created from the above code will point past the valid
+entry. So I check for this and fix the pointers and entry size number
+to be correct and clear the in_del flag to show we have stopped
+processing deleted entries.
+
+Finally the code tries to do some tests on the entry to see if it's
+valid.
+
+Another thing I discover when I added coded to coloured the deleted
+directory entries is that when a directory is deleted sometimes the
+contents a left in place with just the inodes unlinked.  This makes
+recovery of lots files a lot easier as once you have recover the
+branch and plug it back into the tree all the old entries are there
+ready to have their inode relinked.
+
+The undelete code has two sections one is all new another is the a
+front end to the recover_file code already in LDE.  The new undelete
+code which is passed the directory entry number of the file to
+undelete.  It first checks the . and .. entries also checks that they
+are . and .. as we may be dealing with a part directory listing. [Note
+to self fix in code]. We save the inode for the . entry as this is the
+only we can write this block back to the disk. [Note this needs work!]
+Next we find our entries inode. Check that's it deleted not point if
+inode not deleted. Next the code searches for the last valid entry
+before our entry. Once this is found we insert of directory entry in
+the linked list and write to disk. Next we set the link count to 1,
+clear the delete date fix up sizes if they are wrong and write inode
+to disk.  At this stage all inode and blocks are shown as free ckfs
+will fix this. This method keeps all info that was present in the
+inode, for example ctime, mtime and atime file modes and ownership.
+
+The second method copies the inode to a filename created from the
+directory entry. This method recovers files only it does recover
+directories but is great if have a fragment of directory entry and
+need that file.  Less information is preserved by the creation method
+particularly ctime. Currently al recover files are dumped in
+/lost+found so make sure the disk is big enough to hold your
+files. This method also has the advantage that it can't corrupt the
+disk further.
+
+TO REINSERT MISSING INODE FROM SEQUENCE. 
+This assumes that from looking at the inodes that you see a pattern,
+hey if it don't work you have lost nothing.  In the dir window work
+out which block your zeroed inode is in. Each zeroed entry marks the
+beginning of a block so just count. Now go to the . entry type I Exit
+directory mode, you should be in Inode mode at the correct inode now
+scroll down to the correct type B you are now in block mode go into
+edit mode enter inode in the first four byte at the start of the block
+save your work. Now type "i" to return to Inode mode next return to
+directory mode scroll down to your newly recreated entry. Does it look
+OK size etc run test to see if the blocks are OK. You can now copy the
+file or recover the entry and look at the file to see if it correct.
+
+
+
+PLAN:
+* Create a window that shows the links in detail.
+* Make undelete work but as dry run e.g. do check then say what would do.
+* Use the write file code to copy our deleted file to a new spot.
+
+	UNDELETE:
+	DO:
+		* First check is it a deleted entry.
+		* Needs to check . and .. is not deleted adviser 
+		  user to undelete these first.
+		* check inode, check blocks see if free.
+		* Find preceding entry, fix pointers to correctly
+		  link in entry.
+		* Increment Inode count by one.
+		* Write inode the directory to disk.
+		
+	Not Done:
+		* Directory link count, inode free list and block free
+		  list
+		* selection of where the recover files go currently
+		  lost+found in root.
+
+BUGS:
+I have run electric fence with the code and fixed the things
+that it complained about except this one.  If select dir display on a
+block from block mode that is part of a multi block directory its
+possible that my code will fail 'cause it expects to . and .. at the
+start of the block. Also the reading of this block may point to memory
+currently no owned by this block.
+ 
+
+
+
+
+
+HINTS:
+
+* First and foremost unmount the disk to prevent any further writes,
+though ext2 seems to be fairly good at not reusing recently deleted
+inodes and blocks it does and will the longer you leave it.
+
+* If possible from the
+http://www.linuxdoc.org/HOWTO/mini/Ext2fs-Undeletion.html copy the old
+disk to a backup/recovery disk so you can work on it at your leisure.
+
+* Also read
+http://www.linuxdoc.org/HOWTO/mini/Ext2fs-Undeletion-Dir-Struct/index.html
+for another discussion on how the disk structures for ext2fs work.
+
+This backup is not as critical since I have the code working that
+copies the file from the disk to another mounted filesystem.  Once
+this done run LDE to see can find your file and see its status. To
+configure LDE to display deleted files from any window, except the dir
+view one, type FDQ. This set the flags to allow you to view deleted
+directory entries. Now type I and the D you be presented with a view
+of the root directory of your disk.  You can navigate this window with
+the arrow keys and the enter key you can descend the tree.  The window
+at the will display where it thinks you are in the tree - check to see
+if this is where you think you are. If they disagree and you have
+followed a deleted dir it may mean you entry has been reused and is
+linked back into a different place on to the tree.  Note this display
+is rooted where you started from hence the leading "." in the display.
+
+Also the code that displays the delete entries may not find all your
+missing filenames because the directory may have been scrambled beyond
+the extraction of useful information. The code backs out if the chain
+its following stops looking like valid entries. If use block Mode to
+view the directory block you may be able extract the info you need to
+do this.
+
+
+HowTo use LDE with the ext2fs directory extension to recover a file:
+
+Start LDE as root - this is one case where being root makes sense.
+
+#lde /dev/hdx1
+
+* LDE will now check the disk for filesystem and if says ext2fs
+continue if not you will have to use the old ways to recover your
+file.
+
+* Press any key to continue. You are now at the super block menu have
+a look to see if looks basically right for your disk. To access the
+flags menu press 'f' now select 'd' to enable the ext2fs extensions.
+
+* Press I to go to inode mode. this will place at inode 2 the root
+directory, highlight the block number and press 'd'. Now you should be
+present with a window with a directory listing in it, if the filenames
+don't fit the are truncated on the display only. Use the arrow keys to
+navigate your file system. Items in green have been deleted from the
+directory and items with a D next to them are printing to deleted
+inodes.
+
+* Once you reach the file you wish to recover move the cursor over
+it. Now you have several choices.
+
+  e	-	Edit the directory Block [not done yet]
+  r	-	Restore or undelete this entry
+  t	-	Checks entry to see if it can be recovered
+  c	-	Copies directory name and files contents to new location
+
+* Of these three e is not implemented yet. The r command will complain
+if its not happy and do nothing, but if the command does restore the
+entry you must run fsck -f before mounting the disk or you run the
+risk of data corruption. The t command does what it says checks to see
+if the file is free and able to be recovered.  Finally the c command
+copies the file to the /lost+found directory.  These command are just
+a key press and away they go. So if we want to copy our selected file
+we just press c.  And our file should now be found in the lost+found
+directory.
+
+
+NON FATAL ERROR MESSAGES:
+
+"Unable to find lost+found directory on /"
+	This error is produced when LDE can't cd into /lost+found
+"Unable to open file XXXX"
+	For some reason LDE is unable to create the file in the lost
+	and found directory.
+"Not ready for non ext2 file systems"
+        Catch all for the attempted use of the ext2fs only commands on
+        other file systems.
+"Bad current directory"
+"bad parent directory"
+	Directory . or ..has a zeroed inode we are unable to proceed.
+"Current directory deleted undelete first"
+"Parent directory deleted undelete first"
+	Directory . or .. is deleted, undelete before continuing. Note
+	inode number step up one look or inode undelete this entry
+	then step back down to the file you want to undelete. This is
+	done to try and prevent directories that don't link back to
+	root.
+"File does not appear to be deleted"
+	You are trying to undelete a file that does appear to be
+	deleted - doesn't make sense to me so I don't do it.  "could
+	not find correct chain" A cryptic one this, even confused me,
+	an error was found when transversing the linked list and we
+	could not find he correct place to reinsert the deleted
+	entry. If you get this error message try the t command and
+	then the copy command.
+
+FATAL ERROR MESSAGES
+"fatal error unable to allocate memory"
+	The bit that prints up your 'pwd' display could get memory,
+	shouldn't see this one to often as the buffers are used more
+	often.
+	
+
+
+NOTES to ME
+Soon
+* Add the end paramatter to the deleted entry transverser.
+* Clean up code for the deleted transverser.
+* add the utime call to file create code
+* add option to set dir where files are dumped.
+
+Longer
+* Add the edit dir screen, this impacts on the general nature
+  of the code.
+* Fix UI to be more consitent across screens, possible menu.
+* Add bitmap support
+* Add ext3fs support
+
+Much longer
+* GUI the beast
+	
+
+
+
+
+
