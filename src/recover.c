@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.17 1996/10/18 12:17:05 sdh Exp $
+ *  $Id: recover.c,v 1.18 1997/10/25 16:13:56 sdh Exp $
  */
 
 #include <stdio.h>
@@ -427,7 +427,7 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
   lde_flags.quit_now = 0;
 
   /* Where should we start the search? */
-  if (start_nr!=1UL) {
+  if (start_nr!=0UL) {
     lde_warn("Resuming search from block 0x%lX",start_nr);
     nr = start_nr;
   } else {
