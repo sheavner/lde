@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.6 1994/09/06 01:29:51 sdh Exp $
+ *  $Id: recover.c,v 1.7 1994/09/06 01:55:12 sdh Exp $
  */
 
 #include <stdio.h>
@@ -77,6 +77,9 @@ unsigned long map_block(unsigned long zone_index[], unsigned long blknr)
 
   if (fsc->X3_INDIRECT)
     warn("Teach me how to handle triple indirect blocks :)");
+  /* Shouldn't we be able to do this recursively??  It can do indirect and 2x indirects, whats another
+   * level of indirection? easy.
+   */
 
   return 0;
 }
@@ -100,6 +103,9 @@ void recover_file(int fp,unsigned long zone_index[])
   }
 }
 
+/* Search through all the inodes for one which references the specified block,
+ * if search_all is not set, it will only search UNused inodes.
+ */
 unsigned long find_inode(unsigned long nr)
 {
   unsigned long inode_nr, b, test_block;
@@ -147,8 +153,9 @@ void parse_grep(void)
       if (++miss_count>100) return;
   }
 }
-    
-#ifdef ALPHA_CODE
+
+/*=== EXPERIMENTAL SEARCH CODE ===*/
+/* - Don't just tell me it sucks, send me new code to replace it ;) */    
 /* Tweakable parameters */
 #define HB_COUNT  100
 #define SEQ_COUNT 10
@@ -253,7 +260,6 @@ void search_fs(unsigned char *search_string, int search_len)
   printf("Total indirect blocks %d.\n",match_total);
 
 }
-#endif
 
 
 

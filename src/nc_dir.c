@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.3 1994/09/06 01:31:27 sdh Exp $
+ *  $Id: nc_dir.c,v 1.4 1994/09/06 01:57:33 sdh Exp $
  */
 
 #include <strings.h>
@@ -33,7 +33,6 @@ static char *dp_help[] = {
 /* Dumps a one line display of a directory entry */
 static int dump_dir_entry(WINDOW *win, int i, int off, unsigned long bnr, unsigned long *inode_nr)
 {
-#ifdef ALPHA_CODE
   char *fname = NULL, *block_buffer = NULL;
   struct Generic_Inode *GInode;
   char f_mode[12];
@@ -56,7 +55,6 @@ static int dump_dir_entry(WINDOW *win, int i, int off, unsigned long bnr, unsign
 	      GInode->i_size);
   }
   mvwprintw(win,i,37, fname);
-#endif
   return 1;
 }
 
