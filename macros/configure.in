@@ -141,6 +141,7 @@ AC_ARG_ENABLE(kernel-bitops,
 AC_ARG_ENABLE(alpha-code,
         [  --enable-alpha-code     Activate some of the code that is still Alpha ],
 	AC_DEFINE(ALPHA_CODE)
+	AC_DEFINE(JQDIR)
 )
 
 AC_ARG_ENABLE(beta-code,

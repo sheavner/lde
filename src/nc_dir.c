@@ -2,8 +2,9 @@
  *  lde/nc_dir.c -- The Linux Disk Editor
  *
  *  Copyright (C) 1994  Scott D. Heavner
+ *  Sections Copyright (c) 2002 John Quirk
  *
- *  $Id: nc_dir.c,v 1.20 2002/01/27 23:11:51 scottheavner Exp $
+ *  $Id: nc_dir.c,v 1.21 2002/01/28 01:04:25 scottheavner Exp $
  */
 
 #include <string.h>
@@ -25,12 +26,22 @@ static void highlight_dir_entry(WINDOW *win, int nr, int *last, int screen_off, 
 static void redraw_dir_window(WINDOW *win,int max_entries, int screen_off, lde_buffer *buffer);
 static int reread_dir(lde_buffer *block_buffer, unsigned long bnr);
 
+#ifdef JQDIR
+static void clip_string(char *fname,char *fname1, int clip);
+#endif /* JQDIR */
+
 /* Help for directory_popup() function */
 static lde_menu dp_help[] = {
   { CMD_EXPAND_SUBDIR,"expand directory under cursor"},
   { CMD_EXPAND_SUBDIR_MC,"expand directory under cursor and make it the current inode"},
   { CMD_INODE_MODE,"make inode under cursor the current inode"},
   { CMD_INODE_MODE_MC,"make inode under cursor the current inode and view it"},
+#ifdef JQDIR
+  { CMD_EDIT_DIR,"Edit the directory Block"},
+  { CMD_RESTORE_ENT,"Restore or undelete this entry"},
+  { CMD_TEST_ENTRY, "Checks entry to see if can be recoverd" },
+  { CMD_COPY_TO_FILE, "Copies directory name and files contents to new location " },  
+#endif /* JQDIR */
   { 0, NULL }
 };
 
@@ -43,6 +54,12 @@ static lde_keymap dirmode_keymap[] = {
   { 'd', CMD_EXPAND_SUBDIR },
   { LDE_CTRL('J'), CMD_EXPAND_SUBDIR },
   { LDE_CTRL('M'), CMD_EXPAND_SUBDIR },
+#ifdef JQDIR
+  { 'e', CMD_EDIT_DIR },
+  { 'r', CMD_RESTORE_ENT },
+  { 'c', CMD_COPY_TO_FILE },
+  { 't', CMD_TEST_ENTRY },
+#endif /* JQDIR */
   { 'D', CMD_EXPAND_SUBDIR_MC },
   { KEY_NPAGE, CMD_NEXT_SCREEN },
   { LDE_CTRL('V'), CMD_NEXT_SCREEN },
@@ -56,32 +73,76 @@ static lde_keymap dirmode_keymap[] = {
 /* Dumps a one line display of a directory entry */
 static int dump_dir_entry(WINDOW *win, int i, int off, lde_buffer *block_buffer, int highlight)
 {
+#ifndef JQDIR
   char *fname = NULL;
+#else
+  char *fname1 = NULL;
+  char fname[40]; /* this is the cliped name string */
+  char deleted = ' ';
+#endif /* JQDIR */
   struct Generic_Inode *GInode;
   unsigned long inode_nr;
   char f_mode[12] = "----------";
-
+  
+#ifndef JQDIR
   fname = FS_cmd.dir_entry(i+off, block_buffer, &inode_nr);
   if (!strlen(fname)) return 0;
-
-  if (highlight) wattron(win,WHITE_ON_RED);
-
+#else
+  fname1 = FS_cmd.dir_entry(i+off, block_buffer, &inode_nr);
+  if (!strlen(fname1)) return 0;
+  clip_string(fname,fname1,40);
+	 
+  if (is_deleted()) {
+    if(highlight)
+      wattron(win,BLACK_ON_CYAN);
+    else
+      wattron(win,GREEN_ON_BLACK);		
+  } else
+#endif /* JQDIR */
+    if(highlight)
+      wattron(win,WHITE_ON_RED);
+      
   if (inode_nr > sb->ninodes) inode_nr = 0UL;
   if (inode_nr) {
     GInode = FS_cmd.read_inode(inode_nr);
     mode_string( (unsigned short)GInode->i_mode, f_mode);
     f_mode[10] = 0; 
+    
     /* Use COLS-38 to fill to 1 col before edge of screen, COLS-37 makes a mess */
+#ifndef JQDIR
     mvwprintw(win,i,0,"0x%8.8lX: %9s %3d %9ld %-*s", inode_nr,
 	      f_mode, GInode->i_links_count,
 	      GInode->i_size, COLS-38, fname);
+#else
+    if(GInode->i_links_count == 0)
+      deleted = 'D';
+    else
+      deleted = ' '; 
+    mvwprintw(win,i,0,"%c 0x%8.8lX: %9s %3d %9ld %-*s",deleted, inode_nr,
+	      f_mode, GInode->i_links_count,
+	      GInode->i_size, COLS-40, fname);
+#endif
   } else {
+#ifndef JQDIR
     mvwprintw(win,i,0,"0x%8.8lX: %24s %-*s", inode_nr,
 	      " ", COLS-38, fname);
+#else
+    mvwprintw(win,i,0,"  0x%8.8lX: %24s %-*s", inode_nr,
+	      " ", COLS-40, fname);
+#endif /* JQDIR */
   }
 
-  if (highlight) wattroff(win,WHITE_ON_RED);
-
+#ifdef JQDIR
+  if (is_deleted()) {
+    if(highlight)
+      wattroff(win,BLACK_ON_CYAN);
+    else
+      wattroff(win,GREEN_ON_BLACK);
+  } else 
+#endif
+    if(highlight)
+      wattroff(win,WHITE_ON_RED);
+  
   return 1;
 }
 
@@ -111,7 +172,7 @@ static void highlight_dir_entry(WINDOW *win, int nr, int *last, int screen_off,l
   wattron(win,WHITE_ON_RED);
   mvwprintw(win, nr, 0, str);
   wattroff(win,WHITE_ON_RED);
-  
+
   last_entry = nr;
 #else
   /* Can get rid of all calling parameters after 'last' and remove 'last' from directory_popup() if NCURSES gets fixed,
@@ -160,10 +221,21 @@ static int get_inode_info(unsigned long inode_nr, lde_buffer *buffer)
   GInode = FS_cmd.read_inode(inode_nr);
   if (buffer->start)
     free(buffer->start);
+#ifdef JQDIR
+  /* Code to recreate i_size if we have block count
+   * This code has only been tested on ext2fs most likely will break on non
+   * ext2 systems
+   */
+  if( GInode->i_size == 0 && GInode->i_blocks !=0) {
+    /*Possible deleted dir inode */
+    GInode->i_size = GInode->i_blocks * 512;
+  }
+#endif /* JQDIR */
   buffer->size = GInode->i_size+sb->blocksize;
   buffer->start = malloc(buffer->size);
   bzero(buffer->start, (int)buffer->size);
   c = count = 0UL;
+	  
   while (count < GInode->i_size) {
     FS_cmd.map_block(GInode->i_zone,c,&bnr);
     if (bnr)
@@ -186,6 +258,10 @@ int directory_popup(unsigned long bnr, unsigned long inode_nr, unsigned long ipo
   lde_buffer _block_buffer = EMPTY_LDE_BUFFER, *block_buffer = &_block_buffer;
   struct Generic_Inode *GInode;
   WINDOW *win;
+  char *fname = NULL;
+#ifdef JQDIR
+  FILE *fp;
+#endif /* JQDIR */
 
   win = newwin(VERT,COLS,HEADER_SIZE,0);
   werase(win);
@@ -214,6 +290,10 @@ int directory_popup(unsigned long bnr, unsigned long inode_nr, unsigned long ipo
 	  current_inode = inode_nr;
 	  update_header();
 	  if (c==CMD_INODE_MODE_MC) {
+#ifdef JQDIR
+	    freepath(); 
+	    update_header();
+#endif /* JQDIR */
 	    clobber_window(win);
 	    free(block_buffer->start);
 	    return CMD_INODE_MODE_MC;
@@ -222,18 +302,25 @@ int directory_popup(unsigned long bnr, unsigned long inode_nr, unsigned long ipo
 	break;
 
       case CMD_EXIT: /* Exit popup */
-        clobber_window(win);
+#ifdef JQDIR
+	freepath();       /* clear relpath freeing any memory */
+	update_header();
+#endif /* JQDIR */
+      	clobber_window(win);
 	free(block_buffer->start);
         return CMD_NO_ACTION;
 	break;
 
       case CMD_EXPAND_SUBDIR: /* Expand this subdirectory - 'D' also sets current inode to be this subdir */
       case CMD_EXPAND_SUBDIR_MC:
-	(void) FS_cmd.dir_entry(current+screen_off, block_buffer, &inode_nr);
+	fname = FS_cmd.dir_entry(current+screen_off, block_buffer, &inode_nr);
 	if (inode_nr) {
 	  GInode = FS_cmd.read_inode(inode_nr);
 	  if (S_ISDIR(GInode->i_mode)) {
-	    get_inode_info(inode_nr, block_buffer);
+#ifdef JQDIR
+	    showpath(fname,inode_nr);  
+#endif /* JQDIR */
+    	    get_inode_info(inode_nr, block_buffer);
 	    current = screen_off = last = 0;
 	    max_entries = reread_dir(block_buffer, 0UL);
 	    redraw_dir_window(win, max_entries, screen_off, block_buffer);
@@ -307,6 +394,57 @@ int directory_popup(unsigned long bnr, unsigned long inode_nr, unsigned long ipo
         do_new_scroll_help(dp_help, dirmode_keymap, FANCY);
 	touchwin(win);
         break;
+#ifdef JQDIR
+      case CMD_EDIT_DIR: 
+      case CMD_RESTORE_ENT:
+	if(!strcmp(fsc->text_name,"ext2")) {
+	  EXT2_dir_undelete(current+screen_off,block_buffer);
+	} else {
+	  log_error("Not ready for non ext2 file systems");
+	  error_popup();
+	  touchwin(win);
+	}
+	break;
+      case CMD_TEST_ENTRY:
+	if(!strcmp(fsc->text_name,"ext2")) {
+	  EXT2_dir_check_entry(current+screen_off,block_buffer);
+	} else {
+	  log_error("Not ready for non ext2 file systems");
+	  error_popup();
+	  touchwin(win);
+	}
+	break;
+      case CMD_COPY_TO_FILE:
+	if(!strcmp(fsc->text_name,"ext2")) {
+	  if(chdir("/lost+found") ) {
+	    log_error("Unable to find lost+found directory on /");
+	    error_popup();
+	    touchwin(win);
+	    break;
+	  }
+
+	  fname = FS_cmd.dir_entry(current+screen_off, block_buffer, &inode_nr);
+	  if((fp = fopen(fname,"w+")) == NULL) {
+	    lde_warn("Unable to open file %s",fname);
+	    error_popup();
+	    touchwin(win);
+	    break;
+	  }
+
+	  /* file open get inode so we can set some data */
+	  GInode = FS_cmd.read_inode(inode_nr);
+	  fchown(fileno(fp),GInode->i_uid,GInode->i_gid);
+	  fchmod(fileno(fp),GInode->i_mode);
+	  recover_file(fileno(fp),GInode->i_zone,GInode->i_size);
+	  fclose(fp);
+	  
+	} else {
+	  log_error("Not ready for non ext2 file systems");
+	  error_popup();
+	  touchwin(win);
+	}
+	break;
+#endif /* JQDIR */
 
       default:
         continue;
@@ -318,11 +456,87 @@ int directory_popup(unsigned long bnr, unsigned long inode_nr, unsigned long ipo
   return 0;
 }
 
+#ifdef JQDIR
+/* This routine tracks where are in the relitve directory structure on 
+ * the disk it also tracks the inode numbers assocated with these items
+ */
+
+struct {
+		unsigned long inr; /*inode*/
+		char *fname;       /* point to filename */
+} dir_list[30];
+
+static where=0;
 
 
+void freepath() /* clears data structure in readness for new path */
+{
+	int i;
+	for (i=where; i > 0 ; i--)
+		{
+		if(dir_list[i-1].inr != 0)
+			{
+			free(dir_list[i-1].fname);
+			dir_list[i-1].inr = 0;
+			}
+		}
+		
+	where = 0;
+	*rel_path='\0';  /* clear path */
+}
 
+/* this keeps track of where we are */
 
+void showpath( char * fname, unsigned long inode_nbr)
+{
+	int len, i;
 
+	*rel_path='\0';
 
+	if(strcmp(fname,".") == 0){
+		
+		/* do nothing */
+	}
+	else if( strcmp(fname,"..") == 0){	
+		if(where != 0 && dir_list[where-1].inr != 0) 
+		{
+			free(dir_list[where-1].fname);
+			dir_list[where-1].inr = 0;  /* mark as removed */
+			where--;
+		}
+	}
+	else{
+		len = strlen(fname);
+		if ((dir_list[where].fname=(char *)malloc(len+1)) != NULL)
+		{
+			strcpy(dir_list[where].fname,fname);
+			dir_list[where].inr=inode_nbr;
+			where++;
+		}
+		else
+		{
+			perror("fatal error unable to allocate memory");
+			exit(-1); /* not clean but will do for now */
+		}
 
-
+	}
+	
+	for( i=0; i < where; i++)
+	{
+		strcat(rel_path,"/");
+		strcat(rel_path,dir_list[i].fname);
+	}
+}
+int is_deleted()
+{
+	if(!strcmp(fsc->text_name,"ext2"))
+		return EXT2_is_deleted();
+	else
+		return 1;
+}	
+void clip_string(char *fname,char *fname1, int clip)
+{
+        strncpy(fname,fname1,clip);
+        fname[clip-1]= 0;
+}
+#endif /* JQDIR */

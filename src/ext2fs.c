@@ -2,8 +2,9 @@
  *  lde/ext2fs.c -- The Linux Disk Editor
  *
  *  Copyright (C) 1994  Scott D. Heavner
+ *  Portions Copyright (C) 2002 John Quirk
  *
- *  $Id: ext2fs.c,v 1.34 2002/01/27 22:57:43 scottheavner Exp $
+ *  $Id: ext2fs.c,v 1.35 2002/01/28 01:04:25 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -53,6 +54,16 @@ static char* EXT2_dir_entry(int i, lde_buffer *block_buffer,
 			    unsigned long *inode_nr);
 static void EXT2_read_tables(void);
 static void EXT2_sb_init(void * sb_buffer);
+#ifdef JQDIR
+static unsigned long EXT2_next_entry(struct ext2_dir_entry_2 *bp );
+#endif /* JQDIR */
+
+#ifdef JQDIR
+/* this variable holds a pointer to the last directory entry returned */
+static struct ext2_dir_entry_2 *dir_last;
+static int in_del = 0;        /* processing deleted entry */
+int ext2_check_valid_name(__u8 len, char *name);
+#endif /* JQDIR */
 
 /* Haven't defined ACL and stuff because inode mode doesn't do anything 
  * with them.  Should probably see what flags is, sorry, but I don't 
@@ -318,7 +329,15 @@ static char* EXT2_dir_entry(int i, lde_buffer *block_buffer,
 
   /* Directories are variable length, we have to examine all the previous ones to get to the current one */
   for (j=0; j<i; j++) {
+#ifndef JQDIR
     dir = (void *)dir + ldeswab16(dir->rec_len);
+#else
+    if(!lde_flags.displaydeleted) {
+      dir = (void *)dir + ldeswab16(dir->rec_len);
+    } else {
+      dir = (void *)dir + EXT2_next_entry(dir);
+    }
+#endif
     if ( (void *)dir >= end ) {
       return (cname);
     }
@@ -339,7 +358,11 @@ static char* EXT2_dir_entry(int i, lde_buffer *block_buffer,
   }
   strncpy(cname, dir->name, name_len);
   cname[name_len] = 0;
-    
+
+#ifdef JQDIR
+  dir_last = dir; /* set so we can access in other code */  
+#endif /* JQDIR */
+
   return cname;
 }
 
@@ -492,3 +515,213 @@ int EXT2_test(void *sb_buffer, int use_offset)
    }
    return 0;
 }
+
+#ifdef JQDIR
+/* This code will attempt to look into the buffer to find a deleted dir
+ * entry and try to return a valid buffer pointer. It will do consitancy checks 
+ * to see if the deleted entry is ok. 
+ */
+unsigned long EXT2_next_entry( struct ext2_dir_entry_2 *bp )
+{
+	static struct ext2_dir_entry_2 *tag_bp = 0; /* this is set to if we called as part of a
+				    linear dir read */
+	static struct ext2_dir_entry_2  *save_entry_sz = 0; /* Place to store entry size
+						     when looking at deleted
+						     entries */
+
+	
+	unsigned short entry_size, entry_size2; /* Our Calculated entry sizes */
+	unsigned long inode_nr;
+
+	if(tag_bp != bp) /* reset state */
+	{
+		in_del = 0; /* this flag turns del procesing in effect reseting */
+	}
+	
+	entry_size = EXT2_DIR_REC_LEN(bp->name_len);
+	/* checks to see if an entry can fit is spare space */
+	if( entry_size < bp->rec_len && entry_size > EXT2_DIR_REC_LEN(0)) {
+		/* Possible deleted entry coming up*/
+		if(!in_del) /* starting to transverse deleted enteries save get out
+			       pointer if we get lost */
+			save_entry_sz = (void *)bp + bp->rec_len;
+		in_del = 1; /* processing deleted entries */
+	} else {
+		/* not pre deleted entry use entry offical size */
+		entry_size = bp->rec_len;
+	}
+	/* sanity check test deleted inode to see if valid */
+
+	tag_bp = (void *)bp + entry_size; /* look ahead to next entry */
+
+        /* look ahead in buffer to see if inode valid */
+	/* 20-01-02 removed test for zeroed inode */
+	if(in_del && (tag_bp->inode > sb->ninodes
+			|| ext2_check_valid_name(tag_bp->name_len,tag_bp->name)
+			|| tag_bp->name_len < 1
+			|| tag_bp->name_len > sb->namelen) )
+	{/* bad inode possibly reading garbage */
+		entry_size = bp->rec_len; /*  */
+		tag_bp = (void *)bp+ entry_size; /* set tag to new value */
+	}
+/*
+ * This section checks if we are in deleted processing have we left the deleted
+ * entries or have gone past the next valid entry. Before entering the deleted
+ * sections we noted the pointer to next valid structure so if our deleted entries
+ * end up pointing past this point our valid enteries may get lost if this the
+ * case we will adjust the entry size back to the correct value to pick up the valid
+ * entry. It will also clear the in_del flag.
+ */
+	if(in_del)
+	{
+		if(tag_bp > save_entry_sz )/* opps going to skip valid entries*/
+		{
+			entry_size = entry_size - (tag_bp-save_entry_sz);
+			tag_bp = save_entry_sz;
+			in_del = 0;
+		}
+		else if(tag_bp == save_entry_sz) /* leaving delete area */
+			in_del = 0;
+	}
+
+	return(entry_size);
+}
+/* This is the undelete code it will do some checks then undelete the file
+ * hopefully all will be ok.
+ * This function already has an inode so it does need to search the disk for
+ * a lost inode as in the recover function. But it does need to check basic things
+ * like is the inode still deleted, blocks still free.
+ *
+ * You can end up with two deleted states first is item removed from directory
+ * and inode deleted, the other is inode delete but entry intact. This seems to
+ * occur when directory has been deleted, makes our job easier.
+ * 
+ */
+int EXT2_dir_undelete(int entry, lde_buffer *buffer)
+{
+	unsigned long inode_nr, bnr,temp, inode_nr2;
+	int i;
+	char *fname;
+	struct Generic_Inode *GInode, dotNode;
+	struct ext2_dir_entry_2 *ent1 , *ent2;
+       	
+	i = 0;
+	fname = EXT2_dir_entry(i, buffer, &inode_nr);
+	if(inode_nr == 0)
+	{
+		lde_warn("Bad current directory");
+		return 1;
+	}
+	
+	GInode = EXT2_read_inode(inode_nr);
+	memcpy(&dotNode,GInode,sizeof(dotNode));
+	if(GInode->i_links_count == 0)
+	{
+		lde_warn("Current directory deleted undelete first");
+		return 1;
+	}
+	i = 1;
+	fname = EXT2_dir_entry(i,buffer,&inode_nr);
+	if(inode_nr ==0 )
+	{
+		lde_warn("bad parent directory");
+		return 1;
+	}
+	
+	GInode = EXT2_read_inode(inode_nr);
+	
+	if(GInode->i_links_count == 0)
+	{
+		lde_warn("Parent directory deleted undelete first");
+		return 1;
+	}
+/*
+ * If we get here the basic directory info seems valid so now we look
+ * for our entry
+ */
+	fname = EXT2_dir_entry(entry,buffer,&inode_nr);
+	ent1 = 	dir_last; /* actual directory entry */
+	GInode = EXT2_read_inode(inode_nr);
+	if(GInode->i_links_count != 0)
+	{
+		lde_warn("File does not appear to be deleted");
+		return 1;
+	}
+	inode_nr2 = inode_nr;
+	if(EXT2_is_deleted()) /* is our entry deleted in dir */
+	{
+		/* Yes, Now look for last valid entry */
+		for( i = 1; i < entry; i++)
+		{
+			fname = EXT2_dir_entry(i,buffer,&inode_nr);
+			if ((dir_last->rec_len + (void *)dir_last) >(void*) ent1)
+				break;
+		}
+		ent2 = (void *)dir_last + dir_last->rec_len;
+		/* we should have three entries last valid one, 
+		 * deleted one and next one.
+	 	 * note to self what if last is end of block.
+	 	 */ 
+		if(!(ent2 > ent1))
+		{
+			lde_warn("could not find correct chain");
+			return 1;
+		}
+		temp = (void *)ent2 - (void *)ent1;
+		ent1->rec_len = temp;
+		temp = (void *)ent1 - (void *)dir_last;
+		dir_last->rec_len = temp;
+		i = 0;
+  		while (i < dotNode.i_blocks) { /* using block because this is kept */
+    			FS_cmd.map_block(dotNode.i_zone,i,&bnr);
+    			if (bnr) 
+	       			write_block(bnr,((buffer->start)+i*sb->blocksize));
+    			i++;
+  		}
+
+	}
+	/* We now have the dir entry restored now we need to fix up inode
+	 * for now a fairly quick and dirty fixup 
+	 */
+	GInode->i_links_count = 1; /* no science here just undeleted */ 	
+	GInode->i_dtime =0;
+	/*Check size and block count make size correct for block count */
+  	if( GInode->i_size == 0 && GInode->i_blocks !=0)
+      		GInode->i_size = GInode->i_blocks * 512;
+  	/* Ok basic things done, but blocks have not been checked.
+	 * The file could contain blocks that are reused. 
+	 * Now lets write out to the disk!*/
+	EXT2_write_inode(inode_nr2, GInode);
+	
+	return 0;	
+}	
+int EXT2_is_deleted(void)
+{
+	return in_del;
+}	
+int ext2_check_valid_name(__u8 len, char *name)
+{
+	int i;
+	for( i=0; i < len; i++, name++)
+	{
+		if(!isprint(*name))
+			return(1);
+	}
+	return(0);
+}
+void EXT2_dir_check_entry(int entry, lde_buffer *buffer)
+{
+	unsigned long inode_nr;
+	int i;
+	char *fname;
+	struct Generic_Inode *GInode;
+	struct ext2_dir_entry_2 *ent;
+       	
+	fname = EXT2_dir_entry(entry,buffer,&inode_nr);
+	GInode = EXT2_read_inode(inode_nr);
+	/*Check size and block count make size correct for block count */
+  	if( GInode->i_size == 0 && GInode->i_blocks !=0)
+      		GInode->i_size = GInode->i_blocks * 512;
+	check_recover_file(GInode->i_zone,GInode->i_size);
+}
+#endif /* JQDIR */

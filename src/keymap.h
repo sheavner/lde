@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1995  Scott D. Heavner
  *
- *  $Id: keymap.h,v 1.9 2001/02/23 23:40:04 scottheavner Exp $
+ *  $Id: keymap.h,v 1.10 2002/01/28 01:04:25 scottheavner Exp $
  *
  */
 #ifndef KEYMAP_H
@@ -36,6 +36,12 @@ enum lde_actions {
   CMD_NEXT_SCREEN,          /* Goto next screen */
   CMD_PREV_SCREEN,          /* Goto previous screen */
   CMD_EXPAND_SUBDIR,        /* Expand the current subdirectory */
+#ifdef JQDIR
+  CMD_EDIT_DIR,		    /* Popup to edit dir */
+  CMD_RESTORE_ENT,	    /* Recover Directory entry */  
+  CMD_COPY_TO_FILE,         /* copy this entry to a file on mounted disk */
+  CMD_TEST_ENTRY,	    /* Test entry to see if valid. */
+#endif /* JQDIR */
   CMD_EXPAND_SUBDIR_MC,     /* Expand the current subdirectory, set inode to point to new directory */
   CMD_NEXT_IND_BLOCK,       /* Find the next block in the directory/file chain */
   CMD_PREV_IND_BLOCK,       /* Find the next block in the directory/file chain */
