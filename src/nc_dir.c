@@ -3,10 +3,21 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.2 1994/04/24 20:36:54 sdh Exp $
+ *  $Id: nc_dir.c,v 1.3 1994/09/06 01:31:27 sdh Exp $
  */
 
+#include <strings.h>
+#include <ctype.h>
+#include <sys/stat.h>
+
+#include "lde.h"
+#include "tty_lde.h"
+#include "curses.h"
 #include "nc_lde.h"
+#include "nc_dir.h"
+
+static int dump_dir_entry(WINDOW *win, int i, int off, unsigned long bnr, unsigned long *inode_nr);
+static void highlight_dir_entry(WINDOW *win, int nr);
 
 /* Help for directory_popup() function */
 static char *dp_help[] = {
@@ -20,7 +31,7 @@ static char *dp_help[] = {
 };
 
 /* Dumps a one line display of a directory entry */
-int dump_dir_entry(WINDOW *win, int i, int off, unsigned long bnr, unsigned long *inode_nr)
+static int dump_dir_entry(WINDOW *win, int i, int off, unsigned long bnr, unsigned long *inode_nr)
 {
 #ifdef ALPHA_CODE
   char *fname = NULL, *block_buffer = NULL;
@@ -51,7 +62,7 @@ int dump_dir_entry(WINDOW *win, int i, int off, unsigned long bnr, unsigned long
 
 /* Let's highlight things the way curses intended, or at least the way I
  * intended after reading the curses man pages. */
-void highlight_dir_entry(WINDOW *win, int nr)
+static void highlight_dir_entry(WINDOW *win, int nr)
 {
 #ifdef NCURSES_IS_COOL
   static int last_entry = 0;
@@ -86,7 +97,6 @@ void highlight_dir_entry(WINDOW *win, int nr)
  * block, they may run into trouble. */
 int directory_popup(unsigned long bnr)
 {
-#ifdef ALPHA_CODE
   int i, c, redraw, flag, max_entries, screen_off, current;
   unsigned long inode_nr;
   char *block_buffer;
@@ -102,7 +112,7 @@ int directory_popup(unsigned long bnr)
     flag = 0;
     redraw = 0;
     switch (c) {
-      case 'i':
+      case 'i': /* Set this inode to be the current inode */
       case 'I':
 	(void) FS_cmd.dir_entry(current+screen_off, cache_read_block(bnr,CACHEABLE), &inode_nr);
 	if (inode_nr) {
@@ -114,7 +124,8 @@ int directory_popup(unsigned long bnr)
 	  }
 	}
 	break;
-      case 'N':
+
+      case 'N': /* Exit popup */
       case 'n':
       case 'Q':
       case 'q':
@@ -122,7 +133,8 @@ int directory_popup(unsigned long bnr)
         refresh_ht();
         return (tolower(c) == 'q') ? ' ' : c;
 	break;
-      case 'D':
+
+      case 'D': /* Expand this subdirectory - 'D' also sets current inode to be this subdir */
       case 'd':
 	(void) FS_cmd.dir_entry(current+screen_off, cache_read_block(bnr,CACHEABLE), &inode_nr);
 	if (inode_nr) {
@@ -138,11 +150,13 @@ int directory_popup(unsigned long bnr)
 	  }
 	}
 	break;
-      case CTRL('L'):
+
+      case CTRL('L'): /* Refresh screen */
         refresh_ht();
 	redraw = 1;
         break;
-      case CTRL('N'):
+
+      case CTRL('N'): /* Next line w/scroll */
       case KEY_DOWN:
       case 'J':
       case 'j':
@@ -155,7 +169,8 @@ int directory_popup(unsigned long bnr)
 	  wrefresh(win);
 	}
 	break;
-      case CTRL('P'):
+
+      case CTRL('P'): /* Previous line w/scroll */
       case KEY_UP:
       case 'K':
       case 'k':
@@ -168,7 +183,8 @@ int directory_popup(unsigned long bnr)
 	  wrefresh(win);
 	}
 	break;
-      case '?':
+
+      case '?': /* Help */
       case KEY_F(1):
       case CTRL('H'):
       case META('H'):
@@ -177,6 +193,7 @@ int directory_popup(unsigned long bnr)
 	redraw_win(win);
         redraw = 0;
         break;
+
       case ' ':
 	redraw = 1;
 	break;
@@ -199,6 +216,5 @@ int directory_popup(unsigned long bnr)
     wrefresh(win);
 
   }
-#endif ALPHA_CODE
   return 0;
 }

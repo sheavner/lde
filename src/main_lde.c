@@ -3,16 +3,36 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.6 1994/04/24 20:37:20 sdh Exp $
+ *  $Id: main_lde.c,v 1.7 1994/09/06 01:32:02 sdh Exp $
  */
 
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <getopt.h>
+
+#include <sys/stat.h>
+
 #include "lde.h"
+#include "ext2fs.h"
+#include "minix.h"
+#include "no_fs.h"
+#include "recover.h"
+#include "tty_lde.h"
+#include "xiafs.h"
+
+#ifdef LDE_CURSES
+#  include "ncurses.h"
+#  include "nc_lde.h"
+#endif
 
 #ifndef __linux__
 #define volatile
 #endif
+
+static void long_usage(void);
 
 char *program_name = "lde";
 char *device_name = NULL;
@@ -105,7 +125,7 @@ void read_tables(int fs_type)
 }
 
 
-void long_usage()
+static void long_usage()
 {
   printf("This is %s (version %s), Usage %s %s\n",program_name,VERSION,program_name,USAGE_STRING);
   printf("   -i ##:      dump inode number # to stdout (-I all inodes after #) \n");

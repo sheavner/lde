@@ -3,39 +3,11 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.10 1994/04/24 20:34:09 sdh Exp $
+ *  $Id: lde.h,v 1.11 1994/09/06 01:27:56 sdh Exp $
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <stdlib.h>
-#include <termios.h>
-#include <sys/stat.h>
-
-/* Which one do I want?????  I skimmed thought the vprintf man page
- *  and settled on varargs, then ncurses implements the same thing
- *  with stdarg??  I can't include both, and stdarg is included via
- *  ncurses.h so until something breaks that's the way it will
- *  stay. */
-/* #include <varargs.h> */
-#include <stdarg.h>
-
-#include <linux/fs.h>
-#include <linux/minix_fs.h>
-#include <linux/xia_fs.h>
-#include <linux/ext2_fs.h>
-
-#include <time.h>
-#include <grp.h>
-#include <pwd.h>
-
-#include "bitops.h"
-
 #ifndef VERSION
-#define VERSION "2.2alpha3"
+#define VERSION "2.2"
 #endif
 
 extern char *program_name;
@@ -47,50 +19,8 @@ void read_tables(int fs_type);
 int check_root(void);
 void (*warn)(char *fmt, ...);
 
-/* tty_lde.c */
-void log_error(char *echo_string);
-void tty_warn(char *fmt, ...);
-long read_num(char *cinput);
-char *cache_read_block(unsigned long block_nr, int force);
-int write_block(unsigned long block_nr, void *data_buffer);
-void ddump_block(unsigned long nr);
-void dump_block(unsigned long nr);
-void dump_inode(unsigned long nr);
-char *entry_type(unsigned long imode);
-
-/* no_fs.c */
-void NOFS_init(char * sb_buffer);
-unsigned long NOFS_null_call(void);
-unsigned long NOFS_one(unsigned long nr);
-struct Generic_Inode *NOFS_init_junk_inode(void);
-
-/* minix.c */
-void MINIX_init(char * sb_buffer);
-int MINIX_test(char * sb_buffer);
-
-/* xiafs.c */
-int XIAFS_init(char * sb_buffer);
-int XIAFS_test(char * sb_buffer);
-void XIAFS_scrub(int flag);
-
-/* ext2fs.c */
-void EXT2_init(char * sb_buffer);
-int EXT2_test(char * sb_buffer);
-
-/* nc_lde.c */
-void nc_warn(char *fmt, ...);
-void interactive_main(void);
-
-/* filemode.c */
+/* filemode.c  */
 void mode_string(unsigned short mode, char *str);
-
-/* recover.c */
-unsigned long block_pointer(unsigned char *ind, unsigned long blknr, int zone_entry_size);
-unsigned long map_block(unsigned long zone_index[], unsigned long blknr);
-void recover_file(int fp,unsigned long zone_index[]);
-unsigned long find_inode(unsigned long nr);
-void parse_grep(void);
-void search_fs(unsigned char *search_string, int search_len);
 
 #define die(str) fatal_error("%s: " str "\n")
 
@@ -99,8 +29,10 @@ void search_fs(unsigned char *search_string, int search_len);
 #define MAX_BLOCK_SIZE 1024
 #define MIN_BLOCK_SIZE 1024
 
-#define CACHEABLE 0
-#define FORCE_READ 1
+#define INODE_BLKS 15 /* EXT2_N_BLOCKS or higher -- can't use EXT2 references after
+		       * mulitiple architecture support was added to ext2.
+		       */
+
 
 enum { AUTODETECT, NONE, MINIX, XIAFS, EXT2 };
 extern char *text_names[]; /* defined in main.c */
@@ -163,7 +95,7 @@ struct Generic_Inode {
   unsigned long  i_blocks;                 /* Blocks count */
   unsigned long  i_flags;                  /* File flags */
   unsigned long  i_reserved1;
-  unsigned long  i_zone[EXT2_N_BLOCKS];    /* Pointers to blocks */
+  unsigned long  i_zone[INODE_BLKS];       /* Pointers to blocks */
   unsigned long  i_version;                /* File version (for NFS) */
   unsigned long  i_file_acl;               /* File ACL */
   unsigned long  i_dir_acl;                /* Directory ACL */
@@ -191,7 +123,7 @@ struct inode_fields {
   char i_dtime;
   char i_flags;
   char i_reserved1;
-  char i_zone[EXT2_N_BLOCKS];
+  char i_zone[INODE_BLKS];
   char i_version;
   char i_file_acl;
   char i_dir_acl;
@@ -262,17 +194,17 @@ struct fs_constants {
 /* File system specific commands */
 struct {
   /* Check if inode is marked in use */
-  int (*inode_in_use)();
+  int (*inode_in_use)(unsigned long n);
   /* Check if data zone/block is marked in use */
-  int (*zone_in_use)();
+  int (*zone_in_use)(unsigned long n);
   /* Check if data zone/block is marked in bad -- not implemented in v2.2 yet */
-  int (*zone_is_bad)();
+  int (*zone_is_bad)(unsigned long n);
   /* Get dir name and inode number */
-  char* (*dir_entry)();
+  char* (*dir_entry)(int i, char *block_buffer, unsigned long *inode_nr);
   /* Copies the FS specific inode into a generic inode structure */
-  struct Generic_Inode* (*read_inode)();
+  struct Generic_Inode* (*read_inode)(unsigned long inode_nr);
   /* Copies the generic inode to a FS specific one, then write it to disk */
-  int (*write_inode)();
+  int (*write_inode)(unsigned long inode_nr, struct Generic_Inode *GInode);
 } FS_cmd;
 
 /* Flags which will control file recovery */

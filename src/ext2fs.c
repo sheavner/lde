@@ -1,19 +1,52 @@
 /*
-*  lde/ext2fs.c -- The Linux Disk Editor
-*
-*  Copyright (C) 1994  Scott D. Heavner
-*
-*  $Id: ext2fs.c,v 1.8 1994/04/24 20:37:30 sdh Exp $
-*
-*  The following routines were taken almost verbatim from
-*  the e2fsprogs-0.4a package by Remy Card. 
-*    Copyright (C) 1992, 1993  Remy Card <card@masi.ibp.fr> 
-*       EXT2_read_inode_bitmap()
-*       EXT2_read_block_bitmap()
-*       EXT2_read_tables()
-*/
+ *  lde/ext2fs.c -- The Linux Disk Editor
+ *
+ *  Copyright (C) 1994  Scott D. Heavner
+ *
+ *  $Id: ext2fs.c,v 1.9 1994/09/06 01:32:11 sdh Exp $
+ *
+ *  The following routines were taken almost verbatim from
+ *  the e2fsprogs-0.4a package by Remy Card. 
+ *    Copyright (C) 1992, 1993  Remy Card <card@masi.ibp.fr> 
+ *       EXT2_read_inode_bitmap()
+ *       EXT2_read_block_bitmap()
+ *       EXT2_read_tables()
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <linux/ext2_fs.h>
+/* I'm not going to support these until someone cleans up the ext2_fs.h file.
+ * The multi-architecture support looks like it was just hacked in, there really
+ * should be a better way to do it.
+ */
+#undef i_translator
+#undef i_frag
+#undef i_fsize
+#undef i_uid_high
+#undef i_gid_high
+#undef i_author
+#undef i_reserved1
+#undef i_reserved2
 
 #include "lde.h"
+#include "ext2fs.h"
+#include "tty_lde.h"
+#include "recover.h"
+#include "bitops.h"
+
+static void EXT2_read_inode_bitmap (unsigned long nr);
+static void EXT2_read_block_bitmap(unsigned long nr);
+static unsigned long EXT2_map_inode(unsigned long ino);
+static struct Generic_Inode *EXT2_read_inode (unsigned long ino);
+static int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode);
+static int EXT2_inode_in_use(unsigned long nr);
+static int EXT2_zone_in_use(unsigned long nr);
+static char* EXT2_dir_entry(int i, char *block_buffer, unsigned long *inode_nr);
+static void EXT2_read_tables(void);
+static void EXT2_sb_init(char * sb_buffer);
 
 #undef Inode
 #define Inode (((struct ext2_inode *) inode_buffer)+i)
@@ -29,7 +62,7 @@
 
 /* Haven't defined ACL and stuff because inode mode doesn't do anything with them. */
 /* Should probably see what flags is, sorry, but I don't claim to be an ext2fs guru. */
-struct inode_fields EXT2_inode_fields = {
+static struct inode_fields EXT2_inode_fields = {
   1, /*   unsigned short i_mode; */
   1, /*   unsigned short i_uid; */
   1, /*   unsigned long  i_size; */
@@ -68,7 +101,7 @@ struct inode_fields EXT2_inode_fields = {
   0, /*   unsigned long  i_reserved2[2]; */
 };
 
-struct fs_constants EXT2_constants = {
+static struct fs_constants EXT2_constants = {
   EXT2,                         /* int FS */
   EXT2_ROOT_INO,                /* int ROOT_INODE */
   (sizeof(struct ext2_inode)),  /* int INODE_SIZE */
@@ -82,10 +115,10 @@ struct fs_constants EXT2_constants = {
   &EXT2_inode_fields,
 };
 
-unsigned long group_desc_count;
-struct ext2_group_desc * group_desc = NULL;
+static unsigned long group_desc_count;
+static struct ext2_group_desc * group_desc = NULL;
 
-unsigned long EXT2_map_inode(unsigned long ino)
+static unsigned long EXT2_map_inode(unsigned long ino)
 {
   unsigned long group;
   unsigned long block;
@@ -98,7 +131,7 @@ unsigned long EXT2_map_inode(unsigned long ino)
 
 #define INODE_POINTER ((struct ext2_inode *) inode_buffer + ((ino - 1) % sb->s_inodes_per_group) % (sb->blocksize/fsc->INODE_SIZE))
 
-struct Generic_Inode *EXT2_read_inode (unsigned long ino)
+static struct Generic_Inode *EXT2_read_inode (unsigned long ino)
 {
   static EXT2_last_inode = 0; /* cacheable inode */
   static struct Generic_Inode GInode;
@@ -118,7 +151,7 @@ struct Generic_Inode *EXT2_read_inode (unsigned long ino)
   return &GInode;
 }
 
-int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode)
+static int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode)
 {
   char * inode_buffer;
   unsigned long blknr;
@@ -159,7 +192,7 @@ static void EXT2_read_inode_bitmap (unsigned long nr)
   }
 }
   
-int EXT2_inode_in_use(unsigned long nr)
+static int EXT2_inode_in_use(unsigned long nr)
 {
   nr--;
 #ifdef READ_PART_TABLES
@@ -193,7 +226,7 @@ static void EXT2_read_block_bitmap(unsigned long nr)
   }
 }
   
-int EXT2_zone_in_use(unsigned long nr)
+static int EXT2_zone_in_use(unsigned long nr)
 {
   if (nr < sb->first_data_zone) return 1;
   nr -= sb->first_data_zone;
@@ -205,7 +238,7 @@ int EXT2_zone_in_use(unsigned long nr)
 }
 
 /* Could use some optimization maybe?? */
-char* EXT2_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
+static char* EXT2_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
 {
   char *bp;
   int j;
@@ -225,7 +258,7 @@ char* EXT2_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
   return (EXT2_cname);
 }
 
-void EXT2_read_tables()
+static void EXT2_read_tables()
 {
   int isize, addr_per_block, inode_blocks_per_group;
   unsigned long group_desc_size;
@@ -246,7 +279,7 @@ void EXT2_read_tables()
   else
     desc_blocks = group_desc_count / EXT2_DESC_PER_BLOCK;
   group_desc_size = desc_blocks * sb->blocksize;
-  group_desc = malloc (group_desc_size);
+  group_desc = (struct ext2_group_desc *) malloc(group_desc_size);
   
   if (!group_desc)
     die ("Unable to allocate buffers for group descriptors");
@@ -262,7 +295,7 @@ void EXT2_read_tables()
   isize = (sb->s_inodes_per_group / 8) + 1;
 #endif
   sb->imap_blocks = (sb->ninodes / 8 / sb->blocksize) + 1;
-  inode_map = malloc (isize);
+  inode_map = (char *) malloc(isize);
   if (!inode_map)
     die ("Unable to allocate inodes bitmap");
   memset (inode_map, 0, isize);
@@ -274,7 +307,7 @@ void EXT2_read_tables()
   isize = (sb->s_blocks_per_group / 8) + 1;
 #endif
   sb->zmap_blocks = sb->nzones / 8 / sb->blocksize + 1;
-  zone_map = malloc(isize);
+  zone_map = (char *) malloc(isize);
   if (!zone_map)
     die ("Unable to allocate blocks bitmap");
   memset (zone_map, 0, isize);
@@ -294,7 +327,7 @@ void EXT2_read_tables()
   }
 }
 
-void EXT2_sb_init(char * sb_buffer)
+static void EXT2_sb_init(char * sb_buffer)
 {
   double temp;
 

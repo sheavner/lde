@@ -3,15 +3,27 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.6 1994/04/24 20:37:11 sdh Exp $
+ *  $Id: minix.c,v 1.7 1994/09/06 01:31:52 sdh Exp $
  */
 
 /* 
  *  This file contain all the minix specific code.
  *  Some minix calls are made by the xiafs code.
  */
- 
+
+#include <stdlib.h>
+#include <strings.h>
+#include <unistd.h>
+
+#include <linux/fs.h>
+#include <linux/minix_fs.h> 
+
+#include "minix.h"
 #include "lde.h"
+#include "no_fs.h"
+#include "tty_lde.h"
+#include "recover.h"
+#include "bitops.h"
 
 /* Make sure the locate var inode_nr is defined when using Inode */
 #undef Inode
@@ -19,6 +31,11 @@
 
 #undef Super
 #define Super (*(struct minix_super_block *)sb_buffer)
+
+static struct Generic_Inode* MINIX_read_inode(unsigned long inode_nr);
+static int MINIX_write_inode(unsigned long inode_nr, struct Generic_Inode *GInode);
+static char *MINIX_dir_entry(int i, char *block_buffer, unsigned long *inode_nr);
+static void MINIX_sb_init(char * sb_buffer);
 
 struct inode_fields MINIX_inode_fields = {
   1, /*   unsigned short i_mode; */
@@ -73,7 +90,7 @@ struct fs_constants MINIX_constants = {
   &MINIX_inode_fields,          /* struct * inode_fields */
 };
 
-struct Generic_Inode* MINIX_read_inode(unsigned long inode_nr)
+static struct Generic_Inode* MINIX_read_inode(unsigned long inode_nr)
 {
   static struct Generic_Inode GInode;
   static unsigned long MINIX_last_inode = -1L; 
@@ -99,13 +116,13 @@ struct Generic_Inode* MINIX_read_inode(unsigned long inode_nr)
   
   for (i=0; i<MINIX_constants.N_BLOCKS; i++)
     GInode.i_zone[i] = (unsigned short) Inode->i_zone[i];
-  for (i=MINIX_constants.N_BLOCKS; i<EXT2_N_BLOCKS; i++)
+  for (i=MINIX_constants.N_BLOCKS; i<INODE_BLKS; i++)
     GInode.i_zone[i] = 0UL;
 
   return &GInode;
 }
 
-int MINIX_write_inode(unsigned long inode_nr, struct Generic_Inode *GInode)
+static int MINIX_write_inode(unsigned long inode_nr, struct Generic_Inode *GInode)
 {
   unsigned long bnr;
   int i;
@@ -140,7 +157,7 @@ int MINIX_zone_in_use(unsigned long inode_nr)
   return test_bit((inode_nr-sb->first_data_zone+1),zone_map);
 }
 
-char *MINIX_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
+static char *MINIX_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
 {
   static char cname[32];
   memset(cname,65,32);
@@ -149,7 +166,7 @@ char *MINIX_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
   return (cname);
 }
 
-void MINIX_sb_init(char * sb_buffer)
+static void MINIX_sb_init(char * sb_buffer)
 {
   sb->ninodes = Super.s_ninodes;
   sb->nzones = Super.s_nzones;

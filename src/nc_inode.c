@@ -3,15 +3,32 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.3 1994/04/24 20:36:43 sdh Exp $
+ *  $Id: nc_inode.c,v 1.4 1994/09/06 01:31:09 sdh Exp $
  */
 
+#include <ctype.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+#include <pwd.h>
+#include <grp.h>
+#include <time.h>
+
+#include "lde.h"
+#include "tty_lde.h"
+#include "curses.h"
 #include "nc_lde.h"
+#include "nc_inode.h"
 #include "nc_inode_help.h"
+#include "nc_dir.h"
+
+static void cwrite_inode(unsigned long inode_nr, struct Generic_Inode *GInode, int *mod_yes);
+static void cdump_inode_labels(void);
+static void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, int highlight_field);
+static void set_inode_field(int curr_field, unsigned long a, struct Generic_Inode *GInode);
 
 static int park_x = 0, park_y = 0;
 
-void cwrite_inode(unsigned long inode_nr, struct Generic_Inode *GInode, int *mod_yes)
+static void cwrite_inode(unsigned long inode_nr, struct Generic_Inode *GInode, int *mod_yes)
 {
   int c;
   char *warning;
@@ -38,7 +55,7 @@ void cwrite_inode(unsigned long inode_nr, struct Generic_Inode *GInode, int *mod
 }
 
 /* Display current labels */
-void cdump_inode_labels()
+static void cdump_inode_labels()
 {
   clobber_window(workspace); 
   workspace = newwin(17,WIN_COL,((VERT-17)/2+HEADER_SIZE),HOFF);
@@ -92,7 +109,7 @@ void cdump_inode_labels()
 }
 
 /* Display current inode */
-void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, int highlight_field)
+static void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, int highlight_field)
 {
   unsigned long imode = 0UL, j = 0UL;
   char f_mode[12];
@@ -210,7 +227,7 @@ void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, int high
       park_y = 7;
       park_x = 20;
     }
-    mvwprintw(workspace,7,20,"%24s",ctime(&GInode->i_atime));
+    mvwaddnstr(workspace,7,20,ctime(&GInode->i_atime),25);
     wattroff(workspace,WHITE_ON_RED);
   }
 
@@ -220,7 +237,7 @@ void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, int high
       park_y = 8;
       park_x = 20;
     }
-    mvwprintw(workspace,8,20,"%24s",ctime(&GInode->i_ctime));
+    mvwaddnstr(workspace,8,20,ctime(&GInode->i_ctime),25);
     wattroff(workspace,WHITE_ON_RED);
   }
 
@@ -230,7 +247,7 @@ void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, int high
       park_y = 9;
       park_x = 20;
     }
-    mvwprintw(workspace,9,20,"%24s",ctime(&GInode->i_mtime));
+    mvwaddnstr(workspace,9,20,ctime(&GInode->i_mtime),24);
     wattroff(workspace,WHITE_ON_RED);
   }
 
@@ -240,7 +257,7 @@ void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, int high
       park_y = 10;
       park_x = 20;
     }
-    mvwprintw(workspace,10,20,"%24s",ctime(&GInode->i_dtime));
+    mvwaddnstr(workspace,10,20,ctime(&GInode->i_dtime),25);
     wattroff(workspace,WHITE_ON_RED);
   }
  
@@ -267,7 +284,7 @@ void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, int high
 }
 
 /* Not terribly ugly, but it does all the type casting we might require */
-void set_inode_field(int curr_field, unsigned long a, struct Generic_Inode *GInode)
+static void set_inode_field(int curr_field, unsigned long a, struct Generic_Inode *GInode)
 {
   switch (curr_field) {
     case I_MODE:
@@ -407,7 +424,7 @@ int inode_mode() {
 #endif /* ALPHA_CODE */
 
     switch (c) {
-      case CTRL('D'):
+      case CTRL('D'): /* Forward one field */
       case CTRL('F'):
       case 'l':
       case 'L':
@@ -421,7 +438,8 @@ int inode_mode() {
 	highlight_field = I_ZONE_0;
 	re_read_inode = full_redraw = 1;
 	break;
-      case CTRL('B'):
+
+      case CTRL('B'): /* Backward one field */
       case KEY_BACKSPACE:
       case KEY_DC:
       case KEY_LEFT:
@@ -436,7 +454,8 @@ int inode_mode() {
 	highlight_field = I_ZONE_0;
 	re_read_inode = full_redraw = 1;
 	break;
-      case KEY_DOWN:
+
+      case KEY_DOWN: /* Forward one inode */
       case 'j':
       case 'J':
       case CTRL('N'):
@@ -444,7 +463,8 @@ int inode_mode() {
         while ( (! *(&fsc->inode->i_mode+(++highlight_field))) || (highlight_field >= I_END) )
           if (highlight_field >= (I_END-1) ) highlight_field = I_BEGIN;
 	break;
-      case KEY_UP:
+
+      case KEY_UP: /* Back one inode */
       case CTRL('P'):
       case 'k':
       case 'K':
@@ -452,7 +472,8 @@ int inode_mode() {
         while ( (! *(&fsc->inode->i_mode+(--highlight_field))) || (highlight_field <= I_BEGIN)) 
           if (highlight_field <= (I_BEGIN+1) ) highlight_field = I_END;
 	break;
-      case '0':
+
+      case '0': /* Tag block under cursor as block 'n' of recovery file */
       case '1':
       case '2':
       case '3':
@@ -472,16 +493,18 @@ int inode_mode() {
 	  return 'b';
 	}
 	break;
-      case 'R':
+
+      case 'R': /* Goto recovery mode, set to recover all blocks in this inode */
 	cwrite_inode(current_inode, GInode, &modified);
 	for (flag=0;(flag<fsc->N_BLOCKS);flag++)
 	  fake_inode_zones[flag] = GInode->i_zone[flag];
 	return c;
 	break;
-      case 'B':
+
+      case 'B': /* Go to block mode, examine the block which is currently highlighted */
 	if (GInode->i_zone[highlight_field-I_ZONE_0])
 	  current_block = GInode->i_zone[highlight_field-I_ZONE_0];
-      case 'b':
+      case 'b': /* Switch to another mode */
       case 'q':
       case 'Q':
       case 'S':
@@ -490,16 +513,19 @@ int inode_mode() {
 	cwrite_inode(current_inode, GInode, &modified);
 	return c;
 	break;
-      case 'F':
+
+      case 'F': /* Put up a menu of adjustable flags */
       case 'f':
 	flag_popup();
 	break;
-      case 'E':
+
+      case 'E': /* Edit inode */
       case 'e':
 	edit_inode = 1;
 	if (!write_ok) warn("Disk not writeable, change status flags with (F)");
 	break;
-      case 'D':
+
+      case 'D': /* View inode as a directory */
       case 'd':
 	full_redraw = 1;
 	if (S_ISDIR(GInode->i_mode)&&((highlight_field>=I_ZONE_0)&&(highlight_field<=I_ZONE_LAST)))
@@ -513,13 +539,15 @@ int inode_mode() {
 	    re_read_inode = 1;
 	  }
 	break;
-      case 'c':
+
+      case 'c': /* Copy inode to copy buffer */
       case 'C':
 	if (!copy_buffer) copy_buffer = malloc(sizeof(struct Generic_Inode));
 	memcpy(copy_buffer,GInode,sizeof(struct Generic_Inode));
 	warn("Inode (%lu) copied into copy buffer.",current_inode);
 	break;
-      case 'p':
+
+      case 'p': /* Paste inode from copy buffer */
       case 'P':
 	if (copy_buffer) {
 	  full_redraw = modified = 1;
@@ -529,40 +557,49 @@ int inode_mode() {
 	  warn("Nothing in copy buffer.");
 	}
 	break;
-      case 'V':
+
+      case 'V': /* Show error log */
       case 'v':
 	c = flag = error_popup();
 	break;
-      case( CTRL('W')):
+
+      case( CTRL('W')): /* Write out modifications to this inode */
 	edit_inode = 0;
 	cwrite_inode(current_inode, GInode, &modified);
 	break;
-      case CTRL('A'):
+
+      case CTRL('A'): /* Abort edit, re-read original inode */
 	modified = edit_inode = 0;
 	re_read_inode = 1;
 	break;
-      case '#':
+
+      case '#': /* Go to an inode specified by number */
 	if (cread_num("Enter inode number (leading 0x or $ indicates hex):",&a)) {
 	  current_inode = (unsigned long) a;
 	  full_redraw = 1;
 	}
 	break;
-      case 'z':
+
+      case 'z': /* Display popup menu with submenus */
       case KEY_F(2):
       case CTRL('O'):
 	c = flag = do_popup_menu(inode_menu_options, inode_menu_map);	
 	if (c == '*') 
 	  c = flag = do_popup_menu(edit_menu_options, edit_menu_map);
 	break;
-      case '?':
+
+      case '?': /* Display help */
       case KEY_F(1):
       case CTRL('H'):
       case META('H'):
         do_scroll_help(inode_help, FANCY);
-      case CTRL('L'):
+
+      case CTRL('L'): /* Refresh screen */
 	refresh_all();
+
       case ' ':
 	break;
+
       default:
 	redraw = 0;
 	break;

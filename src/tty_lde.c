@@ -3,10 +3,23 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.10 1994/04/24 20:59:29 sdh Exp $
+ *  $Id: tty_lde.c,v 1.11 1994/09/06 01:29:36 sdh Exp $
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+#include <pwd.h>
+#include <grp.h>
+#include <sys/stat.h>
+
+#include <linux/fs.h>
+
 #include "lde.h"
+#include "tty_lde.h"
 
 /* We don't need no stinkin' linked list */
 char *error_save[ERRORS_SAVED];
@@ -218,19 +231,19 @@ void dump_inode(unsigned long nr)
 char *entry_type(unsigned long imode)
 {
   if (S_ISREG(imode))
-    return "regular file";
+    return "regular file  ";
   else if (S_ISDIR(imode))
-    return "directory";
+    return "directory     ";
   else if (S_ISLNK(imode))
-    return "symbolic link";
+    return "symbolic link ";
   else if (S_ISCHR(imode))
-    return "char device";
+    return "char device   ";
   else if (S_ISBLK(imode))
-    return "block device";
+    return "block device  ";
   else if (S_ISFIFO(imode))
-    return "named pipe";
+    return "named pipe    ";
   else if (S_ISSOCK(imode))
-    return "socket";
-  return "???";
+    return "socket        ";
+  return "???           ";
 }
 

@@ -3,11 +3,11 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.h,v 1.1 1994/09/05 19:28:00 sdh Exp $
+ *  $Id: nc_block.h,v 1.2 1994/09/06 01:25:50 sdh Exp $
  */
 
 void cdump_block(unsigned long nr, unsigned char *dind, int win_start, int win_size);
-void cwrite_block(unsigned long block_nr, void *data_buffer, int *mod_yes);
+void cwrite_block(unsigned long block_nr, void *data_buffer, char *modified);
 int block_mode(void);
 
 struct bm_flags {

@@ -3,11 +3,28 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.4 1994/04/24 20:37:05 sdh Exp $
+ *  $Id: nc_block.c,v 1.5 1994/09/06 01:31:36 sdh Exp $
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#include "lde.h"
+#include "recover.h"
+#include "tty_lde.h"
+#include "curses.h"
 #include "nc_lde.h"
+#include "nc_block.h"
 #include "nc_block_help.h"
+#include "nc_dir.h"
+
+static void highlight_block(int cur_row,int cur_col,int win_start,unsigned char *block_buffer, int ascii_flag);
+static void full_highlight_block(int cur_row,int cur_col, int *prev_row, int *prev_col, 
+			  int win_start,unsigned char *block_buffer, int ascii_flag);
+static void update_block_help(void);
+
 
 /* Dump as much of a block as we can to the screen and format it in a nice 
  * hex mode with ASCII printables off to the right. */
@@ -47,12 +64,12 @@ void cdump_block(unsigned long nr, unsigned char *dind, int win_start, int win_s
 /* Asks the user if it is ok to write the block to the disk, then goes
  * ahead and does it if the medium is writable.  The user has access to the
  * flags menu from this routine, to toggle the write flag */
-void cwrite_block(unsigned long block_nr, void *data_buffer, int *mod_yes)
+void cwrite_block(unsigned long block_nr, void *data_buffer, char *modified)
 {
   int c;
   char *warning;
 
-  if (*mod_yes) {
+  if (*modified) {
     if (!write_ok)
       warning = "(NOTE: write permission not set on disk, use 'F' to set flags before 'Y') ";
     else
@@ -68,11 +85,11 @@ void cwrite_block(unsigned long block_nr, void *data_buffer, int *mod_yes)
       write_block(block_nr, data_buffer);
   }
   
-  *mod_yes = 0;
+  *modified = 0;
 }
 
 /* Highlights the current position in the block in both ASCII + hex */
-void highlight_block(int cur_row,int cur_col,int win_start,unsigned char *block_buffer, int ascii_flag)
+static void highlight_block(int cur_row,int cur_col,int win_start,unsigned char *block_buffer, int ascii_flag)
 {
   unsigned char c;
   int s_col;
@@ -92,7 +109,7 @@ void highlight_block(int cur_row,int cur_col,int win_start,unsigned char *block_
 }
 
 /* Highlight current cursor position, turn off last highlight */
-void full_highlight_block(int cur_row,int cur_col, int *prev_row, int *prev_col, 
+static void full_highlight_block(int cur_row,int cur_col, int *prev_row, int *prev_col, 
 			  int win_start,unsigned char *block_buffer, int ascii_flag)
 {
   /* First turn off last position */
@@ -109,7 +126,7 @@ void full_highlight_block(int cur_row,int cur_col, int *prev_row, int *prev_col,
 }
 
 /* Modifies the help screen display to show the proper sizes for block and inode pointers */
-void update_block_help(void)
+static void update_block_help(void)
 {
   static char help_1[80], help_8[80];
 
@@ -126,36 +143,30 @@ void update_block_help(void)
 /* This is the curses menu-type system for block mode, displaying a block
  * on the screen, next/previous block, paging this block, etc., etc. */
 int block_mode(void) {
-  int c,flag,redraw;
+  int icount = 0, val, v1 = 0, c = ' ';
   int win_start = 0;
   int cur_row = 0, cur_col = 0;
   int prev_row = 0, prev_col = 0;
   static unsigned char *copy_buffer = NULL;
   unsigned char block_buffer[MAX_BLOCK_SIZE];
-  unsigned long temp_ptr;
-
-  int edit_block, ascii_mode, highlight, val, v1, icount, modified = 0;
   char *HEX_PTR, *HEX_NOS = "0123456789ABCDEF";
-
-  unsigned long inode_ptr[2] = { 0UL, 0UL };
+  unsigned long temp_ptr, inode_ptr[2] = { 0UL, 0UL };
+  struct bm_flags flags = { 0, 0, 0, 0, 0, 1 };
 
   update_block_help();
 
   display_trailer("PG_UP/DOWN = previous/next block, or '#' to enter block number",
 		  "H for help.  Q to quit");
 
-  flag = 1; c = ' ';
-  edit_block = 0; icount=0; ascii_mode=0; v1=0; modified = 0;
-  cur_row = cur_col = 0;
-  while (flag||(c = mgetch())) {
-    redraw = highlight = 0;
-    if (!flag && edit_block) {
-      if (!ascii_mode) {
+  while (flags.dontwait||(c = mgetch())) {
+    flags.redraw = flags.highlight = 0;
+    if (!flags.dontwait && flags.edit_block) {
+      if (!flags.ascii_mode) {
 	HEX_PTR = strchr(HEX_NOS, toupper(c));
-	if (HEX_PTR != NULL) {
+	if ((HEX_PTR != NULL)&&(*HEX_PTR)) {
 	  val = HEX_PTR - HEX_NOS;
-	  if (icount == 0) {
-	    icount++;
+	  if (!icount) {
+	    icount = 1;
 	    v1 = val;
 	    wattron(workspace,WHITE_ON_RED);
 	    waddch(workspace,HEX_NOS[val]);
@@ -165,34 +176,34 @@ int block_mode(void) {
 	    icount = 0;
 	    v1 = v1*16 + val;
 	    block_buffer[cur_row*16+cur_col+win_start] = v1;
-	    modified = 1;
+	    flags.modified = flags.highlight = 1;
 	    c = KEY_RIGHT; /* Advance the cursor */
-	    highlight = 1;
 	  }
 	}
       } else { /* ASCII MODE */
 	if ((c>31)&&(c<127)) {
 	  block_buffer[cur_row*16+cur_col+win_start] = c;
-	  modified = 1;
+	  flags.highlight = flags.modified = 1;
 	  c = KEY_RIGHT; /* Advance the cursor */
-	  highlight = 1;
 	}
       }
     }
 
-    flag = 0;
+    flags.dontwait = 0;
     
     /* These keys are valid in both modes */
     switch(c) {
-      case CTRL('I'):
-	ascii_mode = 1 - ascii_mode;
-	highlight = 1;
+
+      case CTRL('I'): /* Toggle Ascii/Hex edit mode */
+	flags.ascii_mode = 1 - flags.ascii_mode;
+	flags.highlight = 1;
         break;
-      case CTRL('F'):
+
+      case CTRL('F'): /* Next character */
       case KEY_RIGHT:
       case 'l':
       case 'L':
-	highlight = 1;
+	flags.highlight = 1;
 	icount = 0;
 	if (++cur_col > 15) {
 	  cur_col = 0;
@@ -202,23 +213,18 @@ int block_mode(void) {
 	  } else if (cur_row >= VERT) {
 	    if ( win_start + VERT*16 < sb->blocksize) win_start += VERT*16;
 	    prev_row = prev_col = cur_row = 0;
-	    redraw = 1;
+	    flags.redraw = 1;
 	  }
 	}
 	break;
-      case '+':
-      case KEY_SRIGHT:
-        if ( win_start + VERT*16 < sb->blocksize) win_start += VERT*16;
-	redraw = 1;
-	icount = 0;
-	break;
-      case CTRL('B'):
+
+      case CTRL('B'): /* Previous character */
       case KEY_BACKSPACE:
       case KEY_DC:
       case KEY_LEFT:
       case 'h':
       case 'H':
-	highlight = 1;
+	flags.highlight = 1;
 	icount = 0;
 	if (--cur_col < 0) {
 	  cur_col = 15;
@@ -226,73 +232,88 @@ int block_mode(void) {
 	    if (win_start - VERT*16 >= 0) {
 	      win_start -= VERT*16;
 	      cur_row = VERT - 1;
-	      redraw = 1;
+	      flags.redraw = 1;
 	    } else
 	      cur_row = cur_col = 0;
 	  }
 	}
 	break;
-      case '-':
+
+      case '+': /* Next screen */
+      case KEY_SRIGHT:
+        if ( win_start + VERT*16 < sb->blocksize) win_start += VERT*16;
+	flags.redraw = 1;
+	icount = 0;
+	break;
+
+      case '-': /* Previous screen */
       case KEY_SLEFT:
 	if (win_start - VERT*16 >= 0)  win_start -= VERT*16;
 	icount = 0;
-	redraw = 1;
+	flags.redraw = 1;
 	break;
-      case CTRL('N'):
+
+      case CTRL('N'): /* Next line */
       case KEY_DOWN:
       case 'J':
       case 'j':
-	highlight = 1;
+	flags.highlight = 1;
 	if (++cur_row >= VERT) {
-	  redraw = 1;
+	  flags.redraw = 1;
 	  if ( win_start + VERT*16 < sb->blocksize) win_start += VERT*16;
 	  prev_row = prev_col = cur_row = 0;
 	}
 	icount = 0;
 	break;
-      case CTRL('V'):
-      case CTRL('D'):
-      case KEY_NPAGE:
-        cwrite_block(current_block, block_buffer, &modified);
-	current_block++;
-	edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
-	redraw = 1;
-	break;
-      case CTRL('P'):
+
+      case CTRL('P'): /* Previous line */
       case KEY_UP:
       case 'k':
       case 'K':
-	highlight = 1;
+	flags.highlight = 1;
 	icount = 0;
 	if (--cur_row<0) {
-	  redraw = 1;
+	  flags.redraw = 1;
 	  if (win_start - VERT*16 >= 0) {
 	    win_start -= VERT*16;
 	    cur_row = VERT - 1;
 	  } else
-	    cur_row = redraw = 0;
+	    cur_row = flags.redraw = 0;
 	  prev_col = prev_row = 0;
 	}
 	break;
-      case CTRL('U'):
+
+      case CTRL('V'): /* Next block */
+      case CTRL('D'):
+      case KEY_NPAGE:
+        cwrite_block(current_block, block_buffer, &flags.modified);
+	current_block++;
+	flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
+	flags.redraw = 1;
+	break;
+
+      case CTRL('U'): /* Previous block */
       case META('v'):
       case META('V'):
       case KEY_PPAGE:
-        cwrite_block(current_block, block_buffer, &modified);
+        cwrite_block(current_block, block_buffer, &flags.modified);
 	if (current_block!=0) current_block--;
-	edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
-	redraw = 1;
+	flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
+	flags.redraw = 1;
 	break;
-      case( CTRL('W')):
-	edit_block = 0;
-	cwrite_block(current_block, block_buffer, &modified);
+
+      case( CTRL('W')): /* Write out modified block to disk */
+	flags.edit_block = 0;
+	cwrite_block(current_block, block_buffer, &flags.modified);
 	break;
-      case CTRL('A'):
-	modified = ascii_mode = edit_block = 0;
+
+      case CTRL('A'): /* Abort any changes to block */
+	flags.modified = flags.ascii_mode = flags.edit_block = 0;
 	memcpy(block_buffer, cache_read_block(current_block,CACHEABLE), sb->blocksize);
-	redraw = highlight = 1;
+	flags.redraw = flags.highlight = 1;
 	break;
-      case CTRL('R'):
+
+      case CTRL('R'): /* Find an inode which references this block */
 	if ( (temp_ptr = find_inode(current_block)) )
 	  warn("Block is indexed under inode 0x%lX.",temp_ptr);
 	else
@@ -301,7 +322,8 @@ int block_mode(void) {
 	  else
 	    warn("Unable to find inode referenece try activating the --all option.\n");
 	break;
-      case '0':
+
+      case '0': /* Add current block to recovery list at position 'n' */
       case '1':
       case '2':
       case '3':
@@ -320,47 +342,54 @@ int block_mode(void) {
 	update_header();
 	beep();
 	break;
-      case 'c':
+
+      case 'c': /* Copy block to copy buffer */
       case 'C':
 	if (!copy_buffer) copy_buffer = malloc(sb->blocksize);
 	memcpy(copy_buffer,block_buffer,sb->blocksize);
 	warn("Block (%lu) copied into copy buffer.",current_block);
 	break;
-      case 'p':
+
+      case 'p': /* Paste block from copy buffer */
       case 'P':
 	if (copy_buffer) {
-	  modified = 1;
+	  flags.modified = 1;
 	  memcpy(block_buffer, copy_buffer, sb->blocksize);
 	  if (!write_ok) warn("Turn on write permissions before saving this block");
 	}
 	break;
-      case 'E':
+
+      case 'E': /* Edit the current block */
       case 'e':
-	edit_block = 1;
+	flags.edit_block = 1;
 	icount = 0;
 	if (!write_ok) warn("Disk not writeable, change status flags with (F)");
 	break;
-      case 'D':
+
+      case 'D': /* View the current block as a directory */
       case 'd':
 	if ( (c = directory_popup(current_block)) == ' ')
-	  redraw = 1;
+	  flags.redraw = 1;
 	else
-	  flag = 1;
+	  flags.dontwait = 1;
 	break;
-      case 'B':
+
+      case 'B': /* View the block under the cursor */
 	temp_ptr = block_pointer(&block_buffer[cur_row*16+cur_col+win_start],(unsigned long) 0, fsc->ZONE_ENTRY_SIZE);
 	if (temp_ptr <= sb->nzones) {
 	  current_block = temp_ptr;
-	  edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
-	  redraw = 1;
+	  flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
+	  flags.redraw = 1;
 	}
 	break;
-      case 'F':
+
+      case 'F': /* Popup menu of user adjustable flags */
       case 'f':
 	flag_popup();
 	break;
-      case 'I':
-	cwrite_block(current_block, block_buffer, &modified);
+
+      case 'I': /* Switch to Inode mode, make this inode the current inode */
+	cwrite_block(current_block, block_buffer, &flags.modified);
 	temp_ptr = block_pointer(&block_buffer[cur_row*16+cur_col+win_start],(unsigned long) 0, fsc->INODE_ENTRY_SIZE);
 	if (temp_ptr <= sb->ninodes) {
 	  current_inode = temp_ptr;
@@ -368,33 +397,38 @@ int block_mode(void) {
 	} else
 	  warn("Inode (%lu) out of range in block_mode().",temp_ptr);
 	break;
-      case 'q':
+
+      case 'q': /* Switch to another mode */
       case 'Q':
       case 'S':
       case 's':
       case 'i':
       case 'R':
       case 'r':
-        cwrite_block(current_block, block_buffer, &modified);
+        cwrite_block(current_block, block_buffer, &flags.modified);
 	return c;
 	break;
-      case 'V':
+
+      case 'V': /* View error log */
       case 'v':
-	c = flag = error_popup();
+	c = flags.dontwait = error_popup();
 	break;
-      case 'W':
+
+      case 'W': /* Append current block to the recovery file */
       case 'w':
 	inode_ptr[0] = current_block;
 	crecover_file(inode_ptr);
 	break;
-      case '#':
-        cwrite_block(current_block, block_buffer, &modified);
+
+      case '#': /* Jump to a block by numeric reference */
+        cwrite_block(current_block, block_buffer, &flags.modified);
         if (cread_num("Enter block number (leading 0x or $ indicates hex):",&current_block)) {
-	  edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
-	  redraw = 1;
+	  flags.edit_block = win_start = prev_col = prev_row = cur_col = cur_row = 0;
+	  flags.redraw = 1;
 	}
 	break;
-      case '?':
+
+      case '?': /* HELP */
       case KEY_F(1):
       case CTRL('H'):
       case META('h'):
@@ -402,17 +436,21 @@ int block_mode(void) {
 	do_scroll_help(block_help, FANCY);
 	refresh_all();
 	break;
-      case 'z':
+
+      case 'z': /* POPUP MENU */
       case KEY_F(2):
       case CTRL('O'):
-	if ( (c = flag = do_popup_menu(block_options,block_map)) == '*')
-	  c = flag = do_popup_menu(edit_options,edit_map);
+	if ( (c = flags.dontwait = do_popup_menu(block_options,block_map)) == '*')
+	  c = flags.dontwait = do_popup_menu(edit_options,edit_map);
 	break;
-      case CTRL('L'):
+
+      case CTRL('L'): /* Refresh screen */
 	icount = 0;  /* We want to see actual values? */
 	refresh_ht();
-      case ' ':
-	redraw = 1;
+
+      case ' ': /* Refresh the active window */
+	flags.redraw = 1;
+
       default:
 	break;
     }
@@ -424,16 +462,16 @@ int block_mode(void) {
     if (cur_row*16+win_start>=sb->blocksize)
       cur_row = (sb->blocksize-win_start)/16 - 1;
 
-    if (redraw) {
-      if (!edit_block)
+    if (flags.redraw) {
+      if (!flags.edit_block)
 	memcpy(block_buffer, cache_read_block(current_block,CACHEABLE), sb->blocksize);
       cdump_block(current_block,block_buffer,win_start,VERT);
-      highlight = 1;
+      flags.highlight = 1;
     }
 
     /* Highlight current cursor position */
-    if (highlight)
-      full_highlight_block(cur_row,cur_col,&prev_row,&prev_col,win_start,block_buffer,ascii_mode);
+    if (flags.highlight)
+      full_highlight_block(cur_row,cur_col,&prev_row,&prev_col,win_start,block_buffer,flags.ascii_mode);
 
     wrefresh(workspace);
   }

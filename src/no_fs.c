@@ -3,16 +3,25 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.5 1994/04/24 20:36:28 sdh Exp $
+ *  $Id: no_fs.c,v 1.6 1994/09/06 01:29:56 sdh Exp $
  */
 
 /* 
  *   No file system specified.  Block edits ok.
  */
+
+#include <unistd.h>
  
 #include "lde.h"
+#include "no_fs.h"
 
-struct inode_fields NOFS_inode_fields = {
+static struct Generic_Inode *NOFS_read_inode(unsigned long nr);
+static int NOFS_null_call(void);
+static int NOFS_one(unsigned long nr);
+static char* NOFS_dir_entry(int i, char *block_buffer, unsigned long *inode_nr);
+static void NOFS_sb_init(char * sb_buffer);
+
+static struct inode_fields NOFS_inode_fields = {
   0, /*   unsigned short i_mode; */
   0, /*   unsigned short i_uid; */
   0, /*   unsigned long  i_size; */
@@ -51,7 +60,7 @@ struct inode_fields NOFS_inode_fields = {
   1, /*   unsigned long  i_reserved2[2]; */
 };
 
-struct fs_constants NOFS_constants = {
+static struct fs_constants NOFS_constants = {
   NONE,                         /* int FS */
   1,                            /* int ROOT_INODE */
   4,                            /* int INODE_SIZE */
@@ -65,7 +74,7 @@ struct fs_constants NOFS_constants = {
   &NOFS_inode_fields,
 };
 
-struct Generic_Inode NOFS_junk_inode;
+static struct Generic_Inode NOFS_junk_inode;
 
 struct Generic_Inode *NOFS_init_junk_inode(void)
 {
@@ -80,35 +89,35 @@ struct Generic_Inode *NOFS_init_junk_inode(void)
   NOFS_junk_inode.i_gid         = 0UL;
   NOFS_junk_inode.i_links_count = 0UL;
   
-  for (i=0; i<EXT2_N_BLOCKS; i++)
+  for (i=0; i<INODE_BLKS; i++)
     NOFS_junk_inode.i_zone[i] = 0UL;
 
   return &NOFS_junk_inode;
 }
 
-struct Generic_Inode *NOFS_read_inode(unsigned long nr)
+static struct Generic_Inode *NOFS_read_inode(unsigned long nr)
 {
   return &NOFS_junk_inode;
 }
 
-unsigned long NOFS_null_call(void)
+static int NOFS_null_call(void)
 {
-  return 0UL;
+  return 0;
 }
 
 /* Returns 1 always */
-unsigned long NOFS_one(unsigned long nr)
+static int NOFS_one(unsigned long nr)
 {
-  return 1UL;
+  return 1;
 }
 
-char* NOFS_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
+static char* NOFS_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
 {
   *inode_nr = 1UL;
   return ( (char *) "" );
 }
 
-void NOFS_sb_init(char * sb_buffer)
+static void NOFS_sb_init(char * sb_buffer)
 {
   sb->blocksize = 1024;
   sb->last_block_size = lseek(CURR_DEVICE,0,SEEK_END);
@@ -144,10 +153,9 @@ void NOFS_init(char * sb_buffer)
   sb->namelen = 1;
   sb->dirsize = 1;
 
-  FS_cmd.inode_in_use = (int (*)()) NOFS_one;
-  FS_cmd.zone_in_use = (int (*)()) NOFS_one;
+  FS_cmd.inode_in_use = (int (*)(unsigned long n)) NOFS_one;
+  FS_cmd.zone_in_use = (int (*)(unsigned long n)) NOFS_one;
   FS_cmd.dir_entry = NOFS_dir_entry;
   FS_cmd.read_inode = NOFS_read_inode;
-  FS_cmd.write_inode = (int (*)()) NOFS_null_call;
-
+  FS_cmd.write_inode = (int (*)(unsigned long inode_nr, struct Generic_Inode *GInode)) NOFS_null_call;
 }

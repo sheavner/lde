@@ -3,15 +3,22 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.6 1994/04/24 20:34:23 sdh Exp $
+ *  $Id: xiafs.c,v 1.7 1994/09/06 01:29:23 sdh Exp $
  */
 
-#include "lde.h"
+#include <ctype.h>
+#include <string.h>
+#include <unistd.h>
 
-/* minix.c */
-void MINIX_read_tables();
-int MINIX_inode_in_use();
-int MINIX_zone_in_use();
+#include <linux/fs.h>
+#include <linux/minix_fs.h>
+#include <linux/xia_fs.h>
+
+#include "lde.h"
+#include "minix.h"
+#include "recover.h"
+#include "tty_lde.h"
+#include "xiafs.h"
 
 #undef Inode
 #define Inode (((struct xiafs_inode *) inode_buffer)-1+nr)
@@ -19,7 +26,12 @@ int MINIX_zone_in_use();
 #undef Super
 #define Super (*(struct xiafs_super_block *)sb_buffer)
 
-struct inode_fields XIAFS_inode_fields = {
+static struct Generic_Inode* XIAFS_read_inode(unsigned long nr);
+static int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode);
+static char* XIAFS_dir_entry(int i, char *block_buffer, unsigned long *inode_nr);
+static void XIAFS_sb_init(char * sb_buffer);
+
+static struct inode_fields XIAFS_inode_fields = {
   1, /*   unsigned short i_mode; */
   1, /*   unsigned short i_uid; */
   1, /*   unsigned long  i_size; */
@@ -58,7 +70,7 @@ struct inode_fields XIAFS_inode_fields = {
   0, /*   unsigned long  i_reserved2[2]; */
 };
 
-struct fs_constants XIAFS_constants = {
+static struct fs_constants XIAFS_constants = {
   XIAFS,                        /* int FS */
   _XIAFS_ROOT_INO,              /* int ROOT_INODE */
   (sizeof(struct xiafs_inode)), /* int INODE_SIZE */
@@ -72,7 +84,7 @@ struct fs_constants XIAFS_constants = {
   &XIAFS_inode_fields,
 };
 
-struct Generic_Inode* XIAFS_read_inode(unsigned long nr)
+static struct Generic_Inode* XIAFS_read_inode(unsigned long nr)
 {
   static struct Generic_Inode GInode;
   static unsigned long XIAFS_last_inode = -1L; 
@@ -99,13 +111,13 @@ struct Generic_Inode* XIAFS_read_inode(unsigned long nr)
     GInode.i_zone[i] = (unsigned short) Inode->i_zone[i];
   GInode.i_zone[XIAFS_constants.INDIRECT] = (unsigned short) Inode->i_ind_zone;
   GInode.i_zone[XIAFS_constants.X2_INDIRECT] = (unsigned short) Inode->i_dind_zone;
-  for (i=XIAFS_constants.N_BLOCKS; i<EXT2_N_BLOCKS; i++)
+  for (i=XIAFS_constants.N_BLOCKS; i<INODE_BLKS; i++)
     GInode.i_zone[i] = 0UL;
 
   return &GInode;
 }
 
-int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode)
+static int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode)
 {
   unsigned long bnr;
   int i;
@@ -130,7 +142,7 @@ int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode)
 }
 
 /* Could use some optimization maybe?? */
-char* XIAFS_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
+static char* XIAFS_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
 {
   char *bp;
   int j;
@@ -149,7 +161,7 @@ char* XIAFS_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
   return (cname);
 }
 
-void XIAFS_sb_init(char * sb_buffer)
+static void XIAFS_sb_init(char * sb_buffer)
 {
   sb->ninodes = Super.s_ninodes;
   sb->nzones = Super.s_nzones;
@@ -161,8 +173,8 @@ void XIAFS_sb_init(char * sb_buffer)
   sb->blocksize = 1024;
   sb->magic = Super.s_magic;
 
-  sb->I_MAP_SLOTS = _XIAFS_IMAP_SLOTS;
-  sb->Z_MAP_SLOTS = _XIAFS_ZMAP_SLOTS;
+  sb->I_MAP_SLOTS = Super.s_ninodes/sb->blocksize;  /* STOP PLAYTING WITH THE KERNEL :), previously _XIAFS_IMAP_SLOTS; */
+  sb->Z_MAP_SLOTS = Super.s_nzones/sb->blocksize;   /* _XIAFS_ZMAP_SLOTS; */
   sb->INODES_PER_BLOCK = _XIAFS_INODES_PER_BLOCK;
   sb->namelen = _XIAFS_NAME_LEN;
   sb->norm_first_data_zone = (sb->imap_blocks+1+sb->zmap_blocks+INODE_BLOCKS);

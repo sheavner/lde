@@ -3,11 +3,25 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.9 1994/04/24 20:59:33 sdh Exp $
+ *  $Id: nc_lde.c,v 1.10 1994/09/06 01:30:05 sdh Exp $
  */
 
+#include <stdio.h>
+#include <strings.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdarg.h>
+
+#include "lde.h"
+#include "recover.h"
+#include "tty_lde.h"
+
+#include "curses.h"
 #include "nc_lde.h"
 #include "nc_lde_help.h"
+#include "nc_inode.h"
+#include "nc_block.h"
 
 /* This will recognize escapes keys as "META" strokes */
 int mgetch(void)

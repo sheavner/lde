@@ -3,10 +3,18 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.5 1994/04/24 20:35:40 sdh Exp $
+ *  $Id: recover.c,v 1.6 1994/09/06 01:29:51 sdh Exp $
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include <linux/fs.h>
+
 #include "lde.h"
+#include "recover.h"
+#include "tty_lde.h"
 
 /* This takes care of the mapping from a char pointer to unsigned long/short, depending
  * on the file system.

@@ -3,10 +3,10 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  Pulled from Ted's ext2fs v0.5 library code, but trashed the whole
- *  idea of a separate bitops.h and stuck all the inline functions in
- *  here, this got rid of the inline.c and INCLUDE_INLINE_FUNCS
- *  requirements.
+ *  Pulled from Ted's ext2fs v0.5 library code, updated to use
+ *  kernel bitops if available.  Otherwise fall back to Ted's C.
+ *  For this application, cli() and sti() are not required, but if
+ *  you use them to access shared memory, they are a must.
  *
  *  bitops.c --- Bitmap frobbing code.
  *
@@ -16,74 +16,18 @@
  *  Taken from <asm/bitops.h>, Copyright 1992, Linus Torvalds.
  */
 
+#include "bitops.h"
 
-/*
- * The inline routines themselves...
- * 
- * If NO_INLINE_FUNCS is defined, then we won't try to do inline
- * functions at all!
- */
-#if !defined(NO_INLINE_FUNCS)
+#ifndef USE_KERNEL_BITOPS
 
-#if (defined(__i386__) || defined(__i486__) || defined(__i586__))
-/*
- * These are done by inline assembly for speed reasons.....
- *
- * All bitoperations return 0 if the bit was cleared before the
- * operation and != 0 if it was not.  Bit 0 is the LSB of addr; bit 32
- * is the LSB of (addr+1).
- */
-
-/*
- * Some hacks to defeat gcc over-optimizations..
- */
-struct __dummy_h { unsigned long a[100]; };
-#define ADDR (*(struct __dummy_h *) addr)
-#define CONST_ADDR (*(const struct __dummy_h *) addr)	
-
-inline int set_bit(int nr, void * addr)
-{
-	int oldbit;
-
-	__asm__ __volatile__("btsl %2,%1\n\tsbbl %0,%0"
-		:"=r" (oldbit),"=m" (ADDR)
-		:"r" (nr));
-	return oldbit;
-}
-
-inline int clear_bit(int nr, void * addr)
-{
-	int oldbit;
-
-	__asm__ __volatile__("btrl %2,%1\n\tsbbl %0,%0"
-		:"=r" (oldbit),"=m" (ADDR)
-		:"r" (nr));
-	return oldbit;
-}
-
-inline int test_bit(int nr, const void * addr)
-{
-	int oldbit;
-
-	__asm__ __volatile__("btl %2,%1\n\tsbbl %0,%0"
-		:"=r" (oldbit)
-		:"m" (CONST_ADDR),"r" (nr));
-	return oldbit;
-}
-
-#undef ADDR
-
-#else	/* i386 */
-#define  NO_INLINE_FUNCTIONS
-#endif	/* i386 */
-
-#endif  /* !defined(NO_INLINE_FUNCS) */
-
-/* Re-check since we may have reset it in the last block if */
-#if defined(NO_INLINE_FUNCS)
-
+#ifndef NO_CLI_STI
 /* Hopefully, cli() and sti() are in here for all new Linux architectures */
 #include <asm/system.h>
+#else
+/* They won't matter for this application, but will if we ever access shared memory */
+#define sti()
+#define cli()
+#endif
 
 /*
  * For the benefit of those who are trying to port Linux to another
@@ -128,7 +72,7 @@ int clear_bit(int nr, void * addr)
 	return retval;
 }
 
-int test_bit(int nr, const void * addr)
+int test_bit(int nr, void * addr)
 {
 	int		mask;
 	const int	*ADDR = (const int *) addr;
@@ -137,9 +81,4 @@ int test_bit(int nr, const void * addr)
 	mask = 1 << (nr & 0x1f);
 	return ((mask & *ADDR) != 0);
 }
-#endif	/* defined(NO_INLINE_FUNCS) */
-
-
-
-
-
+#endif	/* defined(USE_KERNEL_BITOPS) */
