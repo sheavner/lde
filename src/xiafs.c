@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.7 1994/09/06 01:29:23 sdh Exp $
+ *  $Id: xiafs.c,v 1.8 1994/09/06 02:42:25 sdh Exp $
  */
 
 #include <ctype.h>
@@ -13,6 +13,7 @@
 #include <linux/fs.h>
 #include <linux/minix_fs.h>
 #include <linux/xia_fs.h>
+#include <linux/xia_fs_sb.h>
 
 #include "lde.h"
 #include "minix.h"
@@ -173,8 +174,8 @@ static void XIAFS_sb_init(char * sb_buffer)
   sb->blocksize = 1024;
   sb->magic = Super.s_magic;
 
-  sb->I_MAP_SLOTS = Super.s_ninodes/sb->blocksize;  /* STOP PLAYTING WITH THE KERNEL :), previously _XIAFS_IMAP_SLOTS; */
-  sb->Z_MAP_SLOTS = Super.s_nzones/sb->blocksize;   /* _XIAFS_ZMAP_SLOTS; */
+  sb->I_MAP_SLOTS = _XIAFS_IMAP_SLOTS;
+  sb->Z_MAP_SLOTS = _XIAFS_ZMAP_SLOTS;
   sb->INODES_PER_BLOCK = _XIAFS_INODES_PER_BLOCK;
   sb->namelen = _XIAFS_NAME_LEN;
   sb->norm_first_data_zone = (sb->imap_blocks+1+sb->zmap_blocks+INODE_BLOCKS);
