@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.18 1998/01/18 06:34:59 sdh Exp $
+ *  $Id: nc_inode.c,v 1.19 1998/05/30 17:47:35 sdh Exp $
  */
 
 #include <ctype.h>
@@ -142,16 +142,18 @@ static void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, i
   if (fsc->inode->i_links_count)
     mvwprintw(workspace,0,11,"%3d",GInode->i_links_count);
 
-  if (fsc->inode->i_uid)
+  if (fsc->inode->i_uid) {
     if ((NC_PASS = getpwuid(GInode->i_uid))!=NULL)
       mvwprintw(workspace,0,15,"%-8s",NC_PASS->pw_name);
     else
       mvwprintw(workspace,0,15,"%-8d",GInode->i_uid);
-  if (fsc->inode->i_gid)
+  }
+  if (fsc->inode->i_gid) {
     if ((NC_GROUP = getgrgid(GInode->i_gid))!=NULL)
       mvwprintw(workspace,0,24,"%-8s",NC_GROUP->gr_name);
     else
       mvwprintw(workspace,0,24,"%-8d",GInode->i_gid);
+  }
   if (fsc->inode->i_size)
     mvwprintw(workspace,0,32,"%9ld",GInode->i_size);
   if (fsc->inode->i_mtime)
