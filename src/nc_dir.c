@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.7 1995/06/02 15:09:30 sdh Exp $
+ *  $Id: nc_dir.c,v 1.8 1995/06/02 15:24:09 sdh Exp $
  */
 
 #include <strings.h>
@@ -35,7 +35,7 @@ static char *dp_help[] = {
 /* default keymap for directory mode */
 lde_keymap dirmode_keymap[] = {
   { 'i', CMD_SET_CURRENT_INODE },
-  { 'I', CMD_SET_CURRENT_INODE_MC },
+  { 'I', CMD_INODE_MODE_MC },
   { 'N', CMD_NEXT_DIR_BLOCK },
   { 'n', CMD_NEXT_DIR_BLOCK },
   { 'Q', CMD_EXIT },
@@ -181,14 +181,14 @@ int directory_popup(unsigned long bnr)
 
     switch (c) {
       case CMD_SET_CURRENT_INODE: /* Set this inode to be the current inode */
-      case CMD_SET_CURRENT_INODE_MC:
+      case CMD_SET_INODE_MODE_MC:
 	(void) FS_cmd.dir_entry(current+screen_off, cache_read_block(bnr,CACHEABLE), &inode_nr);
 	if (inode_nr) {
 	  current_inode = inode_nr;
 	  update_header();
-	  if (c==CMD_SET_CURRENT_INODE_MC) {
+	  if (c==CMD_INODE_MODE_MC) {
 	    clobber_window(win);
-	    return CMD_SET_CURRENT_INODE_MC;
+	    return CMD_INODE_MODE_MC;
 	  }
 	}
 	break;
