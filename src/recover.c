@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.22 1998/01/24 02:02:20 sdh Exp $
+ *  $Id: recover.c,v 1.23 1998/01/24 04:33:03 sdh Exp $
  */
 
 #include <stdio.h>
@@ -88,8 +88,9 @@ static int hacked_map_block_helper(unsigned long zone_index[],
     if (fsc->X2_INDIRECT) {
       blknr++;       /* Skip data for 2x indirect block */
       if (offset<(ZONES_PER_BLOCK*ZONES_PER_BLOCK)) {
-	/* Already skipped 2x, but need to adjust for any 1x's we're past */
-	*mapped_block = last_direct + blknr + (blknr+(ZONES_PER_BLOCK-1))/ZONES_PER_BLOCK;
+	/* Already skipped 2x, but need to adjust for any 1x's we're past, 
+	 * offset starts at 0, so always add 1 to offset/ZONES_PER_BLOCK */
+	*mapped_block = last_direct + blknr + (offset/ZONES_PER_BLOCK+1);
 	return EMB_NO_ERROR;
       }
       offset -= ZONES_PER_BLOCK*ZONES_PER_BLOCK;
@@ -100,8 +101,8 @@ static int hacked_map_block_helper(unsigned long zone_index[],
       if (offset<(ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK)) {
 	/* Need to multiple 2x indirect and any 1x's we're passed */
 	*mapped_block = last_direct + blknr +
-	  (blknr+(ZONES_PER_BLOCK*ZONES_PER_BLOCK-1))/ZONES_PER_BLOCK/ZONES_PER_BLOCK + /* num 2x's */
-	  (blknr+(ZONES_PER_BLOCK-1))/ZONES_PER_BLOCK;                                  /* num 1x's */
+	  (offset/ZONES_PER_BLOCK/ZONES_PER_BLOCK+1) + /* num 2x's */
+	  (offset/ZONES_PER_BLOCK+1);                 /* num 1x's */
 	return EMB_NO_ERROR;
       }
       offset -= ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK; 
@@ -133,7 +134,9 @@ static int hacked_map_block(unsigned long zone_index[],
 
   *mapped_block += *skipped_block;
 
-  /* Check for system/used blocks and skip */
+  /* Check for system/used blocks and skip 
+   * (system blocks will be marked used, duh!
+   *  FS_cmd.is_system_block seems like a waste) */
   while ( ((!lde_flags.search_all)&&FS_cmd.zone_in_use(*mapped_block)) ||
 	  FS_cmd.is_system_block(*mapped_block) ) {
     (*skipped_block)++;
