@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.31 1998/06/14 21:06:36 sdh Exp $
+ *  $Id: nc_lde.c,v 1.32 1998/08/11 03:58:20 sdh Exp $
  */
 
 #include <stdio.h>
@@ -1086,6 +1086,7 @@ void interactive_main(void)
     wbkgdset(trailer,WHITE_ON_BLUE);
 # endif
   
+  refresh_all();       /* NCurses 4.2 needs this refresh for some reason? */
   restore_header();
   
   while ( (c=next_cmd)||(c=lookup_key(mgetch(),main_keymap)) ) {
