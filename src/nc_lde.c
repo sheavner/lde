@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.6 1994/04/01 09:48:10 sdh Exp $
+ *  $Id: nc_lde.c,v 1.7 1994/04/04 04:22:28 sdh Exp $
  */
 
 #include "nc_lde.h"
@@ -89,6 +89,7 @@ int cread_num(char *coutput, long *a)
   return 0;
 }
 
+/* Displays up to two lines in the trailer window */
 void display_trailer(char *line1, char *line2)
 {
 #if TRAILER_SIZE>0
@@ -107,8 +108,8 @@ void update_header()
 #if HEADER_SIZE>0
   int j;
 
-  mvwprintw(header,HEADER_SIZE-1,HOFF,"Inode: %ld (0x%5.5lX)",current_inode,current_inode);
-  mvwprintw(header,HEADER_SIZE-1,HOFF+25,"Block: %ld (0x%5.5lX)",current_block,current_block);
+  mvwprintw(header,HEADER_SIZE-1,HOFF,"Inode: %lu (0x%5.5lX)",current_inode,current_inode);
+  mvwprintw(header,HEADER_SIZE-1,HOFF+25,"Block: %lu (0x%5.5lX)",current_block,current_block);
   for (j=0;j<fsc->N_BLOCKS;j++)
     if (fake_inode_zones[j]) 
       mvwaddch(header,HEADER_SIZE-1,HOFF+60+j,'-');
@@ -118,7 +119,7 @@ void update_header()
 #endif
 }
 
-/* This should clear out an old window */
+/* This should totally clear out an old window */
 void clobber_window(WINDOW *win)
 {
   werase(win);
@@ -167,8 +168,19 @@ void refresh_all()
   redraw_win(workspace);
 }
 
-void nc_warn(char *echo_string)
+/* Displays a warning string in the trailer window (if it is defined)
+ * and log the error for later */
+void nc_warn(char *fmt, ...)
 {
+  va_list argp;
+  char echo_string[132];
+
+  va_start(argp, fmt);
+  vsprintf(echo_string, fmt, argp);
+  va_end(argp);
+
+  log_error(echo_string);
+ 
   if (!quiet) beep();
 #if TRAILER_SIZE>0
   mvwaddstr(trailer,TRAILER_SIZE-1,(COLS-strlen(echo_string))/2-1,
@@ -180,9 +192,49 @@ void nc_warn(char *echo_string)
 #endif
 }
 
-/*
- * Display some help in a separate window
- */
+/* Dump the error log to a window */
+int error_popup()
+{
+  WINDOW *win;
+  int c, redraw, flag, present_error, i;
+
+  win = newwin(VERT,COLS,HEADER_SIZE,0);
+
+  flag = 1; c = 0;
+  while ((flag)||(c = getch())) {
+    flag = 0;
+    redraw = 0;
+    switch (c) {
+      case 'q':
+      case 'Q':
+        delwin(win);
+	refresh_all();
+        return ' ';
+	break;
+      case CTRL('L'):
+        refresh_all();
+        break;
+      case  0:
+	redraw = 1;
+	break;
+      default:
+	return c;
+	break;
+    }
+
+    wclear(win);
+    for (i=-1;((++i<VERT)&&(i<ERRORS_SAVED)); ) {
+      present_error = current_error  - i;
+      if (present_error<0) present_error += ERRORS_SAVED;
+      mvwprintw(win,i,0,error_save[present_error]);
+    }
+    wrefresh(win);
+  }
+
+  return 0;
+}
+
+/* Display some help in a separate window */
 void do_help()
 {
   WINDOW *win;
@@ -215,18 +267,19 @@ void show_super()
   
   mvwprintw(workspace,0,20,"Inodes:       %10ld (0x%8.8lX)",sb->ninodes, sb->ninodes);
   mvwprintw(workspace,1,20,"Blocks:       %10ld (0x%8.8lX)",sb->nzones, sb->nzones);
-  mvwprintw(workspace,2,20,"Firstdatazone:%10ld (N=%ld)",sb->first_data_zone,sb->norm_first_data_zone);
+  mvwprintw(workspace,2,20,"Firstdatazone:%10ld (N=%lu)",sb->first_data_zone,sb->norm_first_data_zone);
   mvwprintw(workspace,3,20,"Zonesize:     %10ld (0x%4.4lX)",sb->blocksize, sb->blocksize);
   mvwprintw(workspace,4,20,"Maximum size: %10ld (0x%8.8lX)",sb->max_size,sb->max_size);
   mvwprintw(workspace,6,20,"* Directory entries are %d characters.",sb->namelen);
-  mvwprintw(workspace,7,20,"* Inode map occupies %ld blocks.",sb->imap_blocks);
-  mvwprintw(workspace,8,20,"* Zone map occupies %ld blocks.",sb->zmap_blocks);
-  mvwprintw(workspace,9,20,"* Inode table occupies %ld blocks.",INODE_BLOCKS);
+  mvwprintw(workspace,7,20,"* Inode map occupies %lu blocks.",sb->imap_blocks);
+  mvwprintw(workspace,8,20,"* Zone map occupies %lu blocks.",sb->zmap_blocks);
+  mvwprintw(workspace,9,20,"* Inode table occupies %lu blocks.",INODE_BLOCKS);
   wrefresh(workspace);
 
   return;
 }
 
+/* Throw up a list of flags which the user can toggle */
 void flag_popup()
 {
   WINDOW *win;
@@ -247,7 +300,10 @@ void flag_popup()
 	break;
       case 'W':
       case 'w':
-        write_ok = 1 - write_ok;
+        if (!paranoid)
+	  write_ok = 1 - write_ok;
+	else
+	  warn("Device opened read only, do not specify '--paranoid' on the command line");
 	redraw = 1;
         break;
       case 'A':
@@ -280,6 +336,8 @@ void flag_popup()
   }
 }
 
+/* Query the user for a file name, then ask for confirmation,
+ * then dump the file from the list of inodes */
 void crecover_file(unsigned long inode_zones[])
 {
   int fp;
@@ -289,8 +347,7 @@ void crecover_file(unsigned long inode_zones[])
   if (recover_file_name[0] == 0) strcpy(recover_file_name,"RECOVERED.file");
 
   sprintf(recover_query," Write data to file:");
-  (void) cread_num(recover_query, NULL);
-  if (strlen(recover_file_name)>0) 
+  if (cread_num(recover_query, NULL)) 
     strncpy(recover_file_name, recover_query, 80);
 
   if ( (fp = open(recover_file_name,O_RDONLY)) > 0 ) {
@@ -307,19 +364,17 @@ void crecover_file(unsigned long inode_zones[])
 	fp = 0;
 	break;
       }
-  } else if ( (fp = open(recover_file_name,O_WRONLY|O_CREAT)) < 0 ) {
-    sprintf(recover_query,"Cannot open file '%s'\n",recover_file_name);
-    warn(recover_query);
-  }
+  } else if ( (fp = open(recover_file_name,O_WRONLY|O_CREAT)) < 0 )
+    warn("Cannot open file '%s'\n",recover_file_name);
+
   if (fp > 0) {
     recover_file(fp, inode_zones);
     close(fp);
-    sprintf(recover_query,"Recovered data written to '%s'",
-	    recover_file_name);
-    warn(recover_query);
+    warn("Recovered data written to '%s'", recover_file_name);
   }
 }
   
+/* This lists all the tagged inodes */
 int recover_mode()
 {
   int j,c,flag;
@@ -377,6 +432,10 @@ int recover_mode()
       case 'R':
       case 'r':
 	crecover_file(fake_inode_zones);
+	break;
+      case 'V':
+      case 'v':
+	c = flag = error_popup();
 	break;
     }
 
@@ -457,14 +516,6 @@ void interactive_main()
       case 'b':
         c = flag = block_mode();
         break;
-      case 'I':
-      case 'i':
-	c = flag = inode_mode();
-	break;
-      case 'R':
-      case 'r':
-	c = flag = recover_mode();
-	break;
       case 'F':
       case 'f':
 	flag_popup();
@@ -474,10 +525,22 @@ void interactive_main()
       case '?':
 	do_help();
 	break;
+      case 'I':
+      case 'i':
+	c = flag = inode_mode();
+	break;
       case 'q':
       case 'Q':
 	endwin();
 	return;
+	break;
+      case 'R':
+      case 'r':
+	c = flag = recover_mode();
+	break;
+      case 'V':
+      case 'v':
+	c = flag = error_popup();
 	break;
       case CTRL('L'):
 	refresh_all();

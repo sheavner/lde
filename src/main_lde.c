@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.4 1994/04/01 09:47:27 sdh Exp $
+ *  $Id: main_lde.c,v 1.5 1994/04/04 04:22:48 sdh Exp $
  */
 
 #include <unistd.h>
@@ -28,14 +28,11 @@ char *inode_buffer;
 unsigned char *inode_count = NULL;
 unsigned char *zone_count = NULL;
 
-void nc_warn();
-void tty_warn();
-
 struct sbinfo sb2, *sb = &sb2;
 struct fs_constants *fsc = NULL;
 
 int CURR_DEVICE = 0;
-int verbose = 0, list = 0;
+int paranoid = 0, list = 0;
 int write_ok = 0, quiet = 0;
 
 #define USAGE_STRING "[-VvIibBdcCStThH?] /dev/name\n"
@@ -56,6 +53,29 @@ volatile void fatal_error(const char * fmt_string)
 {
 	fprintf(stderr,fmt_string,program_name,device_name);
 	bye(1);
+}
+
+/* Check if device is mounted, return 1 if is else 0 */
+int check_mount(char *device_name)
+{
+  int fd;
+  char *mtab;
+  struct stat *statbuf = NULL;
+
+  fd = open("/etc/mtab",O_RDONLY);
+  fstat(fd, statbuf);
+
+  mtab = malloc(statbuf->st_size);
+  read(fd, mtab, statbuf->st_size);
+  close(fd);
+
+  if (strstr(mtab, device_name)) {
+    free(mtab);
+    return 1;
+  } else {
+    free(mtab);
+    return 0;
+  }
 }
 
 int check_root(void)
@@ -138,7 +158,7 @@ int main(int argc, char ** argv)
   
   int search_len = 0, fs_type = AUTODETECT;
   int count,idump_all=0,bdump_all=0;
-  int grep_mode = 0, paranoid = 0;
+  int grep_mode = 0;
   unsigned int idump=0,bdump=0,i,ddump=0;
   unsigned int search_all=0;
   char c;
@@ -157,11 +177,12 @@ int main(int argc, char ** argv)
       {"quiet", 0, 0, 'q'},
       {0, 0, 0, 0}
     };
-      
+
   warn = tty_warn;
 
   if (argc && *argv)
     program_name = *argv;
+
   while (1) {
     int option_index = 0;
 
@@ -175,7 +196,7 @@ int main(int argc, char ** argv)
       {
       case 'V': 
       case 'v':
-	printf("This is %s (version %s).\n",program_name,VERSION);
+	warn("This is %s (version %s).\n",program_name,VERSION);
 	exit(0);
 	break;
       case 'a':
@@ -216,7 +237,7 @@ int main(int argc, char ** argv)
 	  i++;
 	}
 	if (fs_type==AUTODETECT) {
-	  printf("`%s' type not recognized.\n",optarg);
+	  warn("`%s' type not recognized.",optarg);
 	  i = NONE;
 	  printf("Supported file systems include: ");
 	  while (text_names[i]) {
@@ -238,7 +259,7 @@ int main(int argc, char ** argv)
 	  }
 	}
 	if (!search_len) {
-	  printf("`%s' type not recognized.\n",optarg);
+	  warn("`%s' type not recognized.",optarg);
 	  i = -1;
 	  printf("Supported types include: ");
 	  while (strcmp(search_types[++i].name,"")) {
@@ -261,7 +282,7 @@ int main(int argc, char ** argv)
   }
 
   if ( (optind != argc - 1) || ( !(device_name = argv[optind]) ) ) {
-    printf("Illegal device name specified.\n");
+    warn("Illegal device name specified.");
     usage ();
   }
 
@@ -273,6 +294,8 @@ int main(int argc, char ** argv)
       printf ("\n");
       usage();
     }
+
+  if (check_mount(device_name)&&!paranoid) warn("DEVICE: %s is mounted, be careful",device_name);
 
 #ifndef PARANOID
   if (!paranoid)
@@ -287,26 +310,23 @@ int main(int argc, char ** argv)
     sync();
   read_tables(fs_type);
    if (ddump) {
-    verbose=0;
     if (ddump<sb->nzones) 
       ddump_block(ddump);
     bye(0);
   }
   if (bdump||bdump_all) {
     list=1;
-    verbose=1;
     if (bdump<sb->nzones) 
       if (bdump_all)
 	for (i=bdump;i<sb->nzones;i++) dump_block(i);
       else
 	dump_block(bdump);
     else
-      printf("Zone %d out of range.\n",bdump);
+      warn("Zone %d out of range.",bdump);
     bye(0);
   }
   if (idump||idump_all) {
     list=1;
-    verbose=1;
     if (idump==0) idump=1;
     if (idump<sb->ninodes) 
       if (idump_all)
@@ -314,7 +334,7 @@ int main(int argc, char ** argv)
       else
       	dump_inode(idump);
     else
-      printf("Inode %d out of range.\n",idump);
+      warn("Inode %d out of range.",idump);
     bye(0);
   }
   if (grep_mode) {
@@ -326,7 +346,7 @@ int main(int argc, char ** argv)
     search_fs(search_string, search_len);
     bye(0);
 #else
-    printf("Search function not implemented, recompile source with -DEMERGENCY\n");
+    warn("Search function not implemented, recompile source with -DEMERGENCY");
     bye(1);
 #endif
   }

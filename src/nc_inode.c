@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.1 1994/04/01 09:46:22 sdh Exp $
+ *  $Id: nc_inode.c,v 1.2 1994/04/04 04:21:58 sdh Exp $
  */
 
 #include "nc_lde.h"
@@ -50,8 +50,10 @@ void cwrite_inode(unsigned long inode_nr, struct Generic_Inode *GInode, int *mod
     else
       warning = "";
     
-    while ( (c = cquery("WRITE OUT INODE DATA TO DISK [Y/N]? ","ynfq",warning)) == 'f')
+    while ( (c = cquery("WRITE OUT INODE DATA TO DISK [Y/N]? ","ynfq",warning)) == 'f') {
       flag_popup();
+      if (write_ok) warning = "";
+    }
 
     refresh_all(); /* Have to refresh screen before write or error messages will be lost */
     if (c == 'y')
@@ -382,6 +384,7 @@ int inode_mode() {
   unsigned long flag;
   long a;
   struct Generic_Inode *GInode = NULL;
+  static unsigned char *copy_buffer = NULL;
   int edit_inode, modified, re_read_inode;
 
 #ifdef NCURSES_IS_COOL
@@ -530,6 +533,24 @@ int inode_mode() {
 	    }
 	    re_read_inode = 1;
 	  }
+	break;
+      case 'c':
+      case 'C':
+	if (!copy_buffer) copy_buffer = malloc(sizeof(struct Generic_Inode));
+	memcpy(copy_buffer,GInode,sizeof(struct Generic_Inode));
+	warn("Inode (%lu) copied into copy buffer.",current_inode);
+	break;
+      case 'p':
+      case 'P':
+	if (copy_buffer) {
+	  full_redraw = modified = 1;
+	  memcpy(GInode,copy_buffer,sizeof(struct Generic_Inode));
+	  if (!write_ok) warn("Turn on write permissions before saving this inode");
+	}
+	break;
+      case 'V':
+      case 'v':
+	c = flag = error_popup();
 	break;
       case( CTRL('W')):
 	edit_inode = 0;

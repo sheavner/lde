@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.h,v 1.1 1994/04/01 09:48:36 sdh Exp $
+ *  $Id: nc_lde.h,v 1.2 1994/04/04 04:23:03 sdh Exp $
  */
 
 #include "lde.h"
@@ -42,7 +42,8 @@ void clobber_window(WINDOW *win);
 void restore_header();
 void refresh_ht();
 void refresh_all();
-void nc_warn(char *echo_string);
+void nc_warn(char *fmt, ...);
+int error_popup();
 void do_help();
 void show_super();
 void flag_popup();

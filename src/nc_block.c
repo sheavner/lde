@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.1 1994/04/01 09:42:35 sdh Exp $
+ *  $Id: nc_block.c,v 1.2 1994/04/04 04:22:07 sdh Exp $
  */
 
 #include "nc_lde.h"
@@ -295,8 +295,10 @@ void cwrite_block(unsigned long block_nr, char *data_buffer, int *mod_yes)
     else
       warning = "";
     
-    while ( (c = cquery("WRITE OUT BLOCK DATA TO DISK [Y/N]? ","ynfq",warning)) == 'f')
+    while ( (c = cquery("WRITE OUT BLOCK DATA TO DISK [Y/N]? ","ynfq",warning)) == 'f') {
       flag_popup();
+      if (write_ok) warning = "";
+    }
 
     refresh_all(); /* Have to refresh screen before write or error messages will be lost */
     if (c == 'y')
@@ -330,10 +332,11 @@ void highlight_block(int cur_row,int cur_col,int win_start,unsigned char *block_
  * on the screen, next/previous block, paging this block, etc., etc. */
 int block_mode() {
   int c,flag,redraw;
-  static int win_start = 0;
-  static int cur_row = 0, cur_col = 0;
-  static int prev_row = 0, prev_col = 0;
-  unsigned char *block_buffer = NULL, *copy_buffer = NULL, warning_string[80];
+  int win_start = 0;
+  int cur_row = 0, cur_col = 0;
+  int prev_row = 0, prev_col = 0;
+  static unsigned char *copy_buffer = NULL;
+  unsigned char *block_buffer = NULL;
   unsigned long temp_ptr;
   long a;
 
@@ -478,13 +481,12 @@ int block_mode() {
       case 'l':
       case 'L':
 	if ( (temp_ptr = find_inode(current_block)) )
-	  sprintf(warning_string, "Block is indexed under inode 0x%lX.\n",temp_ptr);
+	  warn("Block is indexed under inode 0x%lX.",temp_ptr);
 	else
 	  if (rec_flags.search_all)
-	    sprintf(warning_string, "Unable to find inode referenece.\n");
+	    warn("Unable to find inode referenece.");
 	  else
-	    sprintf(warning_string, "Unable to find inode referenece try activating the --all option.\n");
-	warn(warning_string);
+	    warn("Unable to find inode referenece try activating the --all option.\n");
 	break;
       case '0':
       case '1':
@@ -509,16 +511,15 @@ int block_mode() {
       case 'C':
 	if (!copy_buffer) copy_buffer = malloc(sb->blocksize);
 	memcpy(copy_buffer,block_buffer,sb->blocksize);
-	warn("Block copied into copy buffer.");
+	warn("Block (%lu) copied into copy buffer.",current_block);
 	break;
       case 'p':
       case 'P':
-	modified = 1;
-	/* Need to use memcpy rather than just reassigning pointer because the next 
-	   read() will clobber block_buffer. */
-	memcpy(block_buffer, copy_buffer, sb->blocksize);
-	if (!write_ok) warn("Turn on write permissions before saving this block");
-	c = ' ';
+	if (copy_buffer) {
+	  modified = 1;
+	  memcpy(block_buffer, copy_buffer, sb->blocksize);
+	  if (!write_ok) warn("Turn on write permissions before saving this block");
+	}
 	break;
       case 'E':
       case 'e':
@@ -554,7 +555,7 @@ int block_mode() {
 	  current_inode = temp_ptr;
 	  return c;
 	} else
-	  warn("Inode out of range.");
+	  warn("Inode (%lu) out of range in block_mode().",temp_ptr);
 	break;
       case 'q':
       case 'Q':
@@ -565,6 +566,10 @@ int block_mode() {
       case 'r':
         cwrite_block(current_block, block_buffer, &modified);
 	return c;
+	break;
+      case 'V':
+      case 'v':
+	c = flag = error_popup();
 	break;
       case 'W':
       case 'w':

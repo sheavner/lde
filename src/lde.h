@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.8 1994/04/01 09:46:53 sdh Exp $
+ *  $Id: lde.h,v 1.9 1994/04/04 04:22:33 sdh Exp $
  */
 
 #include <stdio.h>
@@ -14,6 +14,14 @@
 #include <stdlib.h>
 #include <termios.h>
 #include <sys/stat.h>
+
+/* Which one do I want?????  I skimmed thought the vprintf man page
+ *  and settled on varargs, then ncurses implements the same thing
+ *  with stdarg??  I can't include both, and stdarg is included via
+ *  ncurses.h so until something breaks that's the way it will
+ *  stay. */
+/* #include <varargs.h> */
+#include <stdarg.h>
 
 #include <linux/fs.h>
 #include <linux/minix_fs.h>
@@ -32,9 +40,10 @@ extern char *device_name;
 volatile void fatal_error();
 void read_tables();
 int check_root();
-void (*warn)();
+void (*warn)(char *fmt, ...);
 /* tty_lde.c */
-void tty_warn();
+void log_error(char *echo_string);
+void tty_warn(char *fmt, ...);
 long read_num();
 char *cache_read_block();
 int write_block();
@@ -57,6 +66,7 @@ int XIAFS_test();
 void EXT2_init();
 int EXT2_test();
 /* nc_lde.c */
+void nc_warn(char *fmt, ...);
 void interactive_main();
 /* filemode.c */
 void mode_string();
@@ -150,6 +160,9 @@ struct Generic_Inode {
   unsigned long  i_reserved2[2];
 };
 
+/* These are the fields which might someday be recognized by inode
+ * mode, if both the file system and inode mode support the field you
+ * may define the field to be one, otherwise it should be zero. */
 struct inode_fields {
   char i_mode;
   char i_uid;
@@ -217,6 +230,7 @@ enum {
   I_END
 };
 
+/* Constants for each defined file system */
 struct fs_constants {
   int FS;
   int ROOT_INODE;
@@ -231,14 +245,23 @@ struct fs_constants {
   struct inode_fields * inode;
 };
 
+/* File system specific commands */
 struct {
-	int (*inode_in_use)();		/* File mode */
-	int (*zone_in_use)();		/* File mode */
-	char* (*dir_entry)();           /* Get dir name and inode number */
-	struct Generic_Inode* (*read_inode)();
-	int (*write_inode)();
+  /* Check if inode is marked in use */
+  int (*inode_in_use)();
+  /* Check if data zone/block is marked in use */
+  int (*zone_in_use)();
+  /* Check if data zone/block is marked in bad -- not implemented in v2.2 yet */
+  int (*zone_is_bad)();
+  /* Get dir name and inode number */
+  char* (*dir_entry)();
+  /* Copies the FS specific inode into a generic inode structure */
+  struct Generic_Inode* (*read_inode)();
+  /* Copies the generic inode to a FS specific one, then write it to disk */
+  int (*write_inode)();
 } FS_cmd;
 
+/* Flags which will control file recovery */
 struct _rec_flags {
   int search_all;
 } rec_flags;
@@ -246,10 +269,11 @@ struct _rec_flags {
 extern struct sbinfo *sb;
 extern struct fs_constants *fsc;
 
-#define INODE_BLOCKS (unsigned long) ((sb->ninodes+((sb->INODES_PER_BLOCK)-1))/(sb->INODES_PER_BLOCK))
-#define INODE_BUFFER_SIZE (unsigned long) ( INODE_BLOCKS * sb->blocksize )
+#define INODE_BLOCKS ( (unsigned long) ((sb->ninodes+((sb->INODES_PER_BLOCK)-1))/(sb->INODES_PER_BLOCK)) )
+#define INODE_BUFFER_SIZE ( (unsigned long) ( INODE_BLOCKS * sb->blocksize ) )
 #define ZONES_PER_BLOCK (sb->blocksize/fsc->ZONE_ENTRY_SIZE)
 
+/* Pull some maps off the disk into memory */
 extern char *inode_map;
 extern char *zone_map;
 extern char *bad_map;
@@ -257,8 +281,16 @@ extern char *inode_buffer;
 extern unsigned char *inode_count;
 extern unsigned char *zone_count;
 
+/* The current device file descriptor */
 extern int CURR_DEVICE;
-extern int verbose, list, write_ok, quiet;  
+
+/* Some flags */
+extern int paranoid, list, write_ok, quiet;  
+
+/* Error logging functionality */
+#define ERRORS_SAVED 24
+extern char error_save[ERRORS_SAVED][132];
+extern int current_error;
 
 /* This bitop stuff is straight out of the original fsck code for the minix fs. */
 #define bitop(name,op) \

@@ -3,7 +3,7 @@
 *
 *  Copyright (C) 1994  Scott D. Heavner
 *
-*  $Id: ext2fs.c,v 1.6 1994/04/01 09:43:00 sdh Exp $
+*  $Id: ext2fs.c,v 1.7 1994/04/04 04:22:54 sdh Exp $
 *
 *  The following routines were taken almost verbatim from
 *  the e2fsprogs-0.4a package by Remy Card. 
@@ -27,6 +27,8 @@
 #undef  EXT2_DESC_PER_BLOCK
 #define EXT2_DESC_PER_BLOCK  (sb->blocksize / sizeof(struct ext2_group_desc))
 
+/* Haven't defined ACL and stuff because inode mode doesn't do anything with them. */
+/* Should probably see what flags is, sorry, but I don't claim to be an ext2fs guru. */
 struct inode_fields EXT2_inode_fields = {
   1, /*   unsigned short i_mode; */
   1, /*   unsigned short i_uid; */
@@ -106,7 +108,7 @@ struct Generic_Inode *EXT2_read_inode (unsigned long ino)
   EXT2_last_inode = ino;
 
   if ((ino<1)||(ino>sb->ninodes)) {
-    warn("inode out of range in EXT2_read_inode");
+    warn("inode (%lu) out of range in EXT2_read_inode", ino);
     EXT2_last_inode = ino = 1;
   }
 
@@ -122,8 +124,8 @@ int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode)
   unsigned long blknr;
 
   blknr = EXT2_map_inode(ino);
-  inode_buffer = cache_read_block(EXT2_map_inode(ino),CACHEABLE);
-  memcpy ( INODE_POINTER, &GInode, sizeof (struct ext2_inode));
+  inode_buffer = cache_read_block(blknr,CACHEABLE);
+  memcpy ( INODE_POINTER, GInode, sizeof (struct ext2_inode));
 
   return write_block( blknr, inode_buffer);
 }
@@ -228,7 +230,6 @@ void EXT2_read_tables()
   int isize, addr_per_block, inode_blocks_per_group;
   unsigned long group_desc_size;
   unsigned long desc_blocks;
-  char notify[100];
   long desc_loc;
   
   if (inode_map) free(inode_map);
@@ -284,13 +285,12 @@ void EXT2_read_tables()
      if (!bad_map)
      die ("Unable to allocate bad block bitmap");
      memset (bad_map, 0, ((sb->nzones - FIRSTBLOCK) / 8) + 1);
-     */
+   */
   
   if (NORM_FIRSTBLOCK != FIRSTBLOCK) {
-    sprintf(notify, "Warning: First block (%lu)"
-	    " != Normal first block (%lu)\n",
+    warn("Warning: First block (%lu)"
+	    " != Normal first block (%lu)",
 	    FIRSTBLOCK, NORM_FIRSTBLOCK);
-    warn(notify);
   }
 }
 
@@ -337,7 +337,7 @@ void EXT2_init(char * sb_buffer)
 int EXT2_test(char * sb_buffer)
 {
    if (Super.s_magic == EXT2_SUPER_MAGIC) {
-     printf("Found ext2fs on device.\n");
+     warn("Found ext2fs on device.");
      return 0;
    }
    return -1;

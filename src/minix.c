@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.4 1994/04/01 09:42:53 sdh Exp $
+ *  $Id: minix.c,v 1.5 1994/04/04 04:22:41 sdh Exp $
  */
 
 /* 
@@ -13,8 +13,9 @@
  
 #include "lde.h"
 
+/* Make sure the locate var inode_nr is defined when using Inode */
 #undef Inode
-#define Inode (((struct minix_inode *) inode_buffer)-1+nr)
+#define Inode (((struct minix_inode *) inode_buffer)-1+inode_nr)
 
 #undef Super
 #define Super (*(struct minix_super_block *)sb_buffer)
@@ -72,19 +73,19 @@ struct fs_constants MINIX_constants = {
   &MINIX_inode_fields,          /* struct * inode_fields */
 };
 
-struct Generic_Inode* MINIX_read_inode(unsigned long nr)
+struct Generic_Inode* MINIX_read_inode(unsigned long inode_nr)
 {
   static struct Generic_Inode GInode;
   static unsigned long MINIX_last_inode = -1L; 
   int i;
 
-  if ((nr<1)||(nr>sb->ninodes)) {
-    warn("inode out of range in MINIX_read_inode");
+  if ((inode_nr<1)||(inode_nr>sb->ninodes)) {
+    warn("inode (%lu) out of range in MINIX_read_inode",inode_nr);
     return NOFS_init_junk_inode();
   }
 
-  if (MINIX_last_inode == nr) return &GInode;
-  MINIX_last_inode = nr;
+  if (MINIX_last_inode == inode_nr) return &GInode;
+  MINIX_last_inode = inode_nr;
 
   GInode.i_mode        = (unsigned short) Inode->i_mode;
   GInode.i_uid         = (unsigned short) Inode->i_uid;
@@ -104,7 +105,7 @@ struct Generic_Inode* MINIX_read_inode(unsigned long nr)
   return &GInode;
 }
 
-int MINIX_write_inode(unsigned long nr, struct Generic_Inode *GInode)
+int MINIX_write_inode(unsigned long inode_nr, struct Generic_Inode *GInode)
 {
   unsigned long bnr;
   int i;
@@ -119,24 +120,24 @@ int MINIX_write_inode(unsigned long nr, struct Generic_Inode *GInode)
   for (i=0; i<MINIX_constants.N_BLOCKS; i++)
     Inode->i_zone[i] = (unsigned short) GInode->i_zone[i];
 
-  bnr = (nr-1)/sb->INODES_PER_BLOCK + sb->imap_blocks + 2 + sb->zmap_blocks;
+  bnr = (inode_nr-1)/sb->INODES_PER_BLOCK + sb->imap_blocks + 2 + sb->zmap_blocks;
 
-  return write_block( bnr, (struct minix_inode *) inode_buffer+((nr-1)/sb->INODES_PER_BLOCK) );   
+  return write_block( bnr, (struct minix_inode *) inode_buffer+((inode_nr-1)/sb->INODES_PER_BLOCK) );   
 }
 
-int MINIX_inode_in_use(unsigned long nr)
+int MINIX_inode_in_use(unsigned long inode_nr)
 {
-  if ((!nr)||(nr>sb->ninodes)) nr = 1;
-  return bit(inode_map,nr);
+  if ((!inode_nr)||(inode_nr>sb->ninodes)) inode_nr = 1;
+  return bit(inode_map,inode_nr);
 }
 
-int MINIX_zone_in_use(unsigned long nr)
+int MINIX_zone_in_use(unsigned long inode_nr)
 {
-  if (nr < sb->first_data_zone) 
+  if (inode_nr < sb->first_data_zone) 
     return 1;
-  else if ( nr > sb->nzones )
+  else if ( inode_nr > sb->nzones )
     return 0;
-  return bit(zone_map,(nr-sb->first_data_zone+1));
+  return bit(zone_map,(inode_nr-sb->first_data_zone+1));
 }
 
 char *MINIX_dir_entry(int i, char *block_buffer, unsigned long *inode_nr)
@@ -168,45 +169,44 @@ void MINIX_sb_init(char * sb_buffer)
 
 void MINIX_read_tables()
 {
+  /* Allocate space */
   if (inode_map) free(inode_map);
   if (zone_map) free(zone_map);
+  if (inode_buffer) free(inode_buffer);
 
   inode_map = malloc(sb->blocksize*sb->I_MAP_SLOTS);
   zone_map = malloc(sb->blocksize*sb->Z_MAP_SLOTS);
+  inode_buffer = malloc(INODE_BUFFER_SIZE);
 
-  memset(inode_map,0,sb->blocksize*sb->I_MAP_SLOTS);
-  memset(zone_map,0,sb->blocksize*sb->Z_MAP_SLOTS);
-  
+  if ((!inode_buffer)||(!zone_map)||(!inode_map))
+    die("Unable to allocate buffer space in MINIX_read_tables()");
+
+  /* Check super block info, don't die here -- just print warnings */
   if (sb->zonesize != 0 || sb->blocksize != 1024)
-    die("Only 1k blocks/zones supported");
+    warn("Only 1k blocks/zones supported");
   
   if (!sb->imap_blocks || sb->imap_blocks > sb->I_MAP_SLOTS)
-    die("bad s_imap_blocks field in super-block");
+    warn("bad s_imap_blocks field in super-block");
   
   if (!sb->zmap_blocks || sb->zmap_blocks > sb->Z_MAP_SLOTS)
-    die("bad s_zmap_blocks field in super-block");
-  
-  inode_buffer = malloc(INODE_BUFFER_SIZE);
-  
-  if (!inode_buffer)
-    die("Unable to allocate buffer for inodes");
+    warn("bad s_zmap_blocks field in super-block");
 
-  inode_count = malloc(sb->ninodes);
-  if (!inode_count)
-    die("Unable to allocate buffer for inode count");
-
-  zone_count = malloc(sb->nzones);
-  if (!zone_count)
-    die("Unable to allocate buffer for zone count");
-
-  if (sb->imap_blocks*sb->blocksize != read(CURR_DEVICE,inode_map,sb->imap_blocks*sb->blocksize))
-    die("Unable to read inode map");
-  if (sb->zmap_blocks*sb->blocksize != read(CURR_DEVICE,zone_map,sb->zmap_blocks*sb->blocksize))
-    die("Unable to read zone map");
-  if (INODE_BUFFER_SIZE != read(CURR_DEVICE,inode_buffer,INODE_BUFFER_SIZE))
-    die("Unable to read inodes");
   if (sb->norm_first_data_zone != sb->first_data_zone)
-    printf("Warning: Firstzone != Norm_firstzone\n");
+    warn("Warning: Firstzone != Norm_firstzone");
+
+  /* Now read in tables */
+  if (sb->imap_blocks*sb->blocksize != read(CURR_DEVICE,inode_map,sb->imap_blocks*sb->blocksize)) {
+    warn("Unable to read inode map");
+    bzero(inode_map, sb->imap_blocks*sb->blocksize);
+  }
+  if (sb->zmap_blocks*sb->blocksize != read(CURR_DEVICE,zone_map,sb->zmap_blocks*sb->blocksize)) {
+    warn("Unable to read zone map");
+    bzero(zone_map, sb->zmap_blocks*sb->blocksize);
+  }
+  if (INODE_BUFFER_SIZE != read(CURR_DEVICE,inode_buffer,INODE_BUFFER_SIZE)) {
+    warn("Unable to read inodes");
+    bzero(inode_buffer, INODE_BUFFER_SIZE);
+  }
 }
 
 void MINIX_init(char * sb_buffer)
@@ -215,6 +215,7 @@ void MINIX_init(char * sb_buffer)
 
   MINIX_sb_init(sb_buffer);
 
+  /* Support for original and 30 char directories */
   if (sb->magic == MINIX_SUPER_MAGIC) {
     sb->namelen = 14;
     sb->dirsize = 16;
@@ -237,7 +238,7 @@ void MINIX_init(char * sb_buffer)
 int MINIX_test(char * sb_buffer)
 {
    if ((Super.s_magic == MINIX_SUPER_MAGIC)||(Super.s_magic == MINIX_SUPER_MAGIC2)) {
-     printf("Found a minixfs on device.\n");
+     warn("Found a minixfs on device.");
      return 0;
    }
    return -1;

@@ -3,14 +3,34 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.7 1994/04/02 16:16:10 sdh Exp $
+ *  $Id: tty_lde.c,v 1.8 1994/04/04 04:22:16 sdh Exp $
  */
 
 #include "lde.h"
 
-void tty_warn(char *warn_string)
+/* We don't need no stinkin' linked list */
+char error_save[ERRORS_SAVED][132];
+int current_error = -1;
+
+/* Stores errors/warnings */
+void log_error(char *echo_string)
 {
-  printf("%s\n",warn_string);
+  if ((++current_error)>=ERRORS_SAVED) current_error=0;
+  strncpy(error_save[current_error], echo_string, 132);
+}
+
+/* Immediate printing of warnings and errors to standard out */
+void tty_warn(char *fmt, ...)
+{
+  va_list argp;
+  char echo_string[132];
+
+  va_start(argp, fmt);
+  vsprintf(echo_string, fmt, argp);
+  va_end(argp);
+
+  log_error(echo_string);
+  printf("%s\n",echo_string);
 }
 
 /* This reads a long int from the user.  It recognizes indicators as to the 
@@ -51,13 +71,13 @@ char * cache_read_block (unsigned long block_nr, int force)
     {
       cache_block_nr = block_nr;
       memset(cache,0,sb->blocksize);
-
+      
       if (lseek (CURR_DEVICE, cache_block_nr * sb->blocksize, SEEK_SET) !=
-	       cache_block_nr * sb->blocksize) {                          
-	warn("Read error: unable to seek to block in cache_read_block ");
-      } else if ( (read_count = read (CURR_DEVICE, cache, sb->blocksize)) != sb->blocksize) {
+	  cache_block_nr * sb->blocksize)                          
+	warn("Read error: unable to seek to block  in cache_read_block", block_nr);
+      else if ( (read_count = read (CURR_DEVICE, cache, sb->blocksize)) != sb->blocksize) {
 	if ((sb->nzones != block_nr) && (read_count != sb->last_block_size)) 
-	  warn("Unable to read full block in cache_read_block");
+	  warn("Unable to read full block (%lu) in cache_read_block",block_nr);
       }
     }
   return cache;
@@ -68,13 +88,13 @@ int write_block (unsigned long block_nr, char *data_buffer)
   int write_count;
 
   if (!write_ok) {
-    warn("Disk not writable, block not written");
+    warn("Disk not writable, block (%lu) not written",block_nr);
     return -1;
   }
 #ifndef PARANOID
   if (lseek (CURR_DEVICE, block_nr * sb->blocksize, SEEK_SET) !=
       block_nr * sb->blocksize) {
-    warn("Write error: unable to seek to block in write_block ");
+    warn("Write error: unable to seek to block (%lu) in write_block", block_nr);
     return -1;
   } else {
     if (sb->nzones == block_nr) 
@@ -82,7 +102,7 @@ int write_block (unsigned long block_nr, char *data_buffer)
     else
       write_count = sb->blocksize;
     if (write (CURR_DEVICE, data_buffer, write_count) != write_count) {
-      warn("write failed in write_block");
+      warn("Write error: unable to write block (%d) in write_block",block_nr);
       return -1;
     }
   }
