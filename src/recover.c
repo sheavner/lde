@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.19 1998/01/17 17:45:37 sdh Exp $
+ *  $Id: recover.c,v 1.20 1998/01/18 06:35:06 sdh Exp $
  */
 
 #include <stdio.h>
@@ -34,6 +34,82 @@ unsigned long block_pointer(unsigned char *ind,
   }
 }
 
+#ifdef ALPHA_CODE
+/* Try to work around Linux <= 2.0.33 bug */ 
+/* This is used to pull the correct block from the inode block table which
+ * should have been copied into zone_index */
+int hacked_map_block(unsigned long zone_index[], unsigned long blknr,
+		     unsigned long *mapped_block)
+{
+  long last_direct = 0, i, offset = 0;
+
+  *mapped_block = 0UL;
+  offset = blknr;
+
+  if (fsc->N_DIRECT) {
+    /* Direct blocks: Same as map_block() */
+    if (blknr<fsc->N_DIRECT) {
+      *mapped_block = zone_index[blknr];
+      if ( zone_index[blknr] < sb->nzones ) {
+	return (EMB_NO_ERROR);
+      } else {
+	return (EMB_DIRECT_RANGE);
+      }
+    }
+    offset -= fsc->N_DIRECT;
+    blknr  -= (fsc->N_DIRECT-1); /* This is the only place I subtract from 
+				  * blknr: want to reference from last used
+				  * direct block */
+  } else {
+    /* If no direct block we're hosed */
+    return (EMB_WAY_OUT_OF_RANGE);
+  }    
+  
+  /* Need to find last used direct block */
+  for (i=0; i<fsc->N_DIRECT; i++)
+    if (zone_index[i])
+      last_direct = zone_index[i];
+    
+  /* If no used directs, we're really screwed */
+  if (last_direct) {
+    if (fsc->INDIRECT) {
+      blknr++;       /* Skip data for indirect block */   
+      if (offset<ZONES_PER_BLOCK) {
+	/* Skip indirect block contents */
+	*mapped_block = last_direct + blknr;
+	return EMB_NO_ERROR;
+      }
+      offset -= ZONES_PER_BLOCK;
+    }
+    if (fsc->X2_INDIRECT) {
+      blknr++;       /* Skip data for 2x indirect block */
+      if (offset<(ZONES_PER_BLOCK*ZONES_PER_BLOCK)) {
+	/* Already skipped 2x, but need to adjust for any 1x's we're past */
+	*mapped_block = last_direct + blknr + (blknr+(ZONES_PER_BLOCK-1))/ZONES_PER_BLOCK;
+	return EMB_NO_ERROR;
+      }
+      offset -= ZONES_PER_BLOCK*ZONES_PER_BLOCK;
+      blknr  += ZONES_PER_BLOCK;   /* There were ZONES_PER_BLOCK indirect index blocks we skipped over */ 
+    }
+    if (fsc->X3_INDIRECT) {
+      blknr++;       /* Skip data for 3x indirect block */
+      if (offset<(ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK)) {
+	/* Need to multiple 2x indirect and any 1x's we're passed */
+	*mapped_block = last_direct + blknr +
+	  (blknr+(ZONES_PER_BLOCK*ZONES_PER_BLOCK-1))/ZONES_PER_BLOCK/ZONES_PER_BLOCK + /* num 2x's */
+	  (blknr+(ZONES_PER_BLOCK-1))/ZONES_PER_BLOCK;                                  /* num 1x's */
+	return EMB_NO_ERROR;
+      }
+      offset -= ZONES_PER_BLOCK*ZONES_PER_BLOCK*ZONES_PER_BLOCK; 
+      blknr  += ZONES_PER_BLOCK*ZONES_PER_BLOCK + ZONES_PER_BLOCK; 
+    }
+  }
+
+  /* Nothing */
+  return (EMB_WAY_OUT_OF_RANGE);
+}
+#endif
+
 /* This is used to pull the correct block from the inode block table which
  * should have been copied into zone_index */
 int map_block(unsigned long zone_index[], unsigned long blknr,
@@ -56,7 +132,6 @@ int map_block(unsigned long zone_index[], unsigned long blknr,
 
     blknr -= fsc->N_DIRECT;
   }
-
 
   /* Ok, it wasn't a direct block.  Move on to indirect block(s) */
   if (fsc->INDIRECT) {
@@ -271,59 +346,99 @@ int advance_zone_pointer(unsigned long zone_index[], unsigned long *currblk,
  * map is zero, I will dump block zero, in any other position,
  * it signals the end of the map.
  */
-void recover_file(int fp,unsigned long zone_index[])
+int recover_file(int fp,unsigned long zone_index[],unsigned long filesize)
 {
   unsigned char *dind;
-  unsigned long nr;
+  unsigned long nr, written=0UL;
   int j, result;
   size_t write_count;
 
   j = 0;
   lde_flags.quit_now = 0;
   while (1) {
-    if (lde_flags.quit_now)
-      break;
-    if ((result=map_block(zone_index,j,&nr))) {
+
+    /* User has pressed ctrl-c, abort recover */
+    if (lde_flags.quit_now) {
+      lde_warn("User aborted recovery, partial data may have been written to file.");
+      return -2;
+    }
+
+    /* Lookup block number from inode */
+#ifdef ALPHA_CODE
+    if (lde_flags.blanked_indirects) 
+      result = hacked_map_block(zone_index,j,&nr);
+    else 
+#endif
+      result=map_block(zone_index,j,&nr);
+
+    /* Block successfully looked up? */
+    if (result) {
       if (result < EMB_HALT) {
-	break;
+	return 0;  /* we hit last entry in this inode, return success */
       } else if (result < EMB_SKIP ) {
-	j = nr;
+	j = nr;    /* block has zero entry, go back and get another one */
 	continue;
       } else {
-	nr = 0UL;
+	nr = 0UL;  /* Don't do any processing on this block, but fall 
+		    * through to increment j */
       }
     }
 
-    dind = cache_read_block(nr,NULL,CACHEABLE);
+    /* Have a valid block number? */
     if (nr) {
+      /* Read data from disk */
+      dind = cache_read_block(nr,NULL,CACHEABLE);
+      /* Check for small block if we opened a file instead of a device */
       write_count = (size_t) lookup_blocksize(nr);
-      /* lde_warn("Setting write count block size %d",write_count); */
+      /* Add what we're about to write to total written */
+      written += write_count;
+      /* If gone to far, don't want to write out all this data */
+      if ((filesize)&&(written>filesize))
+	write_count -= written - filesize;
+      /* Write out data to recovery file */
       if (write (fp, dind, write_count) != write_count) {
 	lde_warn("Write error: unable to write block (%ld) to recover file, recover aborted",nr);
-	return;
+	return -1;
       }
+      /* Quit when we've written enough */
+      if ((filesize)&&(written>=filesize))
+	return 0;
     }
     j++;
   }
+
+  return 0;
 }
 
 /* Goes through and checks to see if the file can be recovered.  I.e. is another
  * file using blocks that were once used by this inode */
-int check_recover_file(unsigned long zone_index[])
+int check_recover_file(unsigned long zone_index[],unsigned long filesize)
 {
-  unsigned long nr, lookedup=0UL;
+  unsigned long nr, lookedup=0UL, checked=0UL;
   int j, result, cr_result = 0;
-  
   j = 0;
   lde_flags.quit_now = 0;
 
   while (1) {
+    /* Stop if we specified a filesize and have covered that many blocks */
+    if ((filesize)&&(checked>filesize))
+      break;
+    
+    /* Terminate search on ^C */
     if (lde_flags.quit_now) {
       lde_flags.quit_now = 0;
       lde_warn("Search terminated.");
       return 1;
     }
-    if ((result=map_block(zone_index,j,&nr))) {
+
+#ifdef ALPHA_CODE
+    if (lde_flags.blanked_indirects) 
+      result = hacked_map_block(zone_index,j,&nr);
+    else 
+#endif
+      result=map_block(zone_index,j,&nr);
+
+    if (result) {
       if (result < EMB_HALT) {
 	break;
       } else if (result < EMB_SKIP ) {
@@ -332,7 +447,10 @@ int check_recover_file(unsigned long zone_index[])
       } else {
 	nr = 0UL;
       }
+    } else {
+      checked += lookup_blocksize(nr);
     }
+
     if ((nr)&&FS_cmd.zone_in_use(nr)) {
       lde_warn("Block %ld (0x%lX) in use by another file. Hit any key to continue (q=abort, l=lookup inode).",nr,nr);
       result = mgetch();
@@ -501,7 +619,7 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 	      if (lde_flags.check_recover) {
 		lde_warn = no_warn;  /* Suppress output */
 		GInode = FS_cmd.read_inode(nr);
-		printf(", recovery %spossible",(check_recover_file(GInode->i_zone)?"":"NOT ") );
+		printf(", recovery %spossible",(check_recover_file(GInode->i_zone,GInode->i_size)?"":"NOT ") );
 		lde_warn = tty_warn; /* Reinstate output */
 	      }
 	    } else {

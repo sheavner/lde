@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.17 1998/01/17 17:45:39 sdh Exp $
+ *  $Id: tty_lde.c,v 1.18 1998/01/18 06:35:09 sdh Exp $
  */
 
 #include <stdio.h>
@@ -187,11 +187,9 @@ int write_block(unsigned long block_nr, void *data_buffer)
 /* Dumps a blocks data to stdout, similar to cat or dd */
 void ddump_block(unsigned long nr)
 {
-  int i;
   unsigned char *dind;
 
   dind = cache_read_block(nr,NULL,CACHEABLE);
-  /* for (i=0;i<(int)lookup_blocksize(nr);i++) printf("%c",dind[i]); */
   fwrite(dind, lookup_blocksize(nr), 1, stdout);
 }
 
@@ -228,7 +226,6 @@ void dump_block(unsigned long nr)
     j++;
   }
 
-  /* printf("\n"); /* This will leave a space between successive blocks */
 }
 
   
@@ -238,8 +235,8 @@ void dump_inode(unsigned long nr)
   int j;
   char f_mode[12];
   struct Generic_Inode *GInode;
-  struct passwd *NC_PASS;
-  struct group *NC_GROUP;
+  struct passwd *NC_PASS = NULL;
+  struct group *NC_GROUP = NULL;
 
   GInode = FS_cmd.read_inode(nr);
 
@@ -290,7 +287,7 @@ void dump_inode(unsigned long nr)
 
   /*--- LINKS on a line ---*/
   if (fsc->inode->i_links_count)
-    printf("LINKS:                 %d\n");
+    printf("LINKS:                 %d\n", GInode->i_links_count);
 
   /*--- MODE on a line ---*/
   if ( (fsc->inode->i_mode) || (fsc->inode->i_mode_flags) ) {

@@ -3,15 +3,15 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.h,v 1.7 1996/11/18 17:03:21 sdh Exp $
+ *  $Id: recover.h,v 1.8 1998/01/18 06:35:08 sdh Exp $
  */
 
 unsigned long block_pointer(unsigned char *ind, unsigned long blknr, int zone_entry_size);
 int map_block(unsigned long zone_index[], unsigned long blknr, unsigned long *mapped_block);
 int advance_zone_pointer(unsigned long zone_index[], unsigned long *currblk,
                      unsigned long *ipointer, long increment);
-void recover_file(int fp,unsigned long zone_index[]);
-int check_recover_file(unsigned long zone_index[]);
+int recover_file(int fp,unsigned long zone_index[], unsigned long filesize);
+int check_recover_file(unsigned long zone_index[], unsigned long);
 unsigned long find_inode(unsigned long nr, unsigned long last_nr);
 void parse_grep(void);
 void search_fs(unsigned char *search_string, int search_len, int search_off, unsigned long start_nr);

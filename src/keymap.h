@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1995  Scott D. Heavner
  *
- *  $Id: keymap.h,v 1.7 1998/01/17 17:44:17 sdh Exp $
+ *  $Id: keymap.h,v 1.8 1998/01/18 06:34:46 sdh Exp $
  *
  */
 #ifndef KEYMAP_H
@@ -25,6 +25,8 @@ typedef struct _lde_menu {
 enum lde_actions { 
   /* Codes valid in all modes */
   CMD_NO_ACTION=1,          /* Do nothing */
+  CMD_ANY_ACTION,           /* Do more than nothing (CMD_NO_ACTION can abort rest of loop,
+			     * CMD_ANY_ACTION must complete entire loop) */
   CMD_EXIT_PROG,            /* Quit program */
   CMD_EXIT,                 /* Exit popup or local mode */
   CMD_REFRESH,              /* Refresh screen */
@@ -87,7 +89,10 @@ enum lde_actions {
   REC_FILE12,
   REC_FILE13,
   REC_FILE14,                /* Last block in inode's recovery list */
-  REC_FILE_LAST=REC_FILE14+1
+  REC_FILE_LAST=REC_FILE14+1,
+  REC_FILE_SIZE,             /* Size of file to recover */ 
+
+  LAST_DEF_COMMAND
 };
 
 extern lde_keymap global_keymap[];

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994,1995  Scott D. Heavner
  *
- *  $Id: nc_lde_help.h,v 1.6 1998/01/17 18:08:58 sdh Exp $
+ *  $Id: nc_lde_help.h,v 1.7 1998/01/18 06:35:05 sdh Exp $
  *
  */
 #ifndef LDE_NC_LDE_HELP_H
@@ -153,6 +153,8 @@ static lde_keymap recover_keymap[] = {
   { 'R', CMD_DO_RECOVER },
   { 'u', CMD_CLR_RECOVER },
   { 'U', CMD_CLR_RECOVER },
+  { 'n', REC_FILE_SIZE },
+  { 'N', REC_FILE_SIZE },
   { 'c', CMD_CHECK_RECOVER },
   { 'C', CMD_CHECK_RECOVER },
   { 0, 0 }

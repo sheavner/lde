@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.20 1998/01/17 17:45:08 sdh Exp $
+ *  $Id: main_lde.c,v 1.21 1998/01/18 06:34:53 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -16,8 +16,6 @@
 #include <time.h>
 
 #include <sys/stat.h>
-
-#include <gpm.h>
 
 #include "lde.h"
 #include "ext2fs.h"
@@ -76,7 +74,10 @@ struct fs_constants *fsc = NULL;
 
 int CURR_DEVICE = 0;
 volatile struct _lde_flags lde_flags = 
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } ;
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } ;
+
+void (*lde_warn)(char *fmt, ...);
+int  (*mgetch)(void);
 
 
 /* Check if device is mounted, return 1 if is mounted else 0 */
@@ -160,7 +161,7 @@ void die(char *msg)
   exit(1);
 }
 
-#define USAGE_STRING "[-VvIibBdfcCStTLOhH?] /dev/name"
+#define USAGE_STRING "[-vIibBdfcCStTLOhH?] {/dev/name}"
 static void usage(void)
 {
   fprintf(stderr,"Usage: %s %s\n",program_name,USAGE_STRING);
@@ -170,26 +171,32 @@ static void usage(void)
 static void long_usage(void)
 {
   fprintf(stderr,"This is %s (version %s), Usage %s %s\n",program_name,VERSION,program_name,USAGE_STRING);
-  fprintf(stderr,"   -i ##:       Dump inode number # to stdout (-I all inodes after #) \n");
-  fprintf(stderr,"   -b ##:       Dump block number # to stdout (-B all blocks after #)\n");
-  fprintf(stderr,"   -N ##:       Number of blocks to dump (using -I or -B option)\n");
-  fprintf(stderr,"   -d ##:       Dump block's data to stdout (binary format)\n");
-  fprintf(stderr,"   -S string:   Search disk for data (questionable)\n");
-  fprintf(stderr,"   -T type:     Search disk for data. type = {gz, tgz, script, or use filename}\n");
-  fprintf(stderr,"   -L ##:             Search length (when using specified filename)\n");
-  fprintf(stderr,"   -O ##:             Search offset (when using specified filename)\n");
-  fprintf(stderr,"   -N ##:             Starting search block (defaults to first data zone)\n");
-  fprintf(stderr,"   --indirects:       Search filesystem for things that look like indirect blocks.\n");
-  fprintf(stderr,"   --ilookup:         Lookup inodes for all matches when searching (also use with -b).\n");
-  fprintf(stderr,"   --recoverable:     Check to see if inode is recoverable (requires --ilookup or -i/-I).\n");
-  fprintf(stderr,"   -t fstype:   Overide the autodetect. fstype = {no, minix, xiafs, ext2fs, msdos}\n");
-  fprintf(stderr,"   --help:      Output this screen\n");
-  fprintf(stderr,"   --paranoid:  Open the device read only.\n");
-  fprintf(stderr,"   --append:    Always append to recovery file (if file exists).\n");
-  fprintf(stderr,"   --quiet:     Turn off warning beeps.\n");
-  fprintf(stderr,"   --version:   Print version information\n");
-  fprintf(stderr,"   --write:     Allow writes to the device.\n");
-  fprintf(stderr,"   --file name: Specify filename to save recovered inodes to.\n");
+                /* 12345678900123456789012345678901234567890123456789012345678901234567890123456789% */
+  fprintf(stderr,"   -i {number}          Dump inode to stdout (-I all inodes after {number})\n"
+	         "   -b {number}          Dump block to stdout (-B all blocks after {number})\n"
+                 "   -N {number}          Number of blocks to dump (using -I or -B option)\n"
+                 "   -d {number}          Dump block's data to stdout (binary format)\n"
+                 "   -S {string}          Search disk for data (questionable usefulness, try grep)\n"
+                 "   -T {type}            Search disk for data. type={gz, tgz, script, {filename}}\n"
+                 "   -L {number}          Search length (when using specified filename)\n"
+                 "   -O {number}          Search offset (when using specified filename)\n"
+                 "   -N {number}          Starting search block (defaults to first data zone)\n"
+                 "   --indirects          Search for things that look like indirect blocks\n"
+                 "   --ilookup            Lookup inodes for all matches when searching\n"
+                 "                            (also use with -b)\n"
+                 "   --recoverable        Check to see if inode is recoverable\n" 
+                 "                            (requires --ilookup or -i/-I)\n"
+                 "   --blanked-indirects  Work around indirects with useless info (Linux 2.0 bug)\n"
+                 "   -t fstype            Overide the autodetect.\n"
+                 "                            fstype = {no, minix, xiafs, ext2fs, msdos}\n"
+                 "   --help               Output this screen\n"
+                 "   --paranoid           Open the device read only\n"
+                 "   --append             Always append to recovery file (if file exists)\n"
+                 "   --quiet              Turn off warning beeps\n"
+                 "   --version            Print version information\n"
+                 "   --write              Allow writes to the device\n"
+                 "   --file name          Specify filename to save recovered inodes to\n"
+	  );
   exit(0);
 }
 
@@ -224,6 +231,7 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
       {"offset",1,0,'O'},
       {"length",1,0,'L'},
       {"indirects",0,0,'!'},
+      {"blanked-indirects", 0, 0, '0'},
       {"ilookup",0,0,'@'},
       {"recoverable",0,0,'#'},
       {"append",0,0,'%'},
@@ -232,8 +240,8 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
     };
 
 
-  if (argc && *argv)
-    program_name = *argv;
+  /* if (argc && *argv)
+    program_name = *argv; */
 
   while (1) {
     option_index = 0;
@@ -264,6 +272,9 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
 	break;
       case 'a': /* Search disk space marked in use as well as unused */
 	lde_flags.search_all = 1;
+	break;
+      case '0': /* Linux 2.0 blanked indirect workaround */
+	lde_flags.blanked_indirects = 1;
 	break;
       case 'g': /* Search for an inode which contains the specified block */
 	opts->grep_mode = 1;
@@ -397,19 +408,6 @@ static void parse_cmdline(int argc, char ** argv, struct _main_opts *opts)
     }
 }
 
-#ifdef HAVE_LIBGPM
-/* stick this here for now */
-int lde_mouse_handler(Gpm_Event *event, void *clientdata)
-{
-  /* should only come in here on single click */
-
-  if ((event->modifiers)||(event->buttons&(GPM_B_MIDDLE|GPM_B_RIGHT)))
-    return 0;
-
-  return ( ((event->x)<<24) | ((event->y)<<16) | 2048 );
-}
-#endif
-
 void main(int argc, char ** argv)
 {
   int i, hasdata, fp;
@@ -423,10 +421,6 @@ void main(int argc, char ** argv)
 
   struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0, 0UL, 0UL, NULL, NULL, NULL };
 
-#ifdef HAVE_LIBGPM
-  Gpm_Connect gpmconn;
-#endif
-
   /* Set things up to handle control-c:  just sets lde_flags.quit_now to 1 */
   sigemptyset(&sa_mask);
   sigaction(SIGINT,&intaction,NULL);
@@ -435,9 +429,6 @@ void main(int argc, char ** argv)
   mgetch = tty_mgetch;
 
   parse_cmdline(argc, argv, &main_opts);
-
-  /* if (main_opts.dumper) /* Supress warnings when dumping to stdio */
-  /*  lde_warn = no_warn; */
 
   if (check_mount(device_name)&&!lde_flags.paranoid)
     lde_warn("Device \"%s\" is mounted, be careful",device_name);
@@ -487,9 +478,9 @@ void main(int argc, char ** argv)
     /* Make sure we got a valid file number, if so look up inode and recover it, else print warning */
     if ( fp > 0 ) {
       GInode = FS_cmd.read_inode(main_opts.dump_start);
-      recover_file(fp, GInode->i_zone);
+      if (!recover_file(fp, GInode->i_zone, GInode->i_size))
+	lde_warn("Recovered data written to '%s'", main_opts.recover_file_name);
       close(fp);
-      lde_warn("Recovered data written to '%s'", main_opts.recover_file_name);
       exit(0);
     } else {
       lde_warn("Cannot open file '%s'",main_opts.recover_file_name);
@@ -534,7 +525,7 @@ void main(int argc, char ** argv)
 	    for (i=0; i<INODE_BLKS ; i++)
 	      if (GInode->i_zone[i])
 		hasdata = 1;
-	    if ((hasdata)&&(check_recover_file( GInode->i_zone ))) {
+	    if ((hasdata)&&(check_recover_file(GInode->i_zone, GInode->i_size))) {
 		printf("Inode 0x%lX recovery possible",nr);
 		if (fsc->inode->i_dtime) {
                   thispointer = ctime(&(GInode->i_dtime));
@@ -602,24 +593,7 @@ void main(int argc, char ** argv)
   }
 
 #ifdef LDE_CURSES
-
-# ifdef HAVE_LIBGPM  
-  /* retrieve everything */
-  gpmconn.eventMask=GPM_UP;
-  gpmconn.defaultMask=GPM_MOVE;
-  gpmconn.maxMod=0;
-  gpmconn.minMod=0;
-  Gpm_Open(&gpmconn,0);
-  gpm_handler = lde_mouse_handler;
-# endif
-
-  lde_warn = nc_warn;
-  mgetch = nc_mgetch;
   interactive_main();
-
-# ifdef HAVE_LIBGPM
-  Gpm_Close();
-# endif
 #endif
 
   exit(0);

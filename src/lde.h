@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.22 1998/01/17 17:45:02 sdh Exp $
+ *  $Id: lde.h,v 1.23 1998/01/18 06:34:51 sdh Exp $
  */
 
 #ifndef LDE_H
@@ -17,14 +17,12 @@ extern char *program_name;
 extern char *device_name;
 
 /* main_lde.c */
-void die(char *msg);
-void read_tables(int fs_type);
-int check_root(void);
-void (*lde_warn)(char *fmt, ...);
-int  (*mgetch)(void);
+extern void die(char *msg);
+extern void read_tables(int fs_type);
+extern int check_root(void);
+extern void (*lde_warn)(char *fmt, ...);
+extern int  (*mgetch)(void);
 
-#define MAX_NAME_LEN      30
-#define MAX_BLOCK_POINTER 200
 #define MAX_BLOCK_SIZE    4096  /* must be at least EXT2_MAX_BLOCK_SIZE or whatever the biggest FS we are using */
 
 #define INODE_BLKS 15 /* EXT2_N_BLOCKS or higher -- can't use EXT2 references after
@@ -218,16 +216,17 @@ struct {
 
 /* Flags */
 volatile struct _lde_flags {
-  unsigned search_all:      1;
-  unsigned quiet:           1;
-  unsigned write_ok:        1;
-  unsigned paranoid:        1;
-  unsigned inode_lookup:    1;
-  unsigned check_recover:   1;
-  unsigned always_append:   1;
-  unsigned indirect_search: 1;
-  unsigned quit_now:        1;
-  unsigned mounted:         1;
+  unsigned search_all:        1;
+  unsigned quiet:             1;
+  unsigned write_ok:          1;
+  unsigned paranoid:          1;
+  unsigned inode_lookup:      1;
+  unsigned check_recover:     1;
+  unsigned always_append:     1;
+  unsigned indirect_search:   1;
+  unsigned quit_now:          1;
+  unsigned mounted:           1;
+  unsigned blanked_indirects: 1;  /* Set for Linux 2.0.* to work around blanked indirect blocks */
 } lde_flags;
 
 extern struct sbinfo *sb;

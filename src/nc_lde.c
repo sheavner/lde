@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.26 1998/01/17 17:45:26 sdh Exp $
+ *  $Id: nc_lde.c,v 1.27 1998/01/18 06:35:02 sdh Exp $
  */
 
 #include <stdio.h>
@@ -28,6 +28,28 @@
   #include <gpm.h>  
   #undef  getch           /* Supress warning about redefinition */
   #define getch Gpm_Getch
+#endif
+
+/* Create globals declared extern in nc_lde.h */
+/* Curses variables */
+int    WHITE_ON_BLUE, WHITE_ON_RED, RED_ON_BLACK;
+WINDOW *header, *workspace, *trailer;
+unsigned long current_inode;
+unsigned long current_block;
+unsigned long fake_inode_zones[INODE_BLKS+1];
+
+
+#ifdef HAVE_LIBGPM
+/* Callback for GPM mouse events */
+static int lde_mouse_handler(Gpm_Event *event, void *clientdata)
+{
+  /* should only come in here on single click */
+
+  if ((event->modifiers)||(event->buttons&(GPM_B_MIDDLE|GPM_B_RIGHT)))
+    return 0;
+
+  return ( ((event->x)<<24) | ((event->y)<<16) | 2048 );
+}
 #endif
 
 /* This will recognize escapes keys as "META" strokes */
@@ -88,6 +110,8 @@ int cread_num(char *coutput, unsigned long *a)
 {
   char cinput[80];
 
+  lde_flags.quit_now = 0;
+
 #if TRAILER_SIZE>0
 #define window_available trailer
 #define LINE_NUMBER TRAILER_SIZE-1
@@ -118,6 +142,8 @@ int cread_num(char *coutput, unsigned long *a)
     *a = read_num(cinput);
     return strlen(cinput);
   } else {
+    if (lde_flags.quit_now)  /* Control-C aborts */
+      return -1;
     strncpy(coutput, cinput, 80);
     return strlen(cinput);
   }
@@ -181,11 +207,9 @@ void clobber_window(WINDOW *win)
 void restore_header(void)
 {
 #if HEADER_SIZE>0
-  int i,j;
   char echo_string[132];
 
   werase(header);
-
   sprintf(echo_string,"%s v%s : %s : %s",
 	  program_name,VERSION,text_names[fsc->FS],device_name);
   mvwprintw(header,0,(COLS-strlen(echo_string))/2-1,echo_string);
@@ -606,8 +630,8 @@ void flag_popup(void)
 {
   WINDOW *win;
   int c, redraw, flag;
-  int vstart,vsize=8;
-  char *choices = "afnw q";
+  int vstart,vsize=9;
+  char *choices = "afnwi q";
 
   /* Do some bounds checking on our window */
   if (VERT>vsize) {
@@ -664,6 +688,11 @@ void flag_popup(void)
         lde_flags.quiet = 1 - lde_flags.quiet;
 	redraw = 1;
         break;
+      case 'I':
+      case 'i':
+        lde_flags.blanked_indirects = 1 - lde_flags.blanked_indirects;
+	redraw = 1;
+        break;
       case CTRL('L'):
         refresh_all();
         break;
@@ -677,27 +706,34 @@ void flag_popup(void)
     box(win,0,0);
     wattroff(win,RED_ON_BLACK);
     mvwprintw(win,1,15,"A: (%-3s) Search all blocks",lde_flags.search_all ? "YES" : "NO");
-    mvwprintw(win,2,15,"F: (%-3s) Always append existing file ?",lde_flags.always_append ? "YES" : "NO");
+    mvwprintw(win,2,15,"F: (%-3s) Always append existing file?",lde_flags.always_append ? "YES" : "NO");
     mvwprintw(win,3,15,"N: (%-3s) Noise is off -- i.e. quiet",lde_flags.quiet ? "YES" : "NO");
     mvwprintw(win,4,15,"W: (%-3s) OK to write to file system",lde_flags.write_ok ? "YES" : "NO");
-    mvwprintw(win,6,15,"Q: return to editing");
+    mvwprintw(win,5,15,"I: (%-3s) Ignore indirect block contents (Linux <2.0.33 fix)",lde_flags.blanked_indirects ? "YES" : "NO");
+    mvwprintw(win,vsize-2,15,"Q: return to editing");
     wrefresh(win);
   }
 }
 
 /* Query the user for a file name, then ask for confirmation,
  * then dump the file from the list of inodes */
-void crecover_file(unsigned long inode_zones[])
+void crecover_file(unsigned long inode_zones[], unsigned long filesize)
 {
   int fp;
   static char recover_file_name[80];
   char recover_query[80];
+  int c;
 
   if (recover_file_name[0] == 0) strcpy(recover_file_name,"RECOVERED.file");
 
   sprintf(recover_query," Write data to file:");
-  if (cread_num(recover_query, NULL))
+  c = cread_num(recover_query, NULL);
+  if (c<0) {
+    lde_warn("Recovery aborted");
+    return;
+  }  else if (c>0) {
     strncpy(recover_file_name, recover_query, 80);
+  }
 
   if ( (fp = open(recover_file_name,O_RDONLY)) > 0 ) {
     close(fp);
@@ -705,7 +741,7 @@ void crecover_file(unsigned long inode_zones[])
     if (lde_flags.always_append) {
       fp = open(recover_file_name,O_WRONLY|O_APPEND);
     } else {
-      switch (cquery("File exists, append data [Yes/Overwrite/Quit]: ","ynq","")) {
+      switch (cquery("File exists, append data [Yes/Overwrite/Quit]: ","yoq","")) {
         case 'y':
 	  fp = open(recover_file_name,O_WRONLY|O_APPEND);
 	  break;
@@ -721,9 +757,10 @@ void crecover_file(unsigned long inode_zones[])
     lde_warn("Cannot open file '%s'",recover_file_name);
 
   if (fp > 0) {
-    recover_file(fp, inode_zones);
+    lde_warn("Recovery in progress . . .");
+    if (!recover_file(fp, inode_zones, filesize))
+      lde_warn("Recovered data written to '%s'", recover_file_name);
     close(fp);
-    lde_warn("Recovered data written to '%s'", recover_file_name);
   } else {
     lde_warn("Error opening '%s'",recover_file_name);
   }
@@ -735,12 +772,13 @@ int recover_mode(void)
 {
   int j,c,next_cmd=CMD_REFRESH;
   unsigned long a;
-  char recover_labels[INODE_BLKS];
-  int vstart,vsize=fsc->N_BLOCKS;
+  char recover_labels[INODE_BLKS+1];
+  int vstart,vsize=fsc->N_BLOCKS+1;
 
   /* Fill in keys used to change blocks in recover mode */
   for (j=REC_FILE0; j<REC_FILE_LAST; j++)
     recover_labels[j-REC_FILE0] = (text_key(j,recover_keymap,0))[1];
+  recover_labels[INODE_BLKS] = (text_key(REC_FILE_SIZE,recover_keymap,0))[1];
 
   /* Do some bounds checking on our window */
   if (VERT>vsize) {
@@ -778,8 +816,12 @@ int recover_mode(void)
 	if (cread_num("Enter block number (leading 0x or $ indicates hex):", &a))
 	  fake_inode_zones[c-REC_FILE0] = (unsigned long) a;
         break;
+      case REC_FILE_SIZE:
+	if (cread_num("Enter file size (0 is special) (leading 0x or $ indicates hex):", &a))
+	  fake_inode_zones[INODE_BLKS] = (unsigned long) a;
+        break;
       case CMD_CLR_RECOVER:
-	bzero(fake_inode_zones,sizeof(long)*MAX_BLOCK_POINTER);
+	bzero(fake_inode_zones,sizeof(long)*(INODE_BLKS+1));
 	break;
       case CMD_BLOCK_MODE:
       case CMD_VIEW_SUPER:
@@ -800,10 +842,10 @@ int recover_mode(void)
 	refresh_all();
 	break;
       case CMD_DO_RECOVER:
-	crecover_file(fake_inode_zones);
+	crecover_file(fake_inode_zones, fake_inode_zones[INODE_BLKS]);
 	break;
       case CMD_CHECK_RECOVER:
-	(void) check_recover_file(fake_inode_zones);
+	(void) check_recover_file(fake_inode_zones, fake_inode_zones[INODE_BLKS]);
 	break;
       case CMD_DISPLAY_LOG:
 	error_popup();
@@ -830,6 +872,8 @@ int recover_mode(void)
       mvwprintw(workspace,j,40," %1c : 0x%8.8lX",recover_labels[j],fake_inode_zones[fsc->X3_INDIRECT]);
       j++;
     }
+    mvwprintw(workspace,j,20,"FILE SIZE:" );
+    mvwprintw(workspace,j,40," %1c : 0x%8.8lX",recover_labels[INODE_BLKS],fake_inode_zones[INODE_BLKS]);
     wrefresh(workspace);
   }	
 
@@ -964,7 +1008,11 @@ char *text_key(int c, lde_keymap *kmap, int skip)
 /* Not too exciting main parser with superblock on screen */
 void interactive_main(void)
 {
+#ifdef HAVE_LIBGPM
+  Gpm_Connect gpmconn;
+#endif
   int c, next_cmd = CMD_DISPLAY_LOG;
+
 
   current_inode = fsc->ROOT_INODE;
   current_block = 0UL;
@@ -993,6 +1041,21 @@ void interactive_main(void)
     WHITE_ON_RED = A_UNDERLINE;
   }
 
+# ifdef HAVE_LIBGPM  
+  /* Setup mouse handler */
+  gpmconn.eventMask=GPM_UP;
+  gpmconn.defaultMask=GPM_MOVE;
+  gpmconn.maxMod=0;
+  gpmconn.minMod=0;
+  Gpm_Open(&gpmconn,0);
+  gpm_handler = lde_mouse_handler;
+# endif
+
+  /* Now that ncurses has successfully initted, 
+     switch to curses based warning and getch functions */
+  lde_warn = nc_warn;
+  mgetch = nc_mgetch;
+
   /* First check to see that our screen is big enough */
   if ((LINES<(4+HEADER_SIZE+TRAILER_SIZE))||(COLS<WIN_COL)) {
     endwin();
@@ -1003,7 +1066,7 @@ void interactive_main(void)
   }
 
   /* Clear out restore buffer */
-  bzero(fake_inode_zones,sizeof(long)*MAX_BLOCK_POINTER);
+  bzero(fake_inode_zones,sizeof(long)*(INODE_BLKS+1));
  
   /* Our three curses windows */
 #if HEADER_SIZE>0
@@ -1033,8 +1096,10 @@ void interactive_main(void)
 	continue;
       case CMD_EXIT_PROG:
 	endwin();
+#       ifdef HAVE_LIBGPM
+	   Gpm_Close();
+#       endif
 	return;
-	break;
       case CMD_RECOVERY_MODE:
 	next_cmd = recover_mode();
 	continue;

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.17 1996/10/13 17:14:56 sdh Exp $
+ *  $Id: nc_inode.c,v 1.18 1998/01/18 06:34:59 sdh Exp $
  */
 
 #include <ctype.h>
@@ -519,6 +519,7 @@ int inode_mode() {
 	cwrite_inode(current_inode, GInode, &modified);
 	for (i=0;(i<fsc->N_BLOCKS);i++)
 	  fake_inode_zones[i] = GInode->i_zone[i];
+	fake_inode_zones[INODE_BLKS] = GInode->i_size;
 	return CMD_RECOVERY_MODE;
 	break;
 

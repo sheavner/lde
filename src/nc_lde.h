@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.h,v 1.9 1998/01/17 17:45:33 sdh Exp $
+ *  $Id: nc_lde.h,v 1.10 1998/01/18 06:35:04 sdh Exp $
  */
 #ifndef LDE_NC_LDE_H
 #define LDE_NC_LDE_H
@@ -37,12 +37,12 @@
 #define HELP_KEY_SIZE 12
 
 /* Curses variables */
-int    WHITE_ON_BLUE, WHITE_ON_RED, RED_ON_BLACK;
-WINDOW *header, *workspace, *trailer;
+extern int    WHITE_ON_BLUE, WHITE_ON_RED, RED_ON_BLACK;
+extern WINDOW *header, *workspace, *trailer;
 
-unsigned long current_inode;
-unsigned long current_block;
-unsigned long fake_inode_zones[MAX_BLOCK_POINTER];
+extern unsigned long current_inode;
+extern unsigned long current_block;
+extern unsigned long fake_inode_zones[];
 
 /* nc_lde.c */
 extern int nc_mgetch(void);
@@ -63,11 +63,11 @@ extern void do_new_scroll_help(lde_menu help_text[], lde_keymap *kmap, int fancy
 extern char *three_text_keys(int c, lde_keymap *kmap);
 extern void show_super(void);
 extern void flag_popup(void);
-extern void crecover_file(unsigned long inode_zones[]);
+extern void crecover_file(unsigned long inode_zones[], unsigned long filesize);
 extern int recover_mode(void);
 extern int lookup_key(int c, lde_keymap *kmap);
 extern char *check_special(int c);
 extern char *text_key(int c, lde_keymap *kmap, int skip);
 extern void interactive_main(void);
-#endif
 
+#endif /* LDE_NC_LDE_H */

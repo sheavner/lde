@@ -3,10 +3,8 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.21 1998/01/17 17:45:18 sdh Exp $
+ *  $Id: nc_block.c,v 1.22 1998/01/18 06:34:55 sdh Exp $
  */
-
-#define CMD_VALID_NULL 3454
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,16 +30,28 @@ static void highlight_helper(int row, int col, bm_cursor *curs,
 			     bm_flags *flags);
 static void highlight_block(bm_cursor *curs, bm_flags *flags);
 static void update_block_help(void);
+static int update_block_contents(cached_block **passed_block,
+				 unsigned long new_bnr,
+				 bm_cursor *curs, bm_irecord *iptr);
+static void clear_data_cache(cached_block *this_block, bm_cursor *curs);
+static int update_block_data(cached_block **passed_block, 
+			     unsigned long new_bnr,
+			     bm_irecord *iptr,
+			     bm_cursor *curs,
+			     bm_flags *flags,
+			     long sowadjust);
 
 
-inline int calc_offset(bm_cursor *curs)
+
+
+static inline int calc_offset(bm_cursor *curs)
 {
   return curs->row*curs->rs+curs->col+curs->sow;
 }
 
 /* Dump as much of a block as we can to the screen and format it in a nice 
  * hex mode with ASCII printables off to the right. */
-void cdump_block(unsigned long nr, bm_cursor *curs)
+static void cdump_block(unsigned long nr, bm_cursor *curs)
 {
   int i,j;
   unsigned char c;
@@ -90,7 +100,7 @@ void cdump_block(unsigned long nr, bm_cursor *curs)
 /* Asks the user if it is ok to write the block to the disk, then goes
  * ahead and does it if the medium is writable.  The user has access to the
  * flags menu from this routine, to toggle the write flag */
-int cwrite_block(cached_block *this_block, bm_cursor *curs, bm_flags *flags)
+static int cwrite_block(cached_block *this_block, bm_cursor *curs, bm_flags *flags)
 {
   int c;
   char *warning = "(NOTE: write permission not set on disk,"
@@ -202,9 +212,9 @@ static void update_block_help(void)
 }
 
 
-int update_block_contents(cached_block **passed_block,
-			  unsigned long new_bnr,
-			  bm_cursor *curs, bm_irecord *iptr)
+static int update_block_contents(cached_block **passed_block,
+				 unsigned long new_bnr,
+				 bm_cursor *curs, bm_irecord *iptr)
 {
   unsigned long other_bnr;
   int i, c;
@@ -286,7 +296,7 @@ int update_block_contents(cached_block **passed_block,
   return 0;
 }
 
-void clear_data_cache(cached_block *this_block, bm_cursor *curs)
+static void clear_data_cache(cached_block *this_block, bm_cursor *curs)
 {
   int i;
 
@@ -296,12 +306,12 @@ void clear_data_cache(cached_block *this_block, bm_cursor *curs)
   }
 }
 
-int update_block_data(cached_block **passed_block, 
-				unsigned long new_bnr,
-				bm_irecord *iptr,
-				bm_cursor *curs,
-				bm_flags *flags,
-				long sowadjust)
+static int update_block_data(cached_block **passed_block, 
+			     unsigned long new_bnr,
+			     bm_irecord *iptr,
+			     bm_cursor *curs,
+			     bm_flags *flags,
+			     long sowadjust)
 {
   int i;
   cached_block *cbptr, *this_block;
@@ -449,7 +459,7 @@ int block_mode(void) {
 	  curs.col = 0;
 	else if (curs.col>=curs.rs)
 	  curs.col = curs.rs - 1;
-	c = CMD_VALID_NULL;                  /* Need a command that will fall through to refresh */
+	c = CMD_ANY_ACTION;                  /* Need a command that will fall through to refresh */
 	flags.dontwait = 1;                  /* Don't call lookup_key() on c, already has command */
 	flags.highlight = 1;                 /* Update cursor position */
 	icount = 0;                          /* Abort any data entry in progress */
@@ -889,7 +899,7 @@ int block_mode(void) {
 
       case CMD_DO_RECOVER: /* Append current block to the recovery file */
 	inode_ptr[0] = current_block;
-	crecover_file(inode_ptr);
+	crecover_file(inode_ptr,lookup_blocksize(current_block));
 	break;
 
       case CMD_NUMERIC_REF: /* Jump to a block by numeric reference */
@@ -927,7 +937,7 @@ int block_mode(void) {
 	flags.redraw = 1;
 	break;
 
-      case CMD_VALID_NULL: /* Unknown command, but still want to execute stuff */
+      case CMD_ANY_ACTION: /* Unknown command, but still want to execute stuff */
 	break;		   /* after loop */
 
       default:             /* Unknown command, get another */
