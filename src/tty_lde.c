@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.6 1994/04/01 09:47:37 sdh Exp $
+ *  $Id: tty_lde.c,v 1.7 1994/04/02 16:16:10 sdh Exp $
  */
 
 #include "lde.h"
@@ -16,7 +16,7 @@ void tty_warn(char *warn_string)
 /* This reads a long int from the user.  It recognizes indicators as to the 
  * type of input for decimal, hex, or octal.  For example if we wanted to
  * input 15, we could enter as hex (0xf, xf, $f), decimal (15), or octal
- * (\017).  sscanf is probably smart enough to recognize these, but 
+ * (\017, 017).  sscanf is probably smart enough to recognize these, but 
  * what the hell.
  */
 long read_num(char *cinput)
@@ -24,12 +24,15 @@ long read_num(char *cinput)
   long i;
 
   if  (strlen(cinput)>0) {
-    if ((cinput[0]=='$')||(cinput[0]=='x'))
+    if ((cinput[0]=='$')||(cinput[0]=='x')||(cinput[0]=='X'))
       sscanf(cinput,"%*1c%lx", &i);
     else if (cinput[0]=='\\')
       sscanf(cinput,"%*1c%lo", &i);
-    else if (cinput[1]=='x')
-      sscanf(cinput,"%*2c%lx", &i);
+    else if (cinput[0]=='0')
+      if ((cinput[1]=='x')||(cinput[1]=='X'))
+	sscanf(cinput,"%*2c%lx", &i);
+      else
+	sscanf(cinput,"%*1c%lo", &i);
     else
       sscanf(cinput,"%ld", &i);
     return i;
