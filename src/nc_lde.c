@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.27 1998/01/18 06:35:02 sdh Exp $
+ *  $Id: nc_lde.c,v 1.28 1998/01/24 01:48:04 sdh Exp $
  */
 
 #include <stdio.h>
@@ -25,9 +25,9 @@
 #include "keymap.h"
 
 #ifdef HAVE_LIBGPM
-  #include <gpm.h>  
-  #undef  getch           /* Supress warning about redefinition */
-  #define getch Gpm_Getch
+#  include <gpm.h>  
+#  undef  getch           /* Supress warning about redefinition */
+#  define getch Gpm_Getch
 #endif
 
 /* Create globals declared extern in nc_lde.h */
@@ -112,16 +112,16 @@ int cread_num(char *coutput, unsigned long *a)
 
   lde_flags.quit_now = 0;
 
-#if TRAILER_SIZE>0
-#define window_available trailer
-#define LINE_NUMBER TRAILER_SIZE-1
-#else
-  win *window_avaliable;
-  window_avaliable = newwin(5,WIN_COL,((VERT-5)/2+HEADER_SIZE),HOFF);
-  werase(window_avaliable);
-  box(window_avaliable,0,0);
-#define LINE_NUMBER 0
-#endif
+# if TRAILER_SIZE>0
+#   define window_available trailer
+#   define LINE_NUMBER TRAILER_SIZE-1
+# else
+    win *window_avaliable;
+    window_avaliable = newwin(5,WIN_COL,((VERT-5)/2+HEADER_SIZE),HOFF);
+    werase(window_avaliable);
+    box(window_avaliable,0,0);
+#  define LINE_NUMBER 0
+# endif
 
   wmove(window_available,LINE_NUMBER,0);
   wclrtoeol(window_available);
@@ -134,9 +134,9 @@ int cread_num(char *coutput, unsigned long *a)
   wmove(window_available,LINE_NUMBER,0);
   wclrtoeol(window_available);
   wrefresh(window_available);
-#if TRAILER_SIZE<=0
-  delwin(window_available);
-#endif
+# if TRAILER_SIZE<=0
+    delwin(window_available);
+# endif
 
   if ((coutput[0]!=' ')&&(a)) {
     *a = read_num(cinput);
@@ -220,9 +220,9 @@ void restore_header(void)
 /* Redraw header and trailer, other routine does workspace -- ^L */
 void refresh_ht(void)
 {
-#if TRAILER_SIZE>0
-  redraw_win(trailer);
-#endif
+# if TRAILER_SIZE>0
+    redraw_win(trailer);
+# endif
   restore_header();
 }
 
@@ -248,16 +248,16 @@ void nc_warn(char *fmt, ...)
   log_error(echo_string);
  
   if (!lde_flags.quiet) beep();
-#if TRAILER_SIZE>0
-  wmove(trailer,TRAILER_SIZE-1,0);
-  wclrtoeol(trailer);
-  mvwaddstr(trailer,TRAILER_SIZE-1,(COLS-strlen(echo_string))/2-1,
-	    echo_string);
-  wrefresh(trailer);
-  wmove(trailer,TRAILER_SIZE-1,0);
-  wclrtoeol(trailer);
-  /* Still has to be refreshed by someone */
-#endif
+# if TRAILER_SIZE>0
+    wmove(trailer,TRAILER_SIZE-1,0);
+    wclrtoeol(trailer);
+    mvwaddstr(trailer,TRAILER_SIZE-1,(COLS-strlen(echo_string))/2-1,
+	      echo_string);
+    wrefresh(trailer);
+    wmove(trailer,TRAILER_SIZE-1,0);
+    wclrtoeol(trailer);
+    /* Still has to be refreshed by someone */
+# endif
 }
 
 /* Dump the error log to a window */
@@ -719,12 +719,10 @@ void flag_popup(void)
  * then dump the file from the list of inodes */
 void crecover_file(unsigned long inode_zones[], unsigned long filesize)
 {
+  static char recover_file_name[80] = "RECOVERED.file";
   int fp;
-  static char recover_file_name[80];
   char recover_query[80];
   int c;
-
-  if (recover_file_name[0] == 0) strcpy(recover_file_name,"RECOVERED.file");
 
   sprintf(recover_query," Write data to file:");
   c = cread_num(recover_query, NULL);
@@ -1042,13 +1040,13 @@ void interactive_main(void)
   }
 
 # ifdef HAVE_LIBGPM  
-  /* Setup mouse handler */
-  gpmconn.eventMask=GPM_UP;
-  gpmconn.defaultMask=GPM_MOVE;
-  gpmconn.maxMod=0;
-  gpmconn.minMod=0;
-  Gpm_Open(&gpmconn,0);
-  gpm_handler = lde_mouse_handler;
+    /* Setup mouse handler */
+    gpmconn.eventMask=GPM_UP;
+    gpmconn.defaultMask=GPM_MOVE;
+    gpmconn.maxMod=0;
+    gpmconn.minMod=0;
+    Gpm_Open(&gpmconn,0);
+    gpm_handler = lde_mouse_handler;
 # endif
 
   /* Now that ncurses has successfully initted, 
@@ -1069,15 +1067,15 @@ void interactive_main(void)
   bzero(fake_inode_zones,sizeof(long)*(INODE_BLKS+1));
  
   /* Our three curses windows */
-#if HEADER_SIZE>0
-  header = newwin(HEADER_SIZE,COLS,0,0);
-  wbkgdset(header,WHITE_ON_BLUE);
-#endif
+# if HEADER_SIZE>0
+    header = newwin(HEADER_SIZE,COLS,0,0);
+    wbkgdset(header,WHITE_ON_BLUE);
+# endif
   workspace = newwin(1,0,0,0); /* Gets clobbered before it gets used */
-#if TRAILER_SIZE>0
-  trailer = newwin(TRAILER_SIZE,COLS,LINES-TRAILER_SIZE,0);
-  wbkgdset(trailer,WHITE_ON_BLUE);
-#endif
+# if TRAILER_SIZE>0
+    trailer = newwin(TRAILER_SIZE,COLS,LINES-TRAILER_SIZE,0);
+    wbkgdset(trailer,WHITE_ON_BLUE);
+# endif
   
   restore_header();
   
