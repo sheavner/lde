@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.18 1996/10/11 00:43:46 sdh Exp $
+ *  $Id: main_lde.c,v 1.19 1996/10/12 21:10:34 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -418,10 +418,15 @@ void main(int argc, char ** argv)
 #ifndef PARANOID
   if (!lde_flags.paranoid) {
     CURR_DEVICE = open(device_name,O_RDWR);
+    if (CURR_DEVICE < 0) {
+      lde_warn("No write access to \"%s\",  attempting to open read-only.",device_name);
+      CURR_DEVICE = open(device_name,O_RDONLY);
+      lde_flags.write_ok = 0;
+    }
   } else
 #endif
   {
-    lde_warn("Paranoid flag set.  Opening device \"%s\" read-only.",device_name);
+    lde_warn("Paranoid flag set.  Opening \"%s\" read-only.",device_name);
     CURR_DEVICE = open(device_name,O_RDONLY);
   }
   
