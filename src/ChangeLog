@@ -1,3 +1,13 @@
+2002-01-14    Scott Heavner
+
+	- Add bigendian support for ext2, minix, xiafs types.  Autodetect
+	  machine endian-ness at runtime.
+
+	- Test compile + run on all machines in sourceforge compile farm
+	  (linux-sparc, linux-ppc, linux-alpha, freebsd-i386) + debian linux
+	  i386 + cygwin.  Freebsd still isn't passing all tests because of
+	  missing getopt_long.
+
 2002-01-12    Scott Heavner
 
 	- autoconf stuff, detect timeb struct, headers
