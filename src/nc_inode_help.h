@@ -9,7 +9,36 @@
 
 #include "keymap.h"
 
-static char *inode_help[] = {
+#ifndef USE_OLD_HELP_FORMAT
+static lde_menu inode_help[] = {
+  { CMD_CALL_MENU,"Popup menu of commands"},
+  { CMD_BLOCK_MODE, "Enter block mode"},
+  { CMD_BLOCK_MODE_MC, "View block under cursor"},
+  { CMD_COPY, "Copy inode into copy buffer"},
+  { CMD_VIEW_AS_DIR, "View inode as a directory"},
+  { CMD_EDIT, "Edit inode"},
+  { CMD_FLAG_ADJUST, "Menu of toggle flags"},
+  { CMD_HELP, "Calls up this help"},
+  { CMD_INODE_MODE_MC, "View inode under cursor"},
+  { CMD_PASTE, "Paste inode from copy buffer"},
+  { CMD_EXIT_PROG, "Quit"},
+  { CMD_RECOVERY_MODE, "Enter recovery mode"},
+  { CMD_RECOVERY_MODE_MC,"Enter recovery mode, copy inode block ptrs to recovery list"},
+  { CMD_VIEW_SUPER,"View superblock"},
+  { CMD_DISPLAY_LOG, "View error/warning log"},
+  { CMD_NO_ACTION, "Move cursor (arrows)"},
+  { CMD_NEXT_INODE,"View next inode"},
+  { CMD_PREV_INODE,"View previous inode"},
+  { REC_FILE0, "Add block under cursor to recovery list at position"},
+  { CMD_NUMERIC_REF, "Enter inode number and view it"},
+  { CMD_ABORT_EDIT, "Abort edit.  Reread inode from disk"},
+  { CMD_REFRESH, "Refresh screen"},
+  { CMD_WRITE_CHANGES, "Write inode to disk"},
+  { CMD_BIN_INODE, "View inode as raw block"},
+  { 0, NULL} 
+};
+#else
+static lde_menu inode_help[] = {
   "F2, ^O  : Popup menu of commands",
   "b       : Enter block mode.",
   "B       : View block under cursor.",
@@ -35,6 +64,7 @@ static char *inode_help[] = {
   "M-b     : View inode as raw block.",
   NULL
 };
+#endif
 
 static lde_menu inode_menu[] = {
   { CMD_CALL_MENU, "MORE EDITING COMMANDS" },

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.15 1996/09/14 02:43:02 sdh Exp $
+ *  $Id: nc_block.c,v 1.16 1996/09/15 04:11:16 sdh Exp $
  */
 
 #include <stdio.h>
@@ -135,12 +135,12 @@ static void update_block_help(void)
 {
   static char help_1[80], help_8[80];
 
-  sprintf(help_1,"B       : View block under cursor (%s block ptr is %d bytes).",
+  sprintf(help_1,"View block under cursor (%s block ptr is %d bytes)",
 	  text_names[fsc->FS],fsc->ZONE_ENTRY_SIZE);
-  sprintf(help_8,"I       : View inode under cursor (%s inode ptr is %d bytes).",
+  sprintf(help_8,"View inode under cursor (%s inode ptr is %d bytes)",
 	  text_names[fsc->FS],fsc->INODE_ENTRY_SIZE);
-  block_help[1] = help_1;
-  block_help[8] = help_8;
+  block_help[BHELP_BLOCK].description = help_1;
+  block_help[BHELP_INODE].description = help_8;
 
   return;
 }
@@ -434,7 +434,7 @@ int block_mode(void) {
 	break;
 
       case CMD_HELP: /* HELP */
-	do_scroll_help(block_help, FANCY);
+	do_new_scroll_help(block_help, blockmode_keymap, FANCY);
 	refresh_all();
 	break;
 

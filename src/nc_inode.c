@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.11 1996/06/01 04:58:41 sdh Exp $
+ *  $Id: nc_inode.c,v 1.12 1996/09/15 04:12:43 sdh Exp $
  */
 
 #include <ctype.h>
@@ -576,7 +576,7 @@ int inode_mode() {
 	break;
 
       case CMD_HELP: /* Display help */
-        do_scroll_help(inode_help, FANCY);
+        do_new_scroll_help(inode_help, inodemode_keymap, FANCY);
 	/* Requires a redraw after return, so let it fall through */
 
       case CMD_REFRESH: /* Refresh screen */

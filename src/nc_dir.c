@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.10 1996/08/16 22:59:10 sdh Exp $
+ *  $Id: nc_dir.c,v 1.11 1996/09/15 04:12:20 sdh Exp $
  */
 
 #include <strings.h>
@@ -23,6 +23,16 @@ static void redraw_dir_window(WINDOW *win,int max_entries, int screen_off, unsig
 static int reread_dir(void *block_buffer, unsigned long bnr);
 
 /* Help for directory_popup() function */
+#ifndef USE_OLD_HELP_FORMAT
+static lde_menu dp_help[] = {
+  { CMD_EXPAND_SUBDIR,"expand directory under cursor"},
+  { CMD_EXPAND_SUBDIR_MC,"expand directory under cursor and make it the current inode"},
+  { CMD_INODE_MODE,"make inode under cursor the current inode"},
+  { CMD_INODE_MODE_MC,"make inode under cursor the current inode and view it"},
+  { CMD_NEXT_DIR_BLOCK,"view next block in directory (if called from inode mode)"} ,
+  { 0, NULL }
+};
+#else
 static char *dp_help[] = {
   "d      : expand directory under cursor",
   "D      : expand directory under cursor and make it the current inode.",
@@ -31,9 +41,10 @@ static char *dp_help[] = {
   "n      : view next block in directory (if called from inode mode).",
   NULL
 };
+#endif
 
 /* default keymap for directory mode */
-lde_keymap dirmode_keymap[] = {
+static lde_keymap dirmode_keymap[] = {
   { 'i', CMD_SET_CURRENT_INODE },
   { 'I', CMD_INODE_MODE_MC },
   { 'N', CMD_NEXT_DIR_BLOCK },
@@ -245,7 +256,7 @@ int directory_popup(unsigned long bnr)
 	break;
 
       case CMD_HELP: /* Help */
-        do_scroll_help(dp_help, FANCY);
+        do_new_scroll_help(dp_help, dirmode_keymap, FANCY);
 	touchwin(win);
         break;
 

@@ -9,8 +9,8 @@
 
 #include "keymap.h"
 
-#if IM_READY_FOR_NEW_HELP_FORMAT
-static lde_menu recover_help2[] = {
+#ifndef USE_OLD_HELP_FORMAT
+static lde_menu recover_help[] = {
   { CMD_CALL_MENU, "Popup menu of commands" } ,
   { CMD_BLOCK_MODE, "Enter block mode." },
   { CMD_FLAG_ADJUST, "Menu of toggle flags"  },
@@ -24,8 +24,20 @@ static lde_menu recover_help2[] = {
   { CMD_REFRESH, "Refresh screen." },
   { 0, NULL }
 };
-#endif
 
+static  lde_menu ncmain_help[] = {
+  { CMD_CALL_MENU,"Popup menu of commands"} ,
+  { CMD_BLOCK_MODE, "Enter block mode." },
+  { CMD_FLAG_ADJUST, "Menu of toggle flags"} ,
+  { CMD_HELP, "Calls up this help"} ,
+  { CMD_INODE_MODE, "Enter inode mode"} ,
+  { CMD_EXIT_PROG, "Quit"},
+  { CMD_RECOVERY_MODE, "Enter recovery mode"},
+  { CMD_DISPLAY_LOG, "View error/warning log"},
+  { CMD_REFRESH,"Refresh screen."} ,
+  { 0, NULL }
+};
+#else
 static char *recover_help[] = {
   "F2, ^O  : Popup menu of commands",
   "b       : Enter block mode.",
@@ -40,19 +52,6 @@ static char *recover_help[] = {
   "^L      : Refresh screen.",
   NULL
 };
-
-static lde_menu recover_menu[] = {
-  { CMD_BLOCK_MODE,    "Block mode" },
-  { CMD_HELP,          "Help" },
-  { CMD_INODE_MODE,    "Inode mode" },
-  { CMD_EXIT_PROG,     "Quit" },
-  { CMD_FLAG_ADJUST,   "Toggle some flags" },
-  { CMD_DISPLAY_LOG,   "View error/warning log" },
-  { CMD_CHECK_RECOVER, "Check recoverability of file" },
-  { CMD_DO_RECOVER,    "Write recover file to disk" },
-  { 0, NULL }
-};
-
 static char *ncmain_help[] = {
   "F2, ^O  : Popup menu of commands",
   "b,B     : Enter block mode.",
@@ -64,6 +63,20 @@ static char *ncmain_help[] = {
   "v       : View error/warning log.",
   "^L      : Refresh screen.",
   NULL
+};
+#endif
+
+static lde_menu recover_menu[] = {
+  { CMD_BLOCK_MODE,    "Block mode" },
+  { CMD_HELP,          "Help" },
+  { CMD_INODE_MODE,    "Inode mode" },
+  { CMD_EXIT_PROG,     "Quit" },
+  { CMD_FLAG_ADJUST,   "Toggle some flags" },
+  { CMD_DISPLAY_LOG,   "View error/warning log" },
+  { CMD_CHECK_RECOVER, "Check recoverability of file" },
+  { CMD_CLR_RECOVER,   "Clear all entries in recovery inode" },
+  { CMD_DO_RECOVER,    "Write recover file to disk" },
+  { 0, NULL }
 };
 
 static lde_menu ncmain_menu[] = {
@@ -115,7 +128,6 @@ lde_keymap global_keymap[] = {
   { CTRL('L'), CMD_REFRESH },
   { '?', CMD_HELP },
   { KEY_F(1), CMD_HELP },
-  { CTRL('H'), CMD_HELP },
   { META('h'), CMD_HELP },
   { KEY_F(2), CMD_CALL_MENU },
   { 'z', CMD_CALL_MENU },
@@ -162,6 +174,8 @@ lde_keymap global_keymap[] = {
 static lde_keymap recover_keymap[] = {
   { 'r', CMD_DO_RECOVER },
   { 'R', CMD_DO_RECOVER },
+  { 'u', CMD_CLR_RECOVER },
+  { 'U', CMD_CLR_RECOVER },
   { 'c', CMD_CHECK_RECOVER },
   { 'C', CMD_CHECK_RECOVER },
   { 0, 0 }

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.h,v 1.7 1996/06/01 04:59:27 sdh Exp $
+ *  $Id: nc_lde.h,v 1.8 1996/09/15 04:17:49 sdh Exp $
  */
 #ifndef LDE_NC_LDE_H
 #define LDE_NC_LDE_H
@@ -30,6 +30,8 @@
 #define VERT (LINES-HEADER_SIZE-TRAILER_SIZE)
 #define HOFF ((COLS-WIN_COL)/2)
 
+#define HELP_KEY_SIZE 12
+
 /* Curses variables */
 int    WHITE_ON_BLUE, WHITE_ON_RED, RED_ON_BLACK;
 WINDOW *header, *workspace, *trailer;
@@ -53,13 +55,15 @@ extern void nc_warn(char *fmt, ...);
 extern int error_popup(void);
 extern int do_popup_menu(lde_menu menu[], lde_keymap keys[]);
 extern void do_scroll_help(char **help_text, int fancy);
+extern void do_new_scroll_help(lde_menu help_text[], lde_keymap *kmap, int fancy);
+extern char *three_text_keys(int c, lde_keymap *kmap);
 extern void show_super(void);
 extern void flag_popup(void);
 extern void crecover_file(unsigned long inode_zones[]);
 extern int recover_mode(void);
 extern int lookup_key(int c, lde_keymap *kmap);
 extern char *check_special(int c);
-extern char *text_key(int c, lde_keymap *kmap);
+extern char *text_key(int c, lde_keymap *kmap, int skip);
 extern void interactive_main(void);
 #endif
 

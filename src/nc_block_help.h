@@ -10,6 +10,43 @@
 #include "keymap.h"
 
 /* Help for block_mode() */
+
+#define BHELP_BLOCK 1
+#define BHELP_INODE 8
+
+#ifndef USE_OLD_HELP_FORMAT
+static lde_menu block_help[] = {
+  { CMD_CALL_MENU,"Popup menu of commands"},
+  { CMD_BLOCK_MODE_MC,"" /* This will be filled in at runtime */ },
+  { CMD_COPY, "Copy block into copy buffer"},
+  { CMD_VIEW_AS_DIR, "View block as a directory"},
+  { CMD_EDIT, "Edit block"},
+  { CMD_FLAG_ADJUST, "Menu of toggle flags"},
+  { CMD_HELP, "Calls up this help"},
+  { CMD_INODE_MODE, "Enter inode mode"},
+  { CMD_INODE_MODE_MC, NULL /* This will be filled in at runtime */ },
+  { CMD_PASTE, "Paste block from copy buffer"},
+  { CMD_EXIT_PROG, "Quit"},
+  { CMD_RECOVERY_MODE, "Enter recovery mode"},
+  { CMD_VIEW_SUPER,"View superblock"},
+  { CMD_DISPLAY_LOG, "View error/warning log"},
+  { CMD_DO_RECOVER,"Write this block's data to the recovery file"},
+  { CMD_NO_ACTION, "Move cursor (arrows)"},
+  { CMD_NEXT_BLOCK,"View next block"},
+  { CMD_PREV_BLOCK,"View previous block"},
+  { CMD_NEXT_SCREEN,"View next part of current block"},
+  { CMD_PREV_SCREEN,"View previous part of current block"},
+  { CMD_NO_ACTION, "Add block to recovery list at position (keys at top of screen)"},
+  { CMD_NUMERIC_REF, "Enter block number and view it"},
+  { CMD_ABORT_EDIT, "Abort edit.  Reread original block from disk"},
+  { CMD_REFRESH, "Refresh screen"},
+  { CMD_TOGGLE_ASCII, "Toggle hex/ascii edit. (in edit mode)"},
+  { CMD_FIND_INODE,"Find an inode which references this block"},
+  { CMD_FIND_INODE_MC,"Find an inode which references this block and view it"},
+  { CMD_WRITE_CHANGES, "Write changes to disk"},
+  { 0, NULL } 
+};
+#else
 static char *block_help[] = {
   "F2, ^O  : Popup menu of commands",
   "",
@@ -38,6 +75,7 @@ static char *block_help[] = {
   "^W      : Write changes to disk.",
   NULL
 };
+#endif
 
 /* Popup menu in block_mode() */
 static lde_menu block_menu[] = {
