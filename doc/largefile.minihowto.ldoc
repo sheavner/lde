@@ -1,0 +1,316 @@
+<!doctype linuxdoc system>
+<article>
+<title>The Large File mini-HOWTO</title>
+<author>
+Rob Ross, Parallel Architecture Research Lab, Clemson University
+&lt;rbross@parl.clemson.edu&gt;
+</author>
+<date>
+v0.0, 25 May 1999
+</date>
+
+<abstract>
+This file describes how to get large (more than 2GB) file support
+working for Linux 2.2.x on the Intel (and possibly other 32-bit)
+processors.
+</abstract>
+
+<sect> Introduction
+
+<p>
+The Large File Summit (LFS) is an attempt to support over 2GB file
+sizes in 32-bit systems running Linux.  This is done with a kernel patch
+which modifies kernel internals to support these larger sizes, enables
+large files in EXT2, and allows for 16TB files in the page cache, and
+adds a number of additional system calls for use with large files.
+
+<p>
+Along with this, extensions in glibc provide the functions needed to
+operate on large files with both the UNIX I/O interface and the stdio
+interface.  New structures are also defined for accessing these files.
+
+<p>
+Using the patch, new glibc, and slightly modified code, applications
+will be able to store and access files of 1TB or more (if you have the
+space of course :)).
+
+<p>
+This document describes the usage model in the Large File Summit
+specification, but does not show low level kernel details which are
+subject to change.
+
+</sect>
+<sect> Acknowledgements
+
+<p>
+Many thanks go to Matti Aarnio &lt;matti.aarnio@sonera.fi&gt;
+for creating
+the patches and the documentation on which this is based.  Additional
+information in this document was extracted from the Large File Summit
+specification ``Adding Support for Arbitrary File Sizes to the Single
+UNIX Specification'', available at 
+<htmlurl name="http://www.sas.com/standards/large.file/"
+url="http://www.sas.com/standards/large.file/">.
+
+<p>
+
+</sect>
+<sect> Kernel patch
+
+<p>
+Applying the kernel patch is the first step in enabling large file
+support on your machine.
+The kernel patch is available at <htmlurl
+name="ftp://mea.tmt.tele.fi/linux/LFS/"
+url="ftp://mea.tmt.tele.fi/linux/LFS/">.  At the time of writing the
+newest patch was lfs-patches-v0.15-base-2.2.9.diff, which applied to
+the 2.2.9 kernel.  There were problems with quota support and the patch,
+so quota support was disabled.
+
+</sect>
+<sect> New system calls
+
+<p>
+The kernel patch, in addition to handling large file size issues in the
+kernel, also adds the following system calls for 32-bit systems:
+<p>
+<verb>
+  mmap64()         setrlimit64()
+  getrlimit64()    truncate64()
+  ftruncate64()    stat64()
+  lstat64()        fstat64()
+  statfs64()       fstatfs64()
+  getdents64()
+</verb>
+
+<p>
+These new calls enable all the common functionality (memory mapping,
+truncating, etc.) for large files; however, they need library support
+for easy use.
+
+</sect>
+<sect> Accessing large files
+<p>
+First of all, it is best to use glibc 2.1 which contains support
+for large files.  Specifically, if your source wants to use these
+extensions it should define:
+<p>
+<verb>
+  -D_LARGEFILE64_SOURCE  (uses transitional interfaces; *64() things)
+</verb>
+
+<p>
+With this defined and &lt;unistd.h&gt; included, any or all of the
+following ``Version Test Macros'' may be defined depending on what
+interfaces are available.  Rather than include the specifics from the
+specifications, I'm going to try to summarize what the macros indicate
+is available:
+
+<!-- (extracted from the Large File Summit
+specification).  Notes on what these more generally mean follow the
+list.
+
+<descrip>
+<tag>_LFS_LARGEFILE</tag>
+This is defined to be 1 if the implementation
+supports the interfaces as specified in 2.2.1 Changes
+to System Interfaces except that implementations need
+not provide the asynchronous I/O interfaces: aio_read(),
+aio_write(), and lio_listio().
+
+<tag>_LFS64_LARGEFILE</tag> 
+This is defined to be 1 if the implementation supports all the
+transitional extensions listed in 3.1.1.1.3 Other Interfaces,
+3.1.1.2 fcntl(), 3.1.1.3 open() and 3.1.2 Transitional Extensions to
+Headers, except changes specified in 3.1.2.2 &lt;aio.h&gt; and 3.1.2.6
+&lt;stdio.h&gt; need not be supported.
+
+<tag>_LFS64_STDIO</tag>
+This is defined to be 1 if the implementation supports all the
+transitional extensions listed in 3.1.1.1.2 STDIO Interfaces and 3.1.2.6
+&lt;stdio.h&gt;.
+
+<p>
+If _LFS64_STDIO is not defined to be 1 and the underlying file descriptor
+associated with the stream has O_LARGEFILE set, then the behavior of the
+Standard I/O functions is unspecified.
+</descrip>
+-->
+
+<descrip>
+<tag>_LFS_LARGEFILE</tag>
+If _LFS_LARGEFILE is defined to be 1, then the interfaces understand
+that large files exist and will return appropriate errors when values
+that won't fit in off_t variables are about to be thrown around.
+
+<tag>_LFS64_LARGEFILE</tag> 
+If _LFS64_LARGEFILE is defined to be 1, then the following are available:
+<verb>
+  creat64()         fstat64()
+  fstatvfs64()      ftruncate64()
+  ftw64()           getrlimit64()
+  lockf64()         lseek64()
+  lstat64()         mmap64()
+  nftw64()          open64()
+  readdir64()       setrlimit64()
+  stat64()          statvfs64()
+  truncate64()
+</verb>
+<p>
+Also, here open() understands the O_LARGEFILE option, as does fcntl().
+
+<tag>_LFS64_STDIO</tag>
+If _LFS64_STDIO is defined to be 1, you get 64-bit versions of the stdio
+calls:
+<verb>
+  fgetpos64()       fopen64()
+  freopen64()       fseeko64()
+  fsetpos64()       ftello64()
+  tmpfile64()
+</verb>
+<p>
+If _LFS64_STDIO is not defined to be 1, and the underlying file descriptor
+associated with the stream has O_LARGEFILE set, then the behavior of the
+Standard I/O functions is unspecified.
+</descrip>
+
+Some other macros are also defined, but not covered here.
+
+<p>
+In order to create and access large files, the O_LARGEFILE
+option <em>must</em> be passed to the open() call, or open64()
+be used:
+<p>
+<verb>
+  int fd;
+  fd = open64("file.name", O_RDWR, 0644);
+  fd = open("file.name", O_RDWR|O_LARGEFILE, 0644);
+</verb>
+<p>
+Same flag can also be set with fcntl(F_SETFL) function.
+
+<p>
+For STDIO there are also related transitional call interfaces:
+<verb>
+  FILE *fp;
+  fp = fopen64(...);
+  fp = tmpfile64(...);
+  fp = freopen64(...);
+</verb>
+<p>
+
+Essentially system usage is like before, except for the
+``transitional'' function interfaces.
+
+<p>
+Locking is slightly different; standard POSIX based locks
+still use fcntl(), but a new data structure and new macros are defined:
+<verb>
+  struct flock64 lk64;
+
+  rc = fcntl(fd, F_GETLK64,  &amp;lk64);
+  rc = fcntl(fd, F_SETLK64,  &amp;lk64);
+  rc = fcntl(fd, F_SETLKW64, &amp;lk64);
+</verb>
+</sect>
+
+<sect> Getting the most out of EXT2
+
+<p>
+The block size used on EXT2 file systems will place an upper limit
+on how large a file can actually be stored.  The triple-indirection
+scheme used in EXT2 will support the following sizes based on the
+block size:
+
+<p>
+<verb>
+  Block Size   File Size
+
+  512        2 GB + epsilon
+  1k        16 GB + epsilon
+  2k       128 GB + epsilon
+  4k      1024 GB + epsilon
+  8k      8192 GB + epsilon  ( not without PAGE_SIZE >= 8 kB )
+</verb>
+
+<p>
+You cannot use an 8K block size on Intel since the page size on Intel
+platforms is 4K, so the file size is limited to 1TB + epsilon, and the
+4K block size is probably the best choice.
+
+<p>
+Additionally, the basic block device layer can support only 4G of 512
+byte regions, 2G to be safe, so don't expect to be able to access more
+than 1TB of actual data total in the EXT2 filesystem.
+Sparse files can have maximum offsets according to the table above,
+because blocks are not allocated for blocks that have not been written.
+
+</sect>
+<sect> Additional information
+
+<p>
+There is a mailing list for Linux FS devel:
+
+<p>
+linux-fsdevel@vger.rutgers.edu
+
+<p>
+It's majordomo-based, so the normal approach to adding oneself should
+apply:
+
+<verb>
+echo "subscribe linux-fsdevel" | mail majordomo@vger.rutgers.edu
+</verb>
+
+<p>
+The FTP site which includes the patch also has some additional
+information.
+
+</sect>
+<sect> Problems
+
+<p>
+There are currently issues with using LFS and glibc 2.1.x due to
+problems with the struct stat64 defined for i386.
+</sect>
+
+<sect>
+Disclaimer
+
+<p>
+While effort is made to keep this information up to date, the author(s)
+will accept no responsibility for any loss or damage caused in any way
+to any person or equipment as a direct or indirect consequence of using
+any of the information in this document.
+
+<p>
+This document may be reproduced and distributed in whole or in part,
+without fee, subject to the following conditions: 
+
+<itemize>
+<item> The copyright notice above and this permission notice must be
+preserved complete on all complete or partial copies. 
+
+<item> Any translation or derived work must be approved by the author in
+writing before distribution. 
+
+<item> If you distribute this work in part, instructions for obtaining
+the complete version of this manual must be included, and a means for
+obtaining a complete version provided. 
+
+<item> Small portions may be reproduced as illustrations for reviews or
+quotes in other works without this permission notice if proper citation
+is given. 
+</itemize>
+
+<p>
+Exceptions to these rules may be granted for academic purposes: Write to
+the author and ask. These restrictions are here to protect us as
+authors, not to restrict you as learners and educators. 
+<p>
+Copyright (C) 1999 Robert B. Ross
+
+</sect>
+</article>
+
+
