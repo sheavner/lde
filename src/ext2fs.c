@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.30 2002/01/14 20:08:33 scottheavner Exp $
+ *  $Id: ext2fs.c,v 1.31 2002/01/14 20:41:37 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -41,9 +41,13 @@
 #include "recover.h"
 #include "bitops.h"
 
-#if HAVE_TEST_LE_BIT
+#if HAVE_EXT2_TEST_BIT
 #else
-#define test_le_bit test_bit
+#if HAVE_TEST_LE_BIT
+#define	ext2_test_bit test_le_bit
+#else
+#define ext2_test_bit test_bit
+#endif
 #endif
 
 static void EXT2_read_inode_bitmap (unsigned long nr);
@@ -232,7 +236,7 @@ static int EXT2_inode_in_use(unsigned long nr)
   EXT2_read_inode_bitmap(nr);
   nr %= sb->s_inodes_per_group;
 #endif
-  return test_le_bit(nr,inode_map);
+  return ext2_test_bit(nr,inode_map);
 }
 
 /* Reads the table indicating used/unused data blocks from disk */
@@ -302,7 +306,7 @@ static int EXT2_zone_in_use(unsigned long nr)
   EXT2_read_block_bitmap(nr);
   nr %= sb->s_blocks_per_group;
 #endif
-  return test_le_bit(nr,zone_map);
+  return ext2_test_bit(nr,zone_map);
 }
 
 /* Could use some optimization maybe?? -- same as xiafs's */
