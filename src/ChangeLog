@@ -6,6 +6,12 @@
 	- Merge in some of John's changes.  These are easily disabled and
 	  won't disrupt the other code.  Tag STABLE_27_JAN_2002.
 
+	- Merge in the rest of John's changes.  Requires -DJQDIR to enable
+	  at compile time.  Will be enabled if you specify --enable-alpha-code
+	  when running configure.  Tag JQDIR_27_JAN_2002.
+
+	- Add John's undelete documentation to /doc.
+
 2002-01-14    Scott Heavner
 
 	- Add bigendian support for ext2, minix, xiafs types.  Autodetect
