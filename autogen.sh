@@ -6,9 +6,9 @@ test -z "$srcdir" && srcdir=.
 
 DIE=0
 
-(autoconf --version) < /dev/null > /dev/null 2>&1 || {
+(autoconf --version $0) < /dev/null > /dev/null 2>&1 || {
         echo
-        echo "You must have autoconf installed to compile esound."
+        echo "You must have autoconf installed to compile lde."
         echo "Download the appropriate package for your distribution,"
         echo "or get the source tarball at ftp://ftp.gnu.org/pub/gnu/"
         DIE=1

@@ -69,14 +69,15 @@ if test x$ac_cv_func_lseek64 = xno ; then
 		AC_CHECK_FUNCS(llseek)
 	fi
 fi
+
+
 dnl KLUDGE - support both autoconf 2.13 and 2.50.
 dnl This is necessary because `__s64' is not a recognized C type,
 dnl so 2.50 guesses wrong about the interface.  (See info page.)
 ifdef([AC_COPYRIGHT],
-   [AC_CHECK_TYPE(loff_t,
-                 [AC_DEFINE(loff_t,__s64,
-                   [Define `loff_t' if <sys/types> does not define.])])],
-   [AC_CHECK_TYPE(loff_t,__s64)])
+   [AC_CHECK_TYPE(loff_t,,[AC_DEFINE(loff_t,__s64)])],
+   [AC_CHECK_TYPE(loff_t,__s64)]
+)
 
 dnl Has long getopt?
 AC_CHECK_FUNCS(getopt_long)
