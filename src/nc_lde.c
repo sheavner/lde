@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.19 1996/09/15 04:16:45 sdh Exp $
+ *  $Id: nc_lde.c,v 1.20 1996/09/15 04:57:49 sdh Exp $
  */
 
 #include <stdio.h>
@@ -784,8 +784,19 @@ int recover_mode(void)
 /* Format the super block for curses */
 void show_super(void)
 {
+  int vstart,vsize=10;
+
   clobber_window(workspace);
-  workspace = newwin(10,WIN_COL,((VERT-10)/2+HEADER_SIZE),HOFF);
+
+  /* Do some bounds checking on our window */
+  if (VERT>vsize) {
+    vstart = ((VERT-vsize)/2+HEADER_SIZE);
+  } else {
+    vsize  = LINES-HEADER_SIZE-TRAILER_SIZE;
+    vstart = HEADER_SIZE;
+  }
+
+  workspace = newwin(vsize,WIN_COL,vstart,HOFF);
   werase(workspace);
   
   mvwprintw(workspace,0,20,"Inodes:       %10ld (0x%8.8lX)",sb->ninodes, sb->ninodes);
@@ -915,6 +926,15 @@ void interactive_main(void)
     WHITE_ON_BLUE = A_REVERSE;
     RED_ON_BLACK = A_NORMAL;
     WHITE_ON_RED = A_UNDERLINE;
+  }
+
+  /* First check to see that our screen is big enough */
+  if ((LINES<(HEADER_SIZE+TRAILER_SIZE))||(COLS<WIN_COL)) {
+    endwin();
+    printf("Screen is too small: need %d x %d, have %d x %d\n",
+	   WIN_COL,(HEADER_SIZE+TRAILER_SIZE),
+	   COLS,LINES);
+    return;
   }
 
   /* Clear out restore buffer */
