@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.24 1998/06/05 21:23:22 sdh Exp $
+ *  $Id: nc_block.c,v 1.25 1998/06/09 18:01:25 sdh Exp $
  */
 
 #include <stdio.h>
@@ -407,7 +407,7 @@ int block_mode(void) {
   update_block_help();
 
   /* Stick some helpful? info in the trailer window */
-  display_trailer("F1/H for help.  F2/^O for menu.  Q to quit");
+  display_trailer("F1/? for help.  F2/^O for menu.  Q to quit");
 
   /* Fill in next/prev pointers for linked list */
   for (i=0; i<2*curs.bps+1; i++) {

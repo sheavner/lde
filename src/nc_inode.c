@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.19 1998/05/30 17:47:35 sdh Exp $
+ *  $Id: nc_inode.c,v 1.20 1998/06/09 18:03:07 sdh Exp $
  */
 
 #include <ctype.h>
@@ -459,7 +459,7 @@ int inode_mode() {
   unsigned long a;
   static unsigned char *copy_buffer = NULL;
 
-  display_trailer("F1/H for help.  F2/^O for menu.  Q to quit");
+  display_trailer("F1/? for help.  F2/^O for menu.  Q to quit");
 
   GInode = FS_cmd.read_inode(current_inode);
   cdump_inode_values(current_inode, GInode, (highlight_field|LDE_DUMP_ILABELS));
