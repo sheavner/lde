@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.18 1996/09/14 02:39:59 sdh Exp $
+ *  $Id: nc_lde.c,v 1.19 1996/09/15 04:16:45 sdh Exp $
  */
 
 #include <stdio.h>
@@ -264,6 +264,7 @@ int do_popup_menu(lde_menu menu[], lde_keymap keys[])
   WINDOW *win, *bigwin;
   int    c, window_length, window_width, length, width, last_highlight = 0, highlight = 0;
 
+  /* Find size of longest descriptor entry */
   length = width = 0;
   while (menu[length].description!=NULL) {
     width = (strlen(menu[length].description) > width) ?
@@ -271,27 +272,34 @@ int do_popup_menu(lde_menu menu[], lde_keymap keys[])
     length++;
   }
 
+  /* Our window size (has border 1 char wide on all sides) 
+   * - adjust width for 4 character entries for key names */
   window_length = ((length+2)<VERT) ? (length+2) : VERT;
   window_width  = ((width+2+4)<WIN_COL) ? (width+2+4) : WIN_COL;
 
+  /* Create the window */
   bigwin = newwin(window_length,window_width,HEADER_SIZE,0);
 
+  /* Readjust our size parameters to account for the border */
   window_length -= 2;
   window_width  -= 2;
 
+  /* Create a little with no borders inside the bordered window */
   win = derwin(bigwin, window_length, window_width, 1, 1);
 
+  /* Set some curses flags and draw box around window */
   scrollok(win, TRUE);
   werase(bigwin);
   box(bigwin,0,0);
 
+  /* Draw the menu once, highlight the appropriate entry */
   for (c=0; c < window_length; c++) {
     if (c==highlight)
       wattron(win,WHITE_ON_RED);
     mvwprintw(win,c,0,menu[c].description);
     if (c==highlight)
       wattroff(win,WHITE_ON_RED);
-    mvwprintw(win,c,width,text_key(menu[c].action_code,keys));
+    mvwprintw(win,c,width,text_key(menu[c].action_code,keys,0));
   }
   wmove(bigwin,1,1);
   wrefresh(bigwin);
@@ -332,6 +340,7 @@ int do_popup_menu(lde_menu menu[], lde_keymap keys[])
 	}
     }
 
+    /* Make sure the right menu choice is highlighted */
     if (highlight != last_highlight) { 
       mvwprintw(win,last_highlight,0,menu[last_highlight].description);
       wattron(win,WHITE_ON_RED);
@@ -347,24 +356,72 @@ int do_popup_menu(lde_menu menu[], lde_keymap keys[])
   return 0;
 }
 
+/* Convert action code to key which would ellicit this action */
+char *three_text_keys(int c, lde_keymap *kmap)
+{
+  int i, j, k=0, newentry;
+  static char return_string[HELP_KEY_SIZE];
+  char *onestring;
+
+  /* Clear the response string */
+  return_string[0] = 0;
+
+  for (i=0; i<3; i++) {
+
+    /* Lookup a key that goes along with our command c */
+    onestring = text_key(c, kmap, i);
+
+    /* Copy the result from text_key() into our buffer */
+    newentry = 0;
+    for (j=0; j<5; j++) {
+      if (onestring[j]==0) {
+	break;
+      } else if (onestring[j]!=' ') {
+	return_string[k++] = onestring[j];
+	newentry = 1;
+      }
+    }
+
+    /* Break out of for loop if we are about to overflow buffer, remove last entry */
+    if (k==HELP_KEY_SIZE) {
+      while ((k)&&(onestring[k]!=',')) k--;
+      break;
+    }
+
+    /* Add a comma after this key */
+    if (newentry)
+      return_string[k++] = ',';
+
+  }
+
+  if (k!=0)
+    return_string[k-1] = 0;
+
+  return return_string;
+}
+
 /* Display some help in a separate scrollable window */
-void do_scroll_help(char **help_text, int fancy)
+void do_new_scroll_help(lde_menu help_text[], lde_keymap *kmap, int fancy)
 {
   WINDOW *win, *bigwin;
   int c=CMD_NO_ACTION, i, length, banner_size, win_col, window_size, window_offset = 0;
   char *banner = " lde Help ";
 
+  /* Display options, do we include a banner or a box? */
   banner_size = (fancy&HELP_NO_BANNER)?0:1;
   win_col     = (fancy&HELP_WIDE)?COLS:WIN_COL;
   fancy       = (fancy&HELP_BOXED)?2:0;
-    
+
+  /* Find window vertical size */
   length = -1;
-  while (help_text[++length]!=NULL);
+  while (help_text[++length].action_code);
   window_size = ((length+fancy+banner_size)<VERT) ? (length+fancy+banner_size) : VERT;
 
+  /* Create and clear the new window */
   bigwin = newwin(window_size,win_col,((VERT-window_size)/2+HEADER_SIZE),(win_col == WIN_COL) ? HOFF : 0);
   werase(bigwin);
 
+  /* Put a box around the window, if desired */
   if (fancy) {
     win = derwin(bigwin, window_size - 2 - banner_size, win_col - 2, 1+banner_size, 1);
     box(bigwin,0,0);
@@ -373,6 +430,102 @@ void do_scroll_help(char **help_text, int fancy)
     win = bigwin;
   }
 
+  /* Draw a 1 line header in the new window, if desired */
+  if (banner_size) {
+    wattron(bigwin,WHITE_ON_BLUE);
+    for (i=1;i<win_col-1;i++)
+      mvwaddch(bigwin,1,i,' ');
+    mvwprintw(bigwin,1,(win_col-strlen(banner))/2-1,banner);
+    wattroff(bigwin,WHITE_ON_BLUE);
+  }
+
+  leaveok(win,TRUE);
+  scrollok(win, TRUE);
+
+  /* Adjust the window size for borders and banners */
+  window_size -= fancy + banner_size;
+
+  for (i=0; i<window_size; i++) {
+    mvwprintw(win,i,fancy,three_text_keys(help_text[i+window_offset].action_code, kmap));
+    mvwprintw(win,i,fancy+HELP_KEY_SIZE,help_text[i+window_offset].description);
+  }
+  wmove(win,i,fancy);
+    
+  wrefresh(bigwin);
+
+  /* Display and scroll help */
+  while ( (c!=CMD_EXIT)&&(c=lookup_key(mgetch(),help_keymap)) ) {
+    i = -1;
+    switch (c) {
+      case CMD_PREV_LINE:
+	if (window_offset>0) {
+	  window_offset--;
+	  wscrl(win,-1);
+	  i = 0;
+	}
+	break;
+      case CMD_NEXT_LINE:
+	if ((window_offset+window_size)<length) {
+	  window_offset++;
+	  wscrl(win,1);
+	  i = window_size - 1;
+	}
+	break;
+      default:
+	c = CMD_EXIT;
+	continue;
+      }
+
+    if (i>=0) {
+      mvwprintw(win,i,fancy,three_text_keys(help_text[i+window_offset].action_code, kmap));
+      mvwprintw(win,i,fancy+HELP_KEY_SIZE,help_text[i+window_offset].description);
+      wmove(win,i,fancy);
+      wrefresh(win);
+    }
+  }
+
+  leaveok(win,FALSE);
+
+  /* Cleanup windows */
+  delwin(win);
+  if (fancy)
+    delwin(bigwin);
+
+  return;
+}
+
+
+/* Display some help in a separate scrollable window */
+void do_scroll_help(char **help_text, int fancy)
+{
+  WINDOW *win, *bigwin;
+  int c=CMD_NO_ACTION, i, length, banner_size, win_col, window_size, window_offset = 0;
+  char *banner = " lde Help ";
+
+  /* Display options, do we include a banner or a box? */
+  banner_size = (fancy&HELP_NO_BANNER)?0:1;
+  win_col     = (fancy&HELP_WIDE)?COLS:WIN_COL;
+  fancy       = (fancy&HELP_BOXED)?2:0;
+
+  /* Find window vertical size */
+  length = -1;
+  while (help_text[++length]!=NULL);
+  window_size = ((length+fancy+banner_size)<VERT) ? (length+fancy+banner_size) : VERT;
+
+  /* Create and clear the new window */
+  bigwin = newwin(window_size,win_col,((VERT-window_size)/2+HEADER_SIZE),(win_col == WIN_COL) ? HOFF : 0);
+  werase(bigwin);
+
+  /* Put a box around the window, if desired */
+  if (fancy) {
+    win = derwin(bigwin, window_size - 2 - banner_size, win_col - 2, 1+banner_size, 1);
+    box(bigwin,0,0);
+    mvwprintw(bigwin,(window_size-1),(win_col/2-20)," Arrows to scroll, any other key to continue.");
+  } else {
+    win = bigwin;
+  }
+
+  /* Draw a 1 line header in the new window, if desired */
   if (banner_size) {
     wattron(bigwin,WHITE_ON_BLUE);
     for (i=1;i<win_col-1;i++)
@@ -382,6 +535,7 @@ void do_scroll_help(char **help_text, int fancy)
   }
 
   scrollok(win, TRUE);
+  leaveok(win,TRUE);
 
   /* Adjust the window size for borders and banners */
   window_size -= fancy + banner_size;
@@ -392,6 +546,7 @@ void do_scroll_help(char **help_text, int fancy)
     
   wrefresh(bigwin);
 
+  /* Display and scroll help */
   while ( (c!=CMD_EXIT)&&(c=lookup_key(mgetch(),help_keymap)) ) {
     i = -1;
     switch (c) {
@@ -421,6 +576,9 @@ void do_scroll_help(char **help_text, int fancy)
     }
   }
 
+  leaveok(win,FALSE);
+
+  /* Cleanup windows */
   delwin(win);
   if (fancy)
     delwin(bigwin);
@@ -498,17 +656,17 @@ void crecover_file(unsigned long inode_zones[])
   if (recover_file_name[0] == 0) strcpy(recover_file_name,"RECOVERED.file");
 
   sprintf(recover_query," Write data to file:");
-  if (cread_num(recover_query, NULL)) 
+  if (cread_num(recover_query, NULL))
     strncpy(recover_file_name, recover_query, 80);
 
   if ( (fp = open(recover_file_name,O_RDONLY)) > 0 ) {
     close(fp);
     fp = 0;
-    switch (cquery("File exists, append data [Y/N/Q]: ","ynq","")) {
+    switch (cquery("File exists, append data [Yes/Overwrite/Quit]: ","ynq","")) {
       case 'y':
         fp = open(recover_file_name,O_WRONLY|O_APPEND);
 	break;
-      case 'n':
+      case 'o':
 	fp = open(recover_file_name,O_WRONLY|O_TRUNC);
 	break;
       default:
@@ -534,7 +692,7 @@ int recover_mode(void)
 
   /* Fill in keys used to change blocks in recover mode */
   for (j=REC_FILE0; j<REC_FILE_LAST; j++)
-    recover_labels[j-REC_FILE0] = (text_key(j,recover_keymap))[1];
+    recover_labels[j-REC_FILE0] = (text_key(j,recover_keymap,0))[1];
 
   clobber_window(workspace); 
   workspace = newwin(fsc->N_BLOCKS+1,WIN_COL,((VERT-fsc->N_BLOCKS-1)/2+HEADER_SIZE),HOFF);
@@ -564,6 +722,9 @@ int recover_mode(void)
 	if (cread_num("Enter block number (leading 0x or $ indicates hex):", &a))
 	  fake_inode_zones[c-REC_FILE0] = (unsigned long) a;
         break;
+      case CMD_CLR_RECOVER:
+	bzero(fake_inode_zones,sizeof(long)*MAX_BLOCK_POINTER);
+	break;
       case CMD_BLOCK_MODE:
       case CMD_VIEW_SUPER:
       case CMD_EXIT:
@@ -578,7 +739,7 @@ int recover_mode(void)
 	next_cmd = do_popup_menu(recover_menu,recover_keymap);	
 	break;
       case CMD_HELP:
-	do_scroll_help(recover_help, FANCY);
+	do_new_scroll_help(recover_help, recover_keymap, FANCY);
       case CMD_REFRESH:
 	refresh_all();
 	break;
@@ -676,14 +837,19 @@ char *check_special(int c)
 }
 
 /* Convert action code to key which would ellicit this action */
-char *text_key(int c, lde_keymap *kmap)
+char *text_key(int c, lde_keymap *kmap, int skip)
 {
-  int i;
+  int i, found=0;
   static char stat_return_string[5], *return_string;
   
   for (i=0;kmap[i].action_code;i++) {
     
     if (c==kmap[i].action_code) {
+
+      /* Continue with for loop if we have not skipped enough entries */
+      if (skip-(found++))
+	continue;
+
       c = kmap[i].key_code;
 
       /* Look for special keys */
@@ -704,7 +870,8 @@ char *text_key(int c, lde_keymap *kmap)
 	strcpy(return_string," ");
       }
 
-      return_string[strlen(return_string)] = c;
+      if ((c>31)&&(c<127)) 
+        return_string[strlen(return_string)] = c;
       return return_string;
     }
   }
@@ -712,7 +879,7 @@ char *text_key(int c, lde_keymap *kmap)
   /* If we didn't find it in the requested keymap,
    * search the global keymap */
   if (kmap!=global_keymap)
-    return text_key(c, global_keymap);
+    return text_key(c, global_keymap, (skip-found));
 
   return "   ";
 }
@@ -791,7 +958,7 @@ void interactive_main(void)
 	next_cmd = do_popup_menu(ncmain_menu,main_keymap);	
 	break;
       case CMD_HELP:
-	do_scroll_help(ncmain_help,FANCY);
+	do_new_scroll_help(ncmain_help,main_keymap,FANCY);
       case CMD_REFRESH:
 	refresh_all();
 	break;
