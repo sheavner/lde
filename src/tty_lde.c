@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.5 1994/03/23 05:58:15 sdh Exp $
+ *  $Id: tty_lde.c,v 1.6 1994/04/01 09:47:37 sdh Exp $
  */
 
 #include "lde.h"
@@ -38,13 +38,13 @@ long read_num(char *cinput)
  return 0; /* This should be a safe number to return if something went wrong */
 }
 
-static char cache[MAX_BLOCK_SIZE];
 char * cache_read_block (unsigned long block_nr, int force)
 {
+  static char cache[MAX_BLOCK_SIZE];
   static unsigned long cache_block_nr = -1L; /* set to an outrageous number */
   int read_count;
   
-  if (force||(block_nr != cache_block_nr))
+  if ((force==FORCE_READ)||(block_nr != cache_block_nr))
     {
       cache_block_nr = block_nr;
       memset(cache,0,sb->blocksize);
@@ -62,9 +62,13 @@ char * cache_read_block (unsigned long block_nr, int force)
 
 int write_block (unsigned long block_nr, char *data_buffer)
 {
-#ifndef PARANOID
   int write_count;
 
+  if (!write_ok) {
+    warn("Disk not writable, block not written");
+    return -1;
+  }
+#ifndef PARANOID
   if (lseek (CURR_DEVICE, block_nr * sb->blocksize, SEEK_SET) !=
       block_nr * sb->blocksize) {
     warn("Write error: unable to seek to block in write_block ");
@@ -90,7 +94,7 @@ unsigned long nr;
   int i;
   unsigned char *dind;
 
-  dind = cache_read_block(nr,0);
+  dind = cache_read_block(nr,CACHEABLE);
   for (i=0;i<BLOCK_SIZE;i++) printf("%c",dind[i]);
 }
 
@@ -101,7 +105,7 @@ unsigned short nr;
   int i,j;
   unsigned char *dind,	 c;
 
-  dind = cache_read_block(nr,0);
+  dind = cache_read_block(nr,CACHEABLE);
 
   printf("\nDATA FOR BLOCK %d (%#X):\n",nr,nr);
 
@@ -132,14 +136,16 @@ unsigned short nr;
 void dump_inode(unsigned int nr)
 {
   int j;
-  unsigned long atime;
   char f_mode[12];
+  struct Generic_Inode *GInode;
   struct passwd *NC_PASS;
   struct group *NC_GROUP;
 
+  GInode = FS_cmd.read_inode(nr);
+
   /* Print inode number and file type */
   printf("\nINODE: %-6d (0x%5.5X) TYPE: ",nr,nr);
-  printf("%14s",entry_type(DInode.i_mode(nr)));
+  printf("%14s",entry_type(GInode->i_mode));
 
   if (FS_cmd.inode_in_use(nr)) 
     printf("\n");
@@ -147,27 +153,26 @@ void dump_inode(unsigned int nr)
     printf("(NOT USED)\n");
   
   /* Print it like a directory entry */
-  mode_string((unsigned short)DInode.i_mode(nr),f_mode);
+  mode_string((unsigned short)GInode->i_mode,f_mode);
   f_mode[10] = 0; /* Junk from canned mode_string */
   printf("%10.10s	 ",f_mode);
   /* printf("%2d ",inode->i_nlinks); */
-  if ((NC_PASS = getpwuid(DInode.i_uid(nr)))!=NULL)
+  if ((NC_PASS = getpwuid(GInode->i_uid))!=NULL)
     printf("%-8s ",NC_PASS->pw_name);
   else
-    printf("%-8d ",DInode.i_uid(nr));
-  if ((NC_GROUP = getgrgid(DInode.i_gid(nr)))!=NULL)
+    printf("%-8d ",GInode->i_uid);
+  if ((NC_GROUP = getgrgid(GInode->i_gid))!=NULL)
     printf("%-8s ",NC_GROUP->gr_name);
   else
-    printf("%-8d ",DInode.i_gid(nr));
-  printf("%9ld ",DInode.i_size(nr));
-  atime = DInode.i_atime(nr);
-  printf("%24s",ctime(&atime));
+    printf("%-8d ",GInode->i_gid);
+  printf("%9ld ",GInode->i_size);
+  printf("%24s",ctime(&GInode->i_atime));
 
   /* Display used blocks */
   j=-1;
-  if (DInode.i_zone(nr, (unsigned long) 0)) {
+  if (GInode->i_zone[0]) {
     printf("BLOCKS= ");
-    while ((++j<9)&&(DInode.i_zone(nr,j))) {
+    while ((++j<9)&&(GInode->i_zone[j])) {
       if ((j < fsc->N_DIRECT)&&(j==7)) {
 	printf("\n        ");
       } else if ((fsc->INDIRECT)&&(j == fsc->INDIRECT)) {
@@ -177,7 +182,7 @@ void dump_inode(unsigned int nr)
       } else if ((fsc->X3_INDIRECT)&&(j == fsc->X3_INDIRECT )) {
 	printf("\nTRIPLE INDIRECT BLOCK: ");
       }
-      printf("0x%7.7lX ",DInode.i_zone(nr,j));
+      printf("0x%7.7lX ",GInode->i_zone[j]);
     }
   }
   

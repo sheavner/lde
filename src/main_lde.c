@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.3 1994/03/21 09:24:56 sdh Exp $
+ *  $Id: main_lde.c,v 1.4 1994/04/01 09:47:27 sdh Exp $
  */
 
 #include <unistd.h>
@@ -60,7 +60,11 @@ volatile void fatal_error(const char * fmt_string)
 
 int check_root(void)
 {
-  if (!S_ISDIR(DInode.i_mode(fsc->ROOT_INODE))) {
+  struct Generic_Inode *GInode;
+
+  GInode = FS_cmd.read_inode(fsc->ROOT_INODE);
+
+  if (!S_ISDIR(GInode->i_mode)) {
     warn("root inode isn't a directory");
     return 1;
   }
@@ -161,7 +165,7 @@ int main(int argc, char ** argv)
   while (1) {
     int option_index = 0;
 
-    c = getopt_long (argc, argv, "avIi:bB:d:cCgpqS:t:T:whH?",
+    c = getopt_long (argc, argv, "avI:i:b:B:d:cCgpqS:t:T:whH?",
 		     long_options, &option_index);
 
     if (c == -1)

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.6 1994/03/23 05:58:48 sdh Exp $
+ *  $Id: lde.h,v 1.8 1994/04/01 09:46:53 sdh Exp $
  */
 
 #include <stdio.h>
@@ -24,7 +24,7 @@
 #include <grp.h>
 #include <pwd.h>
 
-#define VERSION "2.1beta4"
+#define VERSION "2.2alpha"
 extern char *program_name;
 extern char *device_name;
 
@@ -46,6 +46,7 @@ char *entry_type();
 void NOFS_init();
 unsigned long NOFS_null_call();
 unsigned long NOFS_one();
+struct Generic_Inode *NOFS_init_junk_inode();
 /* minix.c */
 void MINIX_init();
 int MINIX_test();
@@ -73,6 +74,9 @@ void parse_grep();
 #define MAX_BLOCK_POINTER 200
 #define MAX_BLOCK_SIZE 1024
 #define MIN_BLOCK_SIZE 1024
+
+#define CACHEABLE 0
+#define FORCE_READ 1
 
 enum { AUTODETECT, NONE, MINIX, XIAFS, EXT2 };
 extern char *text_names[]; /* defined in main.c */
@@ -118,6 +122,101 @@ struct sbinfo {
 	unsigned long last_block_size;
 };
 
+/* The generic inode, in actuality it is an ext2fs inode,
+ * if you wish to add more fields for a new fs, please add
+ * them at the end, so that the ext2fs inode remains intact.
+ */
+struct Generic_Inode {
+  unsigned short i_mode;                   /* File mode */
+  unsigned short i_uid;                    /* Owner Uid */
+  unsigned long  i_size;                   /* Size in bytes */
+  unsigned long  i_atime;                  /* Access time */
+  unsigned long  i_ctime;                  /* Creation time */
+  unsigned long  i_mtime;                  /* Modification time */
+  unsigned long  i_dtime;                  /* Deletion Time */
+  unsigned short i_gid;                    /* Group Id */
+  unsigned short i_links_count;            /* Links count */
+  unsigned long  i_blocks;                 /* Blocks count */
+  unsigned long  i_flags;                  /* File flags */
+  unsigned long  i_reserved1;
+  unsigned long  i_zone[EXT2_N_BLOCKS];    /* Pointers to blocks */
+  unsigned long  i_version;                /* File version (for NFS) */
+  unsigned long  i_file_acl;               /* File ACL */
+  unsigned long  i_dir_acl;                /* Directory ACL */
+  unsigned long  i_faddr;                  /* Fragment address */
+  unsigned char  i_frag;                   /* Fragment number */
+  unsigned char  i_fsize;                  /* Fragment size */
+  unsigned short i_pad1;
+  unsigned long  i_reserved2[2];
+};
+
+struct inode_fields {
+  char i_mode;
+  char i_uid;
+  char i_size;
+  char i_links_count;
+  char i_mode_flags;
+  char i_gid;
+  char i_blocks;
+  char i_atime;
+  char i_ctime;
+  char i_mtime;
+  char i_dtime;
+  char i_flags;
+  char i_reserved1;
+  char i_zone[EXT2_N_BLOCKS];
+  char i_version;
+  char i_file_acl;
+  char i_dir_acl;
+  char i_faddr;
+  char i_frag;
+  char i_fsize;
+  char i_pad1;
+  char i_reserved2;
+};
+
+/* These have to be in the same order as inode_fields */
+enum {
+  I_BEGIN = -1,
+  I_MODE,
+  I_UID,
+  I_SIZE,
+  I_LINKS_COUNT,
+  I_MODE_FLAGS,
+  I_GID,
+  I_BLOCKS,
+  I_ATIME,
+  I_CTIME,
+  I_MTIME,
+  I_DTIME,
+  I_FLAGS,
+  I_RESERVED1,
+  I_ZONE_0,
+  I_ZONE_1,
+  I_ZONE_2,
+  I_ZONE_3,
+  I_ZONE_4,
+  I_ZONE_5,
+  I_ZONE_6,
+  I_ZONE_7,
+  I_ZONE_8,
+  I_ZONE_9,
+  I_ZONE_10,
+  I_ZONE_11,
+  I_ZONE_12,
+  I_ZONE_13,
+  I_ZONE_LAST,
+  I_VERSION,
+  I_FILE_ACL,
+  I_DIR_ACL,
+  I_FADDR,
+  I_FRAG,
+  I_FSIZE,
+  I_PAD1,
+  I_RESERVED2,
+  I_END
+};
+
 struct fs_constants {
   int FS;
   int ROOT_INODE;
@@ -129,44 +228,15 @@ struct fs_constants {
   unsigned short N_BLOCKS;
   int ZONE_ENTRY_SIZE;
   int INODE_ENTRY_SIZE;
+  struct inode_fields * inode;
 };
-
-/* This is a "dynamic inode" a structure which will contain pointers to
- * functions which will retrieve inode values for the respective file
- * systems.  All the functions require a u_long argument which is the
- * inode number for which you desire information.  Really it is an ext2
- * inode.
- */
-struct {
-	unsigned short (*i_mode)();		/* File mode */
-	unsigned short (*i_uid)();		/* Owner Uid */
-	unsigned long  (*i_size)();		/* Size in bytes */
-	unsigned long  (*i_atime)();		/* Access time */
-	unsigned long  (*i_ctime)();		/* Creation time */
-	unsigned long  (*i_mtime)();		/* Modification time */
-	unsigned long  (*i_dtime)();		/* Deletion Time */
-	unsigned short (*i_gid)();		/* Group Id */
-	unsigned short (*i_links_count)();	/* Links count */
-	unsigned long  (*i_blocks)();	        /* Blocks count */
-	unsigned long  (*i_flags)();		/* File flags */
-	unsigned long  i_reserved1;
-	/*unsigned long  i_block[];    /\* Pointers to blocks */
-	unsigned long  i_version;	/* File version (for NFS) */
-	unsigned long  i_file_acl;	/* File ACL */
-	unsigned long  i_dir_acl;	/* Directory ACL */
-	unsigned long  i_faddr;		/* Fragment address */
-	unsigned char  i_frag;		/* Fragment number */
-	unsigned char  i_fsize;		/* Fragment size */
-	unsigned short i_pad1;
-	unsigned long  i_reserved2[2];
-	unsigned long  (*i_zone)();   /* Pointers to blocks */
-} DInode;
 
 struct {
 	int (*inode_in_use)();		/* File mode */
 	int (*zone_in_use)();		/* File mode */
-	char* (*dir_entry)();    
-       /* Get dir name and inode number */
+	char* (*dir_entry)();           /* Get dir name and inode number */
+	struct Generic_Inode* (*read_inode)();
+	int (*write_inode)();
 } FS_cmd;
 
 struct _rec_flags {
@@ -190,7 +260,7 @@ extern unsigned char *zone_count;
 extern int CURR_DEVICE;
 extern int verbose, list, write_ok, quiet;  
 
-/* The rest is all straight out of the original fsck code for the minix fs. */
+/* This bitop stuff is straight out of the original fsck code for the minix fs. */
 #define bitop(name,op) \
 static inline int name(char * addr,unsigned int nr) \
 { \

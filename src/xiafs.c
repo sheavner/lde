@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.3 1994/03/23 05:58:31 sdh Exp $
+ *  $Id: xiafs.c,v 1.4 1994/04/01 09:46:30 sdh Exp $
  */
 
 #include "lde.h"
@@ -19,6 +19,45 @@ int MINIX_zone_in_use();
 #undef Super
 #define Super (*(struct xiafs_super_block *)sb_buffer)
 
+struct inode_fields XIAFS_inode_fields = {
+  1, /*   unsigned short i_mode; */
+  1, /*   unsigned short i_uid; */
+  1, /*   unsigned long  i_size; */
+  1, /*   unsigned short i_links_count; */
+  1, /*   unsigned short i_gid; */
+  1, /*   ()             i_mode_flags; */
+  0, /*   unsigned long  i_blocks; */
+  1, /*   unsigned long  i_atime; */
+  1, /*   unsigned long  i_ctime; */
+  1, /*   unsigned long  i_mtime; */
+  0, /*   unsigned long  i_dtime; */
+  0, /*   unsigned long  i_flags; */
+  0, /*   unsigned long  i_reserved1; */
+  1, /*   unsigned long  i_zone[0]; */
+  1, /*   unsigned long  i_zone[1]; */
+  1, /*   unsigned long  i_zone[2]; */
+  1, /*   unsigned long  i_zone[3]; */
+  1, /*   unsigned long  i_zone[4]; */
+  1, /*   unsigned long  i_zone[5]; */
+  1, /*   unsigned long  i_zone[6]; */
+  1, /*   unsigned long  i_zone[7]; */
+  1, /*   unsigned long  i_zone[8]; */
+  1, /*   unsigned long  i_zone[9]; */
+  0, /*   unsigned long  i_zone[10]; */
+  0, /*   unsigned long  i_zone[11]; */
+  0, /*   unsigned long  i_zone[12]; */
+  0, /*   unsigned long  i_zone[13]; */
+  0, /*   unsigned long  i_zone[14]; */
+  0, /*   unsigned long  i_version; */
+  0, /*   unsigned long  i_file_acl; */
+  0, /*   unsigned long  i_dir_acl; */
+  0, /*   unsigned long  i_faddr; */
+  0, /*   unsigned char  i_frag; */
+  0, /*   unsigned char  i_fsize; */
+  0, /*   unsigned short i_pad1; */
+  0, /*   unsigned long  i_reserved2[2]; */
+};
+
 struct fs_constants XIAFS_constants = {
   XIAFS,                        /* int FS */
   _XIAFS_ROOT_INO,              /* int ROOT_INODE */
@@ -30,66 +69,64 @@ struct fs_constants XIAFS_constants = {
   10,                           /* unsigned short N_BLOCKS */
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
+  &XIAFS_inode_fields,
 };
 
-unsigned short XIAFS_i_mode(unsigned long nr)
+struct Generic_Inode* XIAFS_read_inode(unsigned long nr)
 {
-  if ((!nr)||(nr>sb->ninodes)) nr = 1;
-  return (unsigned short) Inode->i_mode;
+  static struct Generic_Inode GInode;
+  static unsigned long XIAFS_last_inode = -1L; 
+  int i;
+
+  if ((nr<1)||(nr>sb->ninodes)) {
+    warn("inode out of range in XIAFS_read_inode");
+    nr = 1;
+  }
+
+  if (XIAFS_last_inode == nr) return &GInode;
+  XIAFS_last_inode = nr;
+
+  GInode.i_mode        = (unsigned short) Inode->i_mode;
+  GInode.i_uid         = (unsigned short) Inode->i_uid;
+  GInode.i_size        = (unsigned long)  Inode->i_size;
+  GInode.i_atime       = (unsigned long)  Inode->i_atime;
+  GInode.i_ctime       = (unsigned long)  Inode->i_ctime;
+  GInode.i_mtime       = (unsigned long)  Inode->i_mtime;
+  GInode.i_gid         = (unsigned short) Inode->i_gid;
+  GInode.i_links_count = (unsigned short) Inode->i_nlinks;
+  
+  for (i=0; i<XIAFS_constants.N_DIRECT; i++)
+    GInode.i_zone[i] = (unsigned short) Inode->i_zone[i];
+  GInode.i_zone[XIAFS_constants.INDIRECT] = (unsigned short) Inode->i_ind_zone;
+  GInode.i_zone[XIAFS_constants.X2_INDIRECT] = (unsigned short) Inode->i_dind_zone;
+  for (i=XIAFS_constants.N_BLOCKS; i<EXT2_N_BLOCKS; i++)
+    GInode.i_zone[i] = 0UL;
+
+  return &GInode;
 }
 
-unsigned short XIAFS_i_uid(unsigned long nr)
+int XIAFS_write_inode(unsigned long nr, struct Generic_Inode *GInode)
 {
-  if ((!nr)||(nr>sb->ninodes)) nr = 1;
-  return (unsigned short) Inode->i_uid;
-}
+  unsigned long bnr;
+  int i;
 
-unsigned long XIAFS_i_size(unsigned long nr)
-{
-  if ((!nr)||(nr>sb->ninodes)) nr = 1;
-  return (unsigned long) Inode->i_size;
-}
+  Inode->i_mode        = (unsigned short) GInode->i_mode;
+  Inode->i_uid         = (unsigned short) GInode->i_uid;
+  Inode->i_size        = (unsigned long)  GInode->i_size;
+  Inode->i_atime       = (unsigned long)  GInode->i_atime;
+  Inode->i_ctime       = (unsigned long)  GInode->i_ctime;
+  Inode->i_mtime       = (unsigned long)  GInode->i_mtime;
+  Inode->i_gid         = (unsigned short) GInode->i_gid;
+  Inode->i_nlinks      = (unsigned short) GInode->i_links_count;
+  
+  for (i=0; i<XIAFS_constants.N_DIRECT; i++)
+    Inode->i_zone[i] = (unsigned short) GInode->i_zone[i];
+  Inode->i_ind_zone = (unsigned short) GInode->i_zone[XIAFS_constants.INDIRECT];
+  Inode->i_dind_zone = (unsigned short) GInode->i_zone[XIAFS_constants.X2_INDIRECT];
 
-unsigned long XIAFS_i_atime(unsigned long nr)
-{
-  if ((!nr)||(nr>sb->ninodes)) nr = 1;
-  return (unsigned long) Inode->i_atime;
-}
+  bnr = (nr-1)/sb->INODES_PER_BLOCK + sb->imap_blocks + 1 + sb->zmap_blocks;
 
-unsigned long XIAFS_i_ctime(unsigned long nr)
-{
-  if ((!nr)||(nr>sb->ninodes)) nr = 1;
-  return (unsigned long) Inode->i_ctime;
-}
-
-unsigned long XIAFS_i_mtime(unsigned long nr)
-{
-  if ((!nr)||(nr>sb->ninodes)) nr = 1;
-  return (unsigned long) Inode->i_mtime;
-}
-
-unsigned short XIAFS_i_gid(unsigned long nr)
-{
-  if ((!nr)||(nr>sb->ninodes)) nr = 1;
-  return (unsigned short) Inode->i_gid;
-}
-
-unsigned short XIAFS_i_links_count(unsigned long nr)
-{
-  if ((!nr)||(nr>sb->ninodes)) nr = 1;
-  return (unsigned short) Inode->i_nlinks;
-}
-
-unsigned long XIAFS_zoneindex(unsigned long nr, unsigned long znr)
-{
-  if ((!nr)||(nr>sb->ninodes)) nr = 1;
-  if (znr<XIAFS_constants.N_DIRECT)
-    return (unsigned short) Inode->i_zone[znr];
-  else if (znr==XIAFS_constants.INDIRECT)
-    return (unsigned short) Inode->i_ind_zone;
-  else if (znr==XIAFS_constants.X2_INDIRECT)
-    return (unsigned short) Inode->i_dind_zone;
-  return 0;
+  return write_block( bnr, (struct xiafs_inode *) inode_buffer+((nr-1)/sb->INODES_PER_BLOCK) );   
 }
 
 /* Could use some optimization maybe?? */
@@ -137,19 +174,11 @@ int XIAFS_init(char * sb_buffer)
 
   XIAFS_sb_init(sb_buffer);
 
-  DInode.i_mode = XIAFS_i_mode;
-  DInode.i_uid = XIAFS_i_uid;
-  DInode.i_size = XIAFS_i_size;
-  DInode.i_atime = XIAFS_i_atime;
-  DInode.i_ctime = XIAFS_i_ctime;
-  DInode.i_mtime = XIAFS_i_mtime;
-  DInode.i_gid = XIAFS_i_gid;
-  DInode.i_links_count = XIAFS_i_links_count;
-  DInode.i_zone = XIAFS_zoneindex;
-
   FS_cmd.inode_in_use = MINIX_inode_in_use;
   FS_cmd.zone_in_use = MINIX_zone_in_use;
   FS_cmd.dir_entry = XIAFS_dir_entry;
+  FS_cmd.read_inode = XIAFS_read_inode;
+  FS_cmd.write_inode = XIAFS_write_inode;
 
   MINIX_read_tables();
 
@@ -164,5 +193,8 @@ int XIAFS_test(char * sb_buffer)
    }
    return -1;
 }
+
+
+
 
 

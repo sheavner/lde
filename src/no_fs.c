@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.3 1994/03/23 05:58:58 sdh Exp $
+ *  $Id: no_fs.c,v 1.4 1994/04/01 09:47:51 sdh Exp $
  */
 
 /* 
@@ -11,6 +11,45 @@
  */
  
 #include "lde.h"
+
+struct inode_fields NOFS_inode_fields = {
+  0, /*   unsigned short i_mode; */
+  0, /*   unsigned short i_uid; */
+  0, /*   unsigned long  i_size; */
+  0, /*   unsigned short i_links_count; */
+  0, /*   ()             i_mode_flags; */
+  0, /*   unsigned short i_gid; */
+  0, /*   unsigned long  i_blocks; */
+  0, /*   unsigned long  i_atime; */
+  0, /*   unsigned long  i_ctime; */
+  0, /*   unsigned long  i_mtime; */
+  0, /*   unsigned long  i_dtime; */
+  0, /*   unsigned long  i_flags; */
+  0, /*   unsigned long  i_reserved1; */
+  0, /*   unsigned long  i_zone[0]; */
+  0, /*   unsigned long  i_zone[1]; */
+  0, /*   unsigned long  i_zone[2]; */
+  0, /*   unsigned long  i_zone[3]; */
+  0, /*   unsigned long  i_zone[4]; */
+  0, /*   unsigned long  i_zone[5]; */
+  0, /*   unsigned long  i_zone[6]; */
+  0, /*   unsigned long  i_zone[7]; */
+  0, /*   unsigned long  i_zone[8]; */
+  0, /*   unsigned long  i_zone[9]; */
+  0, /*   unsigned long  i_zone[10]; */
+  0, /*   unsigned long  i_zone[11]; */
+  0, /*   unsigned long  i_zone[12]; */
+  0, /*   unsigned long  i_zone[13]; */
+  0, /*   unsigned long  i_zone[14]; */
+  0, /*   unsigned long  i_version; */
+  0, /*   unsigned long  i_file_acl; */
+  0, /*   unsigned long  i_dir_acl; */
+  0, /*   unsigned long  i_faddr; */
+  0, /*   unsigned char  i_frag; */
+  0, /*   unsigned char  i_fsize; */
+  0, /*   unsigned short i_pad1; */
+  1, /*   unsigned long  i_reserved2[2]; */
+};
 
 struct fs_constants NOFS_constants = {
   NONE,                         /* int FS */
@@ -23,7 +62,34 @@ struct fs_constants NOFS_constants = {
   1,                            /* unsigned short N_BLOCKS */
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
+  &NOFS_inode_fields,
 };
+
+struct Generic_Inode NOFS_junk_inode;
+
+struct Generic_Inode *NOFS_init_junk_inode()
+{
+  int i;
+
+  NOFS_junk_inode.i_mode        = 0UL;
+  NOFS_junk_inode.i_uid         = 0UL;
+  NOFS_junk_inode.i_size        = 0UL;
+  NOFS_junk_inode.i_atime       = 0UL;
+  NOFS_junk_inode.i_ctime       = 0UL;
+  NOFS_junk_inode.i_mtime       = 0UL;
+  NOFS_junk_inode.i_gid         = 0UL;
+  NOFS_junk_inode.i_links_count = 0UL;
+  
+  for (i=0; i<EXT2_N_BLOCKS; i++)
+    NOFS_junk_inode.i_zone[i] = 0UL;
+
+  return &NOFS_junk_inode;
+}
+
+struct Generic_Inode *NOFS_read_inode(unsigned long nr)
+{
+  return &NOFS_junk_inode;
+}
 
 unsigned long NOFS_null_call()
 {
@@ -73,21 +139,15 @@ void NOFS_init(char * sb_buffer)
 
   NOFS_sb_init(sb_buffer);
 
+  (void) NOFS_init_junk_inode();
+
   sb->namelen = 1;
   sb->dirsize = 1;
-
-  DInode.i_mode = (unsigned short (*)()) NOFS_null_call;
-  DInode.i_uid = (unsigned short (*)()) NOFS_null_call;
-  DInode.i_size = (unsigned long (*)()) NOFS_null_call;
-  DInode.i_atime = (unsigned long (*)()) NOFS_null_call;
-  DInode.i_ctime = (unsigned long (*)()) NOFS_null_call;
-  DInode.i_mtime = (unsigned long (*)()) NOFS_null_call;
-  DInode.i_gid = (unsigned short (*)()) NOFS_null_call;
-  DInode.i_links_count = (unsigned short (*)()) NOFS_null_call;
-  DInode.i_zone = (unsigned long (*)()) NOFS_null_call;
 
   FS_cmd.inode_in_use = (int (*)()) NOFS_one;
   FS_cmd.zone_in_use = (int (*)()) NOFS_one;
   FS_cmd.dir_entry = NOFS_dir_entry;
+  FS_cmd.read_inode = NOFS_read_inode;
+  FS_cmd.write_inode = (int (*)()) NOFS_null_call;
 
 }

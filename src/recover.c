@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.3 1994/03/23 05:58:07 sdh Exp $
+ *  $Id: recover.c,v 1.4 1994/04/01 09:50:18 sdh Exp $
  */
 
 #include "lde.h"
@@ -43,7 +43,7 @@ unsigned long map_block(unsigned long zone_index[], unsigned long blknr)
     if (blknr<ZONES_PER_BLOCK) {
       block = zone_index[fsc->INDIRECT];
       if ((block>0)&&(block<sb->nzones)) {
-	ind = cache_read_block(block,0);
+	ind = cache_read_block(block,CACHEABLE);
 	result = block_pointer(ind,blknr,fsc->ZONE_ENTRY_SIZE);
       }
       return result;
@@ -55,10 +55,10 @@ unsigned long map_block(unsigned long zone_index[], unsigned long blknr)
     if (blknr<(ZONES_PER_BLOCK*ZONES_PER_BLOCK)) {
       block = zone_index[fsc->X2_INDIRECT];
       if ((block>0)&&(block<sb->nzones)) {
-	ind = cache_read_block(block,0);
+	ind = cache_read_block(block,CACHEABLE);
 	block = block_pointer(ind,(unsigned long)(blknr/ZONES_PER_BLOCK),fsc->ZONE_ENTRY_SIZE);
 	if ((block>0)&&(block<sb->nzones)) {
-	  ind = cache_read_block(block,0);
+	  ind = cache_read_block(block,CACHEABLE);
 	  result = block_pointer(ind,(unsigned long)(blknr%ZONES_PER_BLOCK),fsc->ZONE_ENTRY_SIZE);
 	}
 	return result;
@@ -76,32 +76,32 @@ unsigned long map_block(unsigned long zone_index[], unsigned long blknr)
 /* This is the non-magic undelete.  inode will contain a 
  * possibly bogus inode, only the blocks are looked at --
  * we copy all the blocks (including those indexed indirectly)
- * to the file specified in *fp
+ * to the file specified in fp
  */
-void recover_file(FILE *fp,unsigned long zone_index[])
+void recover_file(int fp,unsigned long zone_index[])
 {
-  int i;
   unsigned char *dind;
   unsigned long nr;
-  unsigned int j;
+  int j;
 
   j = 0;
   while ((nr=map_block(zone_index,j))) {
-    dind = cache_read_block(nr,0);
-    for (i=0;i<sb->blocksize;i++) fprintf(fp,"%c",dind[i]);
+    dind = cache_read_block(nr,CACHEABLE);
+    write(fp, dind, sb->blocksize);
     j++;
   }
 }
 
 unsigned long find_inode(unsigned long nr)
 {
-  unsigned long inode_nr, j, b, test_block;
-  unsigned long zone_index[20];
+  unsigned long inode_nr, b, test_block;
+  struct Generic_Inode *GInode=NULL;
+
   for (inode_nr=1;inode_nr<sb->ninodes;inode_nr++) {
     if ((!FS_cmd.inode_in_use(inode_nr))||(rec_flags.search_all)) {
-      for (j=0;j<fsc->N_BLOCKS;j++) zone_index[j] = DInode.i_zone(inode_nr, j);
+      GInode = FS_cmd.read_inode(inode_nr);
       b = 0;
-      while ( (test_block=map_block(zone_index, b++)) ) {
+      while ( (b<fsc->N_BLOCKS)&&(test_block=map_block(GInode->i_zone, b++)) ) {
 	if (nr==test_block) return inode_nr;
       }
     }
@@ -161,7 +161,7 @@ void search_fs(unsigned char *search_string, int search_len)
     
     /* Do all the searches in the unused data space */
     if ((!FS_cmd.zone_in_use(nr))||(rec_flags.search_all)) {
-      dind = cache_read_block(nr,0);
+      dind = cache_read_block(nr,CACHEABLE);
 
       /* Search codes for a gzipped tar file --
        * see /etc/magic or make a similar file and read off the first
