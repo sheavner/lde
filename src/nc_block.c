@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.2 1994/04/04 04:22:07 sdh Exp $
+ *  $Id: nc_block.c,v 1.3 1994/04/08 04:33:39 sdh Exp $
  */
 
 #include "nc_lde.h"
@@ -78,7 +78,7 @@ int directory_popup(unsigned long bnr)
 #ifdef ALPHA_CODE
   int i, c, redraw, flag, max_entries, screen_off, current;
   unsigned long inode_nr;
-  char *block_buffer, *fname = NULL;
+  char *block_buffer;
   struct Generic_Inode *GInode;
   WINDOW *win;
 
@@ -160,15 +160,14 @@ int directory_popup(unsigned long bnr)
 
     if (!max_entries) {
       block_buffer = cache_read_block(bnr,CACHEABLE);
-      i = 0;
-      do fname = FS_cmd.dir_entry(i++, block_buffer, &inode_nr);
-      while (strlen(fname));
-      max_entries = i - 2;
+      i = -1;
+      while ( strlen(FS_cmd.dir_entry(++i, block_buffer, &inode_nr)) );
+      max_entries = i - 1;
     }
 
     if (redraw) {
       wclear(win);
-      for (i=0;((i<VERT)&&(i<max_entries));i++)
+      for (i=0;((i<VERT)&&(i<=max_entries));i++)
 	(void) dump_dir_entry(win, i, screen_off, bnr, &inode_nr);
     }
 
@@ -180,66 +179,161 @@ int directory_popup(unsigned long bnr)
   return 0;
 }
 
-/*
- * Display some help in a separate window */
-void do_block_help(void)
+/* Popup menu */
+int do_popup_menu(int length, int width, char *valid_choices, char **menu_choices)
 {
-  WINDOW *win;
+  WINDOW *win, *bigwin;
+  int    c, window_length, window_width, i, last_highlight = 0, highlight = 0;
+  char   *choice;
 
-  win = newwin(19,WIN_COL,((VERT-17)/2+HEADER_SIZE),HOFF);
-  wclear(win);
-  box(win,0,0);
-  mvwprintw(win,1,16,"Program name : Filesystem type : Device name");
-  mvwprintw(win,2,7,"Inode: dec. (hex)     Block: dec. (hex)    0123456789:;<=>");
-  mvwprintw(win,4,7,"h,H,?,^H: Calls up this help.");
-  mvwprintw(win,5,7,"B       : View block under cursor (%s block ptr is %d bytes).",text_names[fsc->FS],fsc->ZONE_ENTRY_SIZE);
-  mvwprintw(win,6,7,"i       : Enter inode mode.");
-  mvwprintw(win,7,7,"I       : View inode under cursor (%s inode ptr is %d bytes).",text_names[fsc->FS],fsc->INODE_ENTRY_SIZE);
-  mvwprintw(win,8,7,"r,R     : Enter recovery mode.");
-  mvwprintw(win,9,7,"q,Q     : Quit.");
-  mvwprintw(win,10,7,"arrows  : Move cursor (also ^P, ^N, ^F, ^B)");
-  mvwprintw(win,11,7,"+/-     : View next/previous part of current block.");
-  mvwprintw(win,12,7,"PGUP/DN : View next/previous block (also ^U, ^D)");
-  mvwprintw(win,13,7,"0123... : Add current block to recovery list at position.");
-  mvwprintw(win,14,7,"#       : Enter block number and view it.");
-  mvwprintw(win,15,7,"l,L     : Find an inode which references this block.");
-  mvwprintw(win,16,7,"W,w     : Write this block's data to a file.");
-  mvwprintw(win,17,7,"E,e     : Edit block. (^H for help in edit mode)");
-  mvwprintw(win,18,25," Press any key to continue. ");
-  wrefresh(win);
-  getch();
+  window_length = ((length+2)<VERT) ? (length+2) : VERT;
+  window_width  = ((width+2)<WIN_COL) ? (width+2) : WIN_COL;
+
+  bigwin = newwin(window_length,window_width,HEADER_SIZE,0);
+
+  window_length -= 2;
+  window_width  -= 2;
+
+  win = derwin(bigwin, window_length, window_width, 1, 1);
+
+  scrollok(win, TRUE);
+  wclear(bigwin);
+  box(bigwin,0,0);
+
+  wattron(win,RED_ON_WHITE);
+  mvwprintw(win,0,0,menu_choices[0]);
+  wattroff(win,RED_ON_WHITE);
+  for (i=1; i < window_length; i++) 
+      mvwprintw(win,i,0,menu_choices[i]);
+  wrefresh(bigwin);
+
+  while ( (c = getch()) ) {
+    switch (c) {
+      case CTRL('P'):
+      case KEY_UP:
+	if (highlight>0) highlight--;
+	break;
+      case CTRL('N'):
+      case KEY_DOWN:
+	if (highlight<(window_length-1)) highlight++;
+	break;
+      case 'q':
+      case 'Q':
+	delwin(win);
+	delwin(bigwin);
+	refresh_all();
+	return 0;
+      case KEY_ENTER:
+      case CTRL('M'):
+      case CTRL('J'):
+	c = valid_choices[highlight];
+      default:
+	if ( (choice = strchr(valid_choices, c)) != NULL ) {
+	  delwin(win);
+	  delwin(bigwin);
+	  refresh_all();
+	  return choice[0];
+	break;
+	}
+      }
+
+    if (highlight != last_highlight) { 
+      mvwprintw(win,last_highlight,0,menu_choices[last_highlight]);
+      wattron(win,RED_ON_WHITE);
+      mvwprintw(win,highlight,0,menu_choices[highlight]);
+      wattroff(win,RED_ON_WHITE);
+      wrefresh(win);
+      last_highlight = highlight;
+    } 
+    
+  }
+    
+  return 0;
+}
+
+
+/* Display some help in a separate scrollable window */
+void do_scroll_help(int length, char **help_text)
+{
+  WINDOW *win, *bigwin;
+  int c, i, window_size, window_offset = 0;
+
+#define BANNER_SIZE 3
+#if (BANNER_SIZE > 0)
+  char *banner[BANNER_SIZE] = {
+    "                Program name : Filesystem type : Device name                 ",
+    "        Inode: dec. (hex)     Block: dec. (hex)    0123456789:;<=>           ",
+    "" };
+#else
+  char *banner[0] = { "" };
+#endif
+
+  window_size = ((length+2+BANNER_SIZE)<VERT) ? (length+2+BANNER_SIZE) : VERT;
+
+  bigwin = newwin(window_size,WIN_COL,((VERT-window_size)/2+HEADER_SIZE),HOFF);
+  win = derwin(bigwin, window_size - 2, WIN_COL - 2, 1, 1);
+
+  scrollok(win, TRUE);
+  wclear(bigwin);
+  box(bigwin,0,0);
+
+  for (i=0; i < (window_size - 2) ; i++) 
+    if (i+window_offset < BANNER_SIZE ) {
+      wattron(win,BLUE_ON_WHITE);
+      mvwprintw(win,i,0,banner[i+window_offset]);
+      wattroff(win,BLUE_ON_WHITE);
+    }
+    else
+      mvwprintw(win,i,2,help_text[i+window_offset-BANNER_SIZE]);
+    
+  mvwprintw(bigwin,(window_size-1),20," Arrows to scroll, any other key to continue. ");
+  wrefresh(bigwin);
+
+  c = ' ';
+  while (c != 'q') {
+    c = getch();
+    i = -1;
+    switch (c) {
+      case CTRL('P'):
+      case KEY_UP:
+	if (window_offset>0) {
+	  window_offset--;
+	  wscrl(win,-1);
+	  i = 0;
+	}
+	break;
+      case CTRL('N'):
+      case KEY_DOWN:
+	if ((window_offset+window_size-2)<(length+BANNER_SIZE)) {
+	  window_offset++;
+	  wscrl(win,1);
+	  i = window_size - BANNER_SIZE;
+	}
+	break;
+      default:
+	c = 'q';
+	break;
+      }
+
+    if (i>=0) {
+      if (i+window_offset < BANNER_SIZE ) {
+	wattron(win,BLUE_ON_WHITE);
+	mvwprintw(win,i,0,banner[i+window_offset]);
+	wattroff(win,BLUE_ON_WHITE);
+      } else {
+	mvwprintw(win,i,2,help_text[i+window_offset-BANNER_SIZE]);
+      }
+      wrefresh(win);
+    }
+  }
+
   delwin(win);
+  delwin(bigwin);
   refresh_all();
 
   return;
 }
 
-/*
- * Display some help in a separate window */
-void do_block_edit_help(void)
-{
-  WINDOW *win;
-
-  win = newwin(13,WIN_COL,((VERT-17)/2+HEADER_SIZE),HOFF);
-  wclear(win);
-  box(win,0,0);
-  mvwprintw(win,1,16,"Program name : Filesystem type : Device name");
-  mvwprintw(win,2,7,"Inode: dec. (hex)     Block: dec. (hex)    0123456789:;<=>");
-  mvwprintw(win,4,7,"^H       : Calls up this help.");
-  mvwprintw(win,5,7,"arrows   : Move cursor (also ^P, ^N, ^F, ^B)");
-  mvwprintw(win,6,7,"+/-      : View next/previous part of current block.");
-  mvwprintw(win,7,7,"PGUP/DN  : View next/previous block (also ^U, ^D)");
-  mvwprintw(win,8,7,"TAB,^I   : Toggle hex/ascii edit.");
-  mvwprintw(win,9,7,"^W       : Write changes to disk.");
-  mvwprintw(win,10,7,"^A       : Abort changes, re-read original block from disk.");
-  mvwprintw(win,12,25," Press any key to continue. ");
-  wrefresh(win);
-  getch();
-  delwin(win);
-  refresh_all();
-
-  return;
-}
 
 /* Dump as much of a block as we can to the screen and format it in a nice 
  * hex mode with ASCII printables off to the right. */
@@ -345,6 +439,38 @@ int block_mode() {
 
   unsigned long inode_ptr[2] = { 0UL, 0UL };
 
+  char help_1[80], help_4[80];
+  char *text_help[17] = {
+    "^A      : Abort changes, re-read original block from disk.",
+    "",
+    "E,e     : Edit block.",
+    "h,H,?,^H: Calls up this help.",
+    "",
+    "i       : Enter inode mode.",
+    "l,L     : Find an inode which references this block.",
+    "q,Q     : Quit.",
+    "r,R     : Enter recovery mode.",
+    "W,w     : Write this block's data to a file.",
+    "^W      : Write changes to disk.",
+    "arrows  : Move cursor (also ^P, ^N, ^F, ^B)",
+    "+/-     : View next/previous part of current block.",
+    "PGUP/DN : View next/previous block (also ^U, ^D)",
+    "0123... : Add current block to recovery list at position.",
+    "#       : Enter block number and view it.",
+    "TAB,^I  : Toggle hex/ascii edit. (in edit mode)"
+  };
+
+  char *menu_options[5] = {
+    "Inode mode",
+    "Inode mode, viewing inode under cursor",
+    "Edit block",
+    "Toggle Hex/ASCII mode",
+    "Write changes to disk" };
+  char options_map[5] = {
+    'i', 'I', 'e', CTRL('I'), CTRL('W') } ;
+  int menu_length = 5;
+  int menu_width = 40;
+
   display_trailer("PG_UP/DOWN = previous/next block, or '#' to enter block number",
 		  "H for help.  Q to quit");
 
@@ -352,15 +478,9 @@ int block_mode() {
   edit_block = 0; icount=0; ascii_mode=0; v1=0; modified = 0;
   cur_row = cur_col = 0;
   while (flag||(c = getch())) {
-    flag = 0;
     highlight = redraw = 1;
-    if (edit_block) {
-      if (c == CTRL('I')) {
-	ascii_mode = 1 - ascii_mode;
-      } else if (c == CTRL('H')) {
-	do_block_edit_help();
-	c = 0;
-      } else if (!ascii_mode) {
+    if (!flag && edit_block) {
+      if (!ascii_mode) {
 	HEX_PTR = strchr(HEX_NOS, toupper(c));
 	if (HEX_PTR != NULL) {
 	  val = HEX_PTR - HEX_NOS;
@@ -387,9 +507,14 @@ int block_mode() {
 	}
       }
     }
+
+    flag = 0;
     
     /* These keys are valid in both modes */
     switch(c) {
+      case CTRL('I'):
+	ascii_mode = 1 - ascii_mode;
+        break;
       case CTRL('F'):
       case KEY_RIGHT:
 	redraw = 0;
@@ -588,8 +713,21 @@ int block_mode() {
       case 'H':
       case '?':
       case CTRL('H'):
-        do_block_help();
+	sprintf(help_1,"B       : View block under cursor (%s block ptr is %d bytes).",
+		text_names[fsc->FS],fsc->ZONE_ENTRY_SIZE);
+	sprintf(help_4,"I       : View inode under cursor (%s inode ptr is %d bytes).",
+		text_names[fsc->FS],fsc->INODE_ENTRY_SIZE);
+	text_help[1] = help_1;
+	text_help[4] = help_4;
+	do_scroll_help(17,text_help);
 	redraw = 0;
+	break;
+      case 'z':
+      case KEY_F(1):
+      case CTRL('O'):
+	highlight = redraw = 0;
+	flag = 1;
+	c = do_popup_menu(menu_length, menu_width, options_map, menu_options);	
 	break;
       case CTRL('L'):
 	icount = 0;  /* We want to see actual values? */
