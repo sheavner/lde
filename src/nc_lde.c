@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.30 1998/06/05 21:23:42 sdh Exp $
+ *  $Id: nc_lde.c,v 1.31 1998/06/14 21:06:36 sdh Exp $
  */
 
 #include <stdio.h>
@@ -1010,6 +1010,7 @@ void interactive_main(void)
 #ifdef HAVE_LIBGPM
   Gpm_Connect gpmconn;
 #endif
+  SCREEN *ldeScreen;
   int c, next_cmd = CMD_DISPLAY_LOG;
 
 
@@ -1017,11 +1018,17 @@ void interactive_main(void)
   current_block = 0UL;
 
   /* Curses initialization junk */
-  if (!(newterm(NULL,stdout,stdin))) {
-    printf("It seems you have not set up ncurses correctly -- See INSTALL for assistance.\n");
+  if (!(ldeScreen=newterm(NULL,stdout,stdin))) {
+    printf("* It seems you have not set up ncurses correctly -- See INSTALL for assistance.\n");
+    if (termname()) {
+      printf("* Unknown terminal type '%s' specified.\n", termname());
+      printf("* Check your shell's TERM and TERMINFO variables.\n");
+    } else {
+      printf("* Your shell's TERM variable is unset.\n");
+    }
+    printf("* Try something like 'export TERM=vt100' or 'setenv TERM vt100'\n");
     return;
   }
-  initscr();
   cbreak();
   noecho();
   keypad(stdscr, TRUE);
@@ -1040,6 +1047,21 @@ void interactive_main(void)
     WHITE_ON_RED = A_UNDERLINE;
   }
 
+  /* First check to see that our screen is big enough */
+  if ((LINES<(4+HEADER_SIZE+TRAILER_SIZE))||(COLS<WIN_COL)) {
+    endwin();
+    delscreen(ldeScreen);
+    printf("Screen is too small: need %d x %d, have %d x %d\n",
+	   WIN_COL,(4+HEADER_SIZE+TRAILER_SIZE),
+	   COLS,LINES);
+    return;
+  }
+
+  /* Now that ncurses has successfully initted, 
+     switch to curses based warning and getch functions */
+  lde_warn = nc_warn;
+  mgetch = nc_mgetch;
+
 # ifdef HAVE_LIBGPM  
     /* Setup mouse handler */
     gpmconn.eventMask=GPM_UP;
@@ -1049,20 +1071,6 @@ void interactive_main(void)
     Gpm_Open(&gpmconn,0);
     gpm_handler = lde_mouse_handler;
 # endif
-
-  /* Now that ncurses has successfully initted, 
-     switch to curses based warning and getch functions */
-  lde_warn = nc_warn;
-  mgetch = nc_mgetch;
-
-  /* First check to see that our screen is big enough */
-  if ((LINES<(4+HEADER_SIZE+TRAILER_SIZE))||(COLS<WIN_COL)) {
-    endwin();
-    printf("Screen is too small: need %d x %d, have %d x %d\n",
-	   WIN_COL,(4+HEADER_SIZE+TRAILER_SIZE),
-	   COLS,LINES);
-    return;
-  }
 
   /* Clear out restore buffer */
   bzero(fake_inode_zones,sizeof(long)*(INODE_BLKS+1));
@@ -1095,6 +1103,7 @@ void interactive_main(void)
 	continue;
       case CMD_EXIT_PROG:
 	endwin();
+	delscreen(ldeScreen);
 #       ifdef HAVE_LIBGPM
 	   Gpm_Close();
 #       endif
