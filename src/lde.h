@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.7 1994/03/23 06:03:45 sdh Exp $
+ *  $Id: lde.h,v 1.6 1994/03/23 05:58:48 sdh Exp $
  */
 
 #include <stdio.h>
@@ -24,7 +24,7 @@
 #include <grp.h>
 #include <pwd.h>
 
-#define VERSION "2.1"
+#define VERSION "2.1beta4"
 extern char *program_name;
 extern char *device_name;
 
