@@ -3,15 +3,19 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.23 2001/02/26 18:53:45 scottheavner Exp $
+ *  $Id: nc_inode.c,v 1.24 2002/01/13 03:55:49 scottheavner Exp $
  */
 
 #include <ctype.h>
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <string.h>
+#if HAVE_PWD_H
 #include <pwd.h>
+#endif
+#if HAVE_GRP_H
 #include <grp.h>
+#endif
 #include <time.h>
 
 #include "lde.h"
@@ -123,8 +127,12 @@ static void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, i
 {
   unsigned long imode = 0UL, j = 0UL;
   char f_mode[12];
+#if HAVE_GETPWUID
   struct passwd *NC_PASS = NULL;
+#endif
+#if HAVE_GETGRGID
   struct group *NC_GROUP = NULL;
+#endif
 
   if (highlight_field&LDE_DUMP_ILABELS) {
     cdump_inode_labels();
@@ -143,15 +151,19 @@ static void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, i
     mvwprintw(workspace,0,11,"%3d",GInode->i_links_count);
 
   if (fsc->inode->i_uid) {
+#if HAVE_GETPWUID
     if ((NC_PASS = getpwuid(GInode->i_uid))!=NULL)
       mvwprintw(workspace,0,15,"%-8s",NC_PASS->pw_name);
     else
+#endif
       mvwprintw(workspace,0,15,"%-8d",GInode->i_uid);
   }
   if (fsc->inode->i_gid) {
+#if HAVE_GETGRGID
     if ((NC_GROUP = getgrgid(GInode->i_gid))!=NULL)
       mvwprintw(workspace,0,24,"%-8s",NC_GROUP->gr_name);
     else
+#endif
       mvwprintw(workspace,0,24,"%-8d",GInode->i_gid);
   }
   if (fsc->inode->i_size)
@@ -198,7 +210,9 @@ static void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, i
   }
 
   if (fsc->inode->i_uid) {
+#if HAVE_GETPWUID
     mvwprintw(workspace,4,10,"(%s)",(NC_PASS != NULL) ? NC_PASS->pw_name : "");
+#endif
     if (highlight_field == I_UID) {
       wattron(workspace,WHITE_ON_RED);
       park_y = 4;
@@ -209,7 +223,9 @@ static void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, i
   }
 
   if (fsc->inode->i_gid) {
+#if HAVE_GETGRGID
     mvwprintw(workspace,4,30,"(%s)",(NC_GROUP != NULL) ? NC_GROUP->gr_name : "");
+#endif
     if (highlight_field == I_GID) {
       wattron(workspace,WHITE_ON_RED);
       park_y = 4;
