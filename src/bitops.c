@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: bitops.c,v 1.5 2002/01/10 20:59:15 scottheavner Exp $
+ *  $Id: bitops.c,v 1.6 2003/12/07 02:47:52 scottheavner Exp $
  *
  *  Pulled from Ted's ext2fs v0.5 library code, updated to use
  *  kernel bitops if available.  Otherwise fall back to Ted's C.
@@ -19,38 +19,11 @@
  */
 
 #include "bitops.h"
-
-/* If you are using this on a computer that is not Linux, your best bet (and
- * worst performance) will be to define NO_CLI_STI, but not USE_KERNEL_BITOPS.
- * If you are on an emerging Linux system, you're on your own.  Also, after you
- * have modified this, comment out the warning line below, it's just there for
- * people who don't read documentation.
- */
-
-#ifdef NO_KERNEL_BITOPS
-
-
-/* Hopefully, cli() and sti() are in asm/system.h for all new 
- *  Linux architectures */
-#ifdef HAVE_ASM_SYSTEM_H
-#include <asm/system.h>
-#endif
-
-/* As of January 2002, lde doesn't modify any bits, so we don't really
- *  nedd cli()/sti().  Also, we're operating on our own memory, so there
- *  isn't much point in locking it, we're single threaded, no one else
- *  would be touching it.  I'm not sure why I'm keeping this here? 
- *  Probably because I just wrote the autoconf macro... */
-#ifdef NO_CLI_STI
-#define sti()
-#define cli()
-#endif
-
+#include "lde.h"
 
 #if HAVE_ASM_TYPES_H
 #include <asm/types.h>
 #endif
-
 
 /*
  * For the benefit of those who are trying to port Linux to another
@@ -97,14 +70,12 @@ int clear_bit(int nr, void * addr)
 }
 #endif
 
-int test_bit(int nr, void * addr)
+int lde_test_bit(int nr, void * addr)
 {
 	int		mask;
 	const __u32	*ADDR = (const __u32 *) addr;
 
 	ADDR += nr / 32;
 	mask = 1 << (nr & 0x1f);
-	return ((mask & *ADDR) != 0);
+	return ((mask & ldeswab32(*ADDR) ) != 0);
 }
-
-#endif	/* defined(USE_KERNEL_BITOPS) */

@@ -41,9 +41,6 @@ AC_CHECK_HEADERS(fcntl.h stddef.h sys/fcntl.h unistd.h getopt.h pwd.h grp.h sys/
 dnl Determine variable sizes
 ACLDE_SETVARSIZES
 
-dnl Check that <asm/bitops.h> exists and works, if not will test for cli/sti
-AC_CHECK_KERNEL_BITOPS
-
 dnl See if we can find an lseek64
 AC_CHECK_FUNCS(lseek64,
 	[
@@ -115,15 +112,6 @@ AC_ARG_ENABLE(inode-writes,
 AC_ARG_ENABLE(paranoid,
         [  --enable-paranoid       open device read only at all times],
 	AC_DEFINE(PARANOID)
-)
-
-AC_ARG_ENABLE(kernel-bitops,
-        [  --disable-kernel-bitops use the C bitop replacement code instead of the
-                          ones in <asm/bitops.h>],
-	if test x$enableval = xno
-	then
-		AC_DEFINE(NO_KERNEL_BITOPS)
-	fi
 )
 
 AC_ARG_ENABLE(alpha-code,
