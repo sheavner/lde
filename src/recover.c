@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.23 1998/01/24 04:33:03 sdh Exp $
+ *  $Id: recover.c,v 1.24 1998/06/05 21:22:48 sdh Exp $
  */
 
 #include <stdio.h>
@@ -664,7 +664,7 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 	
 	if (matched) {
 	  printf("Match at block 0x%lX",nr);
-	  if (lde_flags.inode_lookup)
+	  if (lde_flags.inode_lookup) {
 	    if ( (inode_nr = find_inode(nr, 0UL)) ) {
 	      printf(", check inode 0x%lX",inode_nr);
 	      if (lde_flags.check_recover) {
@@ -676,6 +676,7 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 	    } else {
 	      printf(", no %sinode found",((lde_flags.search_all)?"":"unused ") );
 	    }
+	  }
 	  printf(".\n");
 	}
       }
