@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.40 2002/01/12 01:51:57 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.41 2002/01/12 03:50:56 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -571,11 +571,11 @@ int main(int argc, char ** argv)
                 }
 		if (fsc->inode->i_size) {
 		  if (GInode->i_size>1024*1024)
-		    printf(" %5.0fM",(double)GInode->i_size/1024.0/1024.0);
+		    printf(" %5.0fMB",(double)GInode->i_size/1024.0/1024.0);
 		  else if (GInode->i_size>1024)
-		    printf(" %5.0fK",(double)GInode->i_size/1024.0);
+		    printf(" %5.0fKB",(double)GInode->i_size/1024.0);
 		  else
-		    printf(" %5.0fb",(double)GInode->i_size);
+		    printf(" %5.0fbytes",(double)GInode->i_size);
 		}
 		printf("\n");
 	    }
