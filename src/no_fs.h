@@ -3,13 +3,11 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.h,v 1.5 1996/10/12 20:51:11 sdh Exp $
+ *  $Id: no_fs.h,v 1.6 1998/01/23 03:58:46 sdh Exp $
  */
 
-struct Generic_Inode *NOFS_init_junk_inode(void);
+struct Generic_Inode *NOFS_init_junk_inode(void); /* export to minix.c */
 void NOFS_init(char * sb_buffer);
-int NOFS_null_call(void);
-int NOFS_one(unsigned long nr);
 unsigned long NOFS_get_device_size(int fd, unsigned long blocksize);
 
 
