@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.27 2002/01/14 21:01:31 scottheavner Exp $
+ *  $Id: xiafs.c,v 1.28 2002/01/14 21:09:16 scottheavner Exp $
  */
 
 #include <string.h>
@@ -100,19 +100,19 @@ static struct Generic_Inode* XIAFS_read_inode(unsigned long nr)
 
   Inode = ((struct xiafs_inode *) inode_buffer) - 1 + nr;
 
-  GInode.i_mode        = (unsigned short) Inode->i_mode;
-  GInode.i_uid         = (unsigned short) Inode->i_uid;
-  GInode.i_size        = (unsigned long)  Inode->i_size;
-  GInode.i_atime       = (unsigned long)  Inode->i_atime;
-  GInode.i_ctime       = (unsigned long)  Inode->i_ctime;
-  GInode.i_mtime       = (unsigned long)  Inode->i_mtime;
-  GInode.i_gid         = (unsigned short) Inode->i_gid;
-  GInode.i_links_count = (unsigned short) Inode->i_nlinks;
+  GInode.i_mode        = (unsigned short) ldeswab16(Inode->i_mode);
+  GInode.i_uid         = (unsigned short) ldeswab16(Inode->i_uid);
+  GInode.i_size        = (unsigned long)  ldeswab32(Inode->i_size);
+  GInode.i_atime       = (unsigned long)  ldeswab32(Inode->i_atime);
+  GInode.i_ctime       = (unsigned long)  ldeswab32(Inode->i_ctime);
+  GInode.i_mtime       = (unsigned long)  ldeswab32(Inode->i_mtime);
+  GInode.i_gid         = (unsigned short) ldeswab16(Inode->i_gid);
+  GInode.i_links_count = (unsigned short) ldeswab16(Inode->i_nlinks);
   
   for (i=0; i<XIAFS_constants.N_DIRECT; i++)
-    GInode.i_zone[i] = (unsigned short) Inode->i_zone[i];
-  GInode.i_zone[XIAFS_constants.INDIRECT] = (unsigned short) Inode->i_ind_zone;
-  GInode.i_zone[XIAFS_constants.X2_INDIRECT] = (unsigned short) Inode->i_dind_zone;
+    GInode.i_zone[i] = (unsigned short) ldeswab32(Inode->i_zone[i]);
+  GInode.i_zone[XIAFS_constants.INDIRECT] = (unsigned short) ldeswab32(Inode->i_ind_zone);
+  GInode.i_zone[XIAFS_constants.X2_INDIRECT] = (unsigned short) ldeswab32(Inode->i_dind_zone);
   for (i=XIAFS_constants.N_BLOCKS; i<INODE_BLKS; i++)
     GInode.i_zone[i] = 0UL;
 
@@ -195,15 +195,15 @@ static void XIAFS_sb_init(void *sb_buffer)
   struct xiafs_super_block *Super;
   Super = sb_buffer;
 
-  sb->ninodes         = Super->s_ninodes;
-  sb->nzones          = Super->s_nzones;
-  sb->imap_blocks     = Super->s_imap_zones;
-  sb->zmap_blocks     = Super->s_zmap_zones;
-  sb->first_data_zone = Super->s_firstdatazone;
-  sb->max_size        = Super->s_max_size;
-  sb->zonesize        = Super->s_zone_shift;
+  sb->ninodes         = ldeswab32(Super->s_ninodes);
+  sb->nzones          = ldeswab32(Super->s_nzones);
+  sb->imap_blocks     = ldeswab32(Super->s_imap_zones);
+  sb->zmap_blocks     = ldeswab32(Super->s_zmap_zones);
+  sb->first_data_zone = ldeswab32(Super->s_firstdatazone);
+  sb->max_size        = ldeswab32(Super->s_max_size);
+  sb->zonesize        = ldeswab32(Super->s_zone_shift);
   sb->blocksize       = 1024;
-  sb->magic           = Super->s_magic;
+  sb->magic           = ldeswab32(Super->s_magic);
 
   sb->I_MAP_SLOTS = _XIAFS_IMAP_SLOTS;
   sb->Z_MAP_SLOTS = _XIAFS_ZMAP_SLOTS;
@@ -248,8 +248,6 @@ int XIAFS_test(void *sb_buffer, int use_offset)
     else
        return 0;
   }
-
-  return 0;
 
   if (Super->s_magic == ldeswab32(_XIAFS_SUPER_MAGIC)) {
     if (use_offset) lde_warn("Found xia_fs on device");
