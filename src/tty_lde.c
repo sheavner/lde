@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.1 1994/03/19 17:13:19 sdh Exp $
+ *  $Id: tty_lde.c,v 1.2 1994/03/19 20:02:36 sdh Exp $
  */
 
 #include "lde.h"
@@ -117,23 +117,7 @@ void dump_inode(unsigned int nr)
   printf("\nINODE: %-6d (0x%5.5x) TYPE: ",nr,nr);
   printf("%14s",entry_type(DInode.i_mode(nr)));
 
-/*
-  if (S_ISREG(DInode.i_mode(nr)))
-    printf("regular file  ");
-  else if (S_ISDIR(DInode.i_mode(nr)))
-    printf("directory     ");
-  else if (S_ISLNK(DInode.i_mode(nr)))
-    printf("symbolic link ");
-  else if (S_ISCHR(DInode.i_mode(nr)))
-    printf("char device   ");
-  else if (S_ISBLK(DInode.i_mode(nr)))
-    printf("block device  ");
-  else if (S_ISFIFO(DInode.i_mode(nr)))
-    printf("named pipe    ");
-  else if (S_ISSOCK(inode->i_mode))
-    printf("socket	      ");
-*/
-  if (inode_in_use(nr)) 
+  if (FS_cmd.inode_in_use(nr)) 
     printf("\n");
   else
     printf("(NOT USED)\n");

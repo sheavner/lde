@@ -3,10 +3,15 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.1 1994/03/19 17:08:29 sdh Exp $
+ *  $Id: xiafs.c,v 1.2 1994/03/19 20:00:51 sdh Exp $
  */
 
 #include "lde.h"
+
+/* minix.c */
+void MINIX_read_tables();
+int MINIX_inode_in_use();
+int MINIX_zone_in_use();
 
 #undef Inode
 #define Inode (((struct xiafs_inode *) inode_buffer)-1)
@@ -106,8 +111,6 @@ void XIAFS_sb_init(char * sb_buffer)
   sb->norm_first_data_zone = (sb->imap_blocks+1+sb->zmap_blocks+INODE_BLOCKS);
 }
 
-void MINIX_read_tables();
-
 int XIAFS_init(char * sb_buffer)
 {
   fsc = &XIAFS_constants;
@@ -123,6 +126,9 @@ int XIAFS_init(char * sb_buffer)
   DInode.i_gid = XIAFS_i_gid;
   DInode.i_links_count = XIAFS_i_links_count;
   DInode.i_zone = XIAFS_zoneindex;
+
+  FS_cmd.inode_in_use = MINIX_inode_in_use;
+  FS_cmd.zone_in_use = MINIX_zone_in_use;
 
   MINIX_read_tables();
 

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.1 1994/03/19 17:09:35 sdh Exp $
+ *  $Id: recover.c,v 1.2 1994/03/19 20:00:41 sdh Exp $
  */
 
 #include "lde.h"
@@ -98,7 +98,7 @@ unsigned long find_inode(unsigned long nr)
   unsigned long inode_nr, j, b, test_block;
   unsigned long zone_index[20];
   for (inode_nr=1;inode_nr<sb->ninodes;inode_nr++) {
-    if ((!inode_in_use(inode_nr))||(rec_flags.search_all)) {
+    if ((!FS_cmd.inode_in_use(inode_nr))||(rec_flags.search_all)) {
       for (j=0;j<fsc->N_BLOCKS;j++) zone_index[j] = DInode.i_zone(inode_nr, j);
       b = 0;
       while ( (test_block=map_block(zone_index, b++)) ) {
@@ -125,9 +125,9 @@ void parse_grep()
 	inode_nr = find_inode(blknr);
 	if (inode_nr) {
 	  printf("Block 0x%lx indexed by inode 0x%lx",blknr,inode_nr);
-	  if (inode_in_use(inode_nr))
+	  if (FS_cmd.inode_in_use(inode_nr))
 	    printf(" (This inode is marked in use)");
-	  if (zone_in_use(blknr))
+	  if (FS_cmd.zone_in_use(blknr))
 	    printf(" (This zone is marked in use)");
 	  printf("\n");
 	}
@@ -160,7 +160,7 @@ void search_fs(unsigned char *search_string, int search_len)
   for (nr=sb->first_data_zone;nr<sb->nzones;nr++) {
     
     /* Do all the searches in the unused data space */
-    if ((!zone_in_use(nr))||(rec_flags.search_all)) {
+    if ((!FS_cmd.zone_in_use(nr))||(rec_flags.search_all)) {
       dind = cache_read_block(nr);
 
       /* Search codes for a gzipped tar file --

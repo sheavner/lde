@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.1 1994/03/19 17:15:14 sdh Exp $
+ *  $Id: minix.c,v 1.2 1994/03/19 20:00:11 sdh Exp $
  */
 
 /* 
@@ -72,6 +72,17 @@ unsigned long MINIX_zoneindex(unsigned long nr, unsigned long znr)
 {
   struct minix_inode * inode = (Inode + nr);
   return (unsigned long) inode->i_zone[znr];
+}
+
+int MINIX_inode_in_use(unsigned long nr)
+{
+  return bit(inode_map,nr);
+}
+
+int MINIX_zone_in_use(unsigned long nr)
+{
+  if (nr < sb->first_data_zone) return 1;
+  return bit(zone_map,(nr-sb->first_data_zone+1));
 }
 
 unsigned long MINIX_null_call()
@@ -165,6 +176,9 @@ void MINIX_init(char * sb_buffer)
   DInode.i_gid = MINIX_i_gid;
   DInode.i_links_count = MINIX_i_links_count;
   DInode.i_zone = MINIX_zoneindex;
+
+  FS_cmd.inode_in_use = MINIX_inode_in_use;
+  FS_cmd.zone_in_use = MINIX_zone_in_use;
 
   MINIX_read_tables();
 

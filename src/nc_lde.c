@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.1 1994/03/19 17:12:32 sdh Exp $
+ *  $Id: nc_lde.c,v 1.2 1994/03/19 20:00:25 sdh Exp $
  */
 
 #include "lde.h"
@@ -277,7 +277,7 @@ int win_start, win_size;
   
   dind = cache_read_block(nr);
   
-  block_status = (zone_in_use(nr)) ? block_is_used : block_not_used; 
+  block_status = (FS_cmd.zone_in_use(nr)) ? block_is_used : block_not_used; 
   j = 0;
 
   while ((j<win_size)&&(j*16+win_start<sb->blocksize)) {
@@ -538,7 +538,7 @@ void cdump_inode(unsigned long nr)
   mvwprintw(workspace,3,6,entry_type(imode));
   
   /* This covers blocks which would give Minix mode not cleared errors */
-  if (!inode_in_use(nr)) mvwprintw(workspace,3,25,"(NOT USED)");
+  if (!FS_cmd.inode_in_use(nr)) mvwprintw(workspace,3,25,"(NOT USED)");
 
   mvwprintw(workspace,4,0,"MODE: \\%4.4s FLAGS: \\%3.3s\n",&f_mode[3],f_mode);
   mvwprintw(workspace,5,0,"UID: %05d(%s)",DInode.i_uid(nr), (NC_PASS != NULL) ? NC_PASS->pw_name : "");
