@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.12 1998/06/20 17:47:57 sdh Exp $
+ *  $Id: minix.c,v 1.13 1998/06/21 07:04:53 sdh Exp $
  */
 
 /* 
@@ -161,8 +161,6 @@ int MINIX_zone_in_use(unsigned long inode_nr)
 /* Checks if a data block is part of the ext2 system (i.e. not a data block) */
 int MINIX_is_system_block(unsigned long nr)
 {
-  int i;
-
   /* norm_first_data_zone is first zone after bitmaps and inode table */
   if (nr <  sb->norm_first_data_zone)
     return 1;
