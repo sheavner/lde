@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.24 2001/02/22 19:48:20 sdh Exp $
+ *  $Id: ext2fs.c,v 1.25 2001/02/26 19:02:40 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -16,7 +16,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
 #include "swiped/linux/ext2_fs.h"
 

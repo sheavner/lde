@@ -3,12 +3,14 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.29 2001/02/26 18:53:45 scottheavner Exp $
+ *  $Id: recover.c,v 1.30 2001/02/26 19:02:40 scottheavner Exp $
  */
 
 #include <stdio.h>
 #include <stdlib.h>
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <ctype.h>
 #include <string.h>
 

@@ -3,14 +3,18 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.37 2001/02/23 23:40:04 scottheavner Exp $
+ *  $Id: nc_lde.c,v 1.38 2001/02/26 19:02:40 scottheavner Exp $
  */
 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#if HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
 #include <stdarg.h>
 
 #include "lde.h"

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.15 2001/02/07 18:31:13 sdh Exp $
+ *  $Id: no_fs.c,v 1.16 2001/02/26 19:02:40 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -15,7 +15,9 @@
  *   No file system specified.  Block edits ok.
  */
 #include <sys/stat.h>
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
  
 #include "lde.h"
 #include "tty_lde.h"

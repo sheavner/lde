@@ -3,14 +3,16 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: tty_lde.c,v 1.25 2001/02/26 18:53:45 scottheavner Exp $
+ *  $Id: tty_lde.c,v 1.26 2001/02/26 19:02:40 scottheavner Exp $
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <time.h>
 #include <pwd.h>
 #include <grp.h>

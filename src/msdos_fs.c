@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.17 2001/02/25 19:55:04 scottheavner Exp $
+ *  $Id: msdos_fs.c,v 1.18 2001/02/26 19:02:40 scottheavner Exp $
  */
 
 /* 
@@ -14,7 +14,9 @@
  *  Inode => FAT
  */
 
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>

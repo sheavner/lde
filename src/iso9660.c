@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: iso9660.c,v 1.3 2001/02/23 23:36:12 scottheavner Exp $
+ *  $Id: iso9660.c,v 1.4 2001/02/26 19:02:40 scottheavner Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -15,7 +15,9 @@
  *   No file system specified.  Block edits ok.
  */
 #include <sys/stat.h>
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <string.h>
  
 #include "lde.h"

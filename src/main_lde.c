@@ -3,14 +3,18 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.32 2001/02/26 18:53:45 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.33 2001/02/26 19:02:40 scottheavner Exp $
  */
 
+#if HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <getopt.h>
 #include <signal.h>
 #include <time.h>

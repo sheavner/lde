@@ -7,6 +7,7 @@ Mon Feb 26 2001 Scott Heavner
 		- better tests for lseek64
 	* rename getdate -> lde_getdate, conflicts with one that appeared with define(_GNU_SOURCE)
 	* add blocksize runtime option -s N, --bs N, --blocksize N to override autodetect blocksize
+	* #ifdef all unistd.h / fcntl.h
 
 
 Sun Feb 25 2001 Scott Heavner

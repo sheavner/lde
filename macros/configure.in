@@ -30,8 +30,8 @@ AC_PATH_PROG(AR, ar, ar)
 AC_CHECK_PROG(system,uname,`uname`,unknown)
 
 dnl Checks for header files.
-dnl AC_HEADER_STDC
-dnl AC_CHECK_HEADERS(fcntl.h strings.h unistd.h)
+AC_HEADER_STDC
+AC_CHECK_HEADERS(fcntl.h unistd.h)
 
 dnl Check that <asm/bitops.h> exists and works
 AC_CHECK_KERNEL_BITOPS
