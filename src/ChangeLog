@@ -1,3 +1,7 @@
+2003-12-05    Scott Heavner
+	- remove unnecessary = operator from yacc sources, causes
+	  problems with newer versions of bison ( 1.35 < broke <= 1.875b)
+
 2003-12-03    Scott Heavner
 	- cleanup some warnings that show with -pendantic
  	- update autoconf to handle VOLITILE definition, #ifdef volatile
