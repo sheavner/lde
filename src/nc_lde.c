@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.41 2002/01/14 18:53:35 scottheavner Exp $
+ *  $Id: nc_lde.c,v 1.42 2002/01/27 23:11:51 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -36,11 +36,14 @@
 
 /* Create globals declared extern in nc_lde.h */
 /* Curses variables */
-int    WHITE_ON_BLUE, WHITE_ON_RED, RED_ON_BLACK;
+int    WHITE_ON_BLUE, WHITE_ON_RED, RED_ON_BLACK, GREEN_ON_BLACK, BLACK_ON_CYAN;
 WINDOW *header, *workspace, *trailer;
 unsigned long current_inode;
 unsigned long current_block;
 unsigned long fake_inode_zones[INODE_BLKS+1];
+
+char rel_path[256] = "";    /* temp var for now till we fix up later */
+char ldemode[80] = "";
 
 
 #ifdef HAVE_LIBGPM
@@ -181,6 +184,10 @@ void update_header(void)
 	    current_inode,current_inode);
   mvwprintw(header,HEADER_SIZE-1,HOFF+32,"Block: %10lu (0x%8.8lX) ",
 	    current_block,current_block);
+  if (HEADER_SIZE == 3) {
+	mvwprintw(header,HEADER_SIZE-2,HOFF,"View: %s", ldemode);
+	mvwprintw(header,HEADER_SIZE-2,HOFF+32,"DIR: .%-40s", rel_path);
+  }
   for (j=0;j<fsc->N_BLOCKS;j++) {
     if (fake_inode_zones[j]) { 
       mvwaddch(header,HEADER_SIZE-1,HOFF+64+j,'-');
@@ -638,7 +645,7 @@ void flag_popup(void)
   WINDOW *win;
   int c, redraw, flag;
   int vstart,vsize=9;
-  char *choices = "afnwi q";
+  char *choices = "afnwid q";
 
   /* Do some bounds checking on our window */
   if (VERT>vsize) {
@@ -700,6 +707,11 @@ void flag_popup(void)
         lde_flags.blanked_indirects = 1 - lde_flags.blanked_indirects;
 	redraw = 1;
         break;
+      case 'D':
+      case 'd':
+	lde_flags.displaydeleted = 1 - lde_flags.displaydeleted;
+	redraw = 1;
+	break;
       case LDE_CTRL('L'):
         refresh_all();
         break;
@@ -717,6 +729,9 @@ void flag_popup(void)
     mvwprintw(win,3,15,"N: (%-3s) Noise is off -- i.e. quiet",lde_flags.quiet ? "YES" : "NO");
     mvwprintw(win,4,15,"W: (%-3s) OK to write to file system",lde_flags.write_ok ? "YES" : "NO");
     mvwprintw(win,5,15,"I: (%-3s) Ignore indirect block contents (Linux <2.0.33 fix)",lde_flags.blanked_indirects ? "YES" : "NO");
+#if ALPHA_CODE
+    mvwprintw(win,6,15,"D: (%-3s) Attempt to display delete dir enteries",lde_flags.displaydeleted ? "YES" : "NO");
+#endif
     mvwprintw(win,vsize-2,15,"Q: return to editing");
     wrefresh(win);
   }
@@ -891,6 +906,8 @@ void show_super(void)
   int vstart,vsize=10;
 
   clobber_window(workspace);
+  strcpy(ldemode,"Super         ");
+  update_header();
 
   /* Do some bounds checking on our window */
   if (VERT>vsize) {
@@ -1044,13 +1061,19 @@ void interactive_main(void)
     init_pair(1,COLOR_WHITE,COLOR_RED);
     init_pair(2,COLOR_WHITE,COLOR_BLUE);
     init_pair(3,COLOR_RED,COLOR_BLACK);
+    init_pair(4,COLOR_GREEN,COLOR_BLACK);
+    init_pair(5,COLOR_GREEN,COLOR_RED);
     WHITE_ON_RED = COLOR_PAIR(1);
     WHITE_ON_BLUE = COLOR_PAIR(2);
     RED_ON_BLACK = COLOR_PAIR(3);
+    GREEN_ON_BLACK = COLOR_PAIR(4);
+    BLACK_ON_CYAN = COLOR_PAIR(5);
   } else {
     WHITE_ON_BLUE = A_REVERSE;
     RED_ON_BLACK = A_NORMAL;
     WHITE_ON_RED = A_UNDERLINE;
+    GREEN_ON_BLACK = A_NORMAL;
+    BLACK_ON_CYAN = A_REVERSE;
   }
 
   /* First check to see that our screen is big enough */

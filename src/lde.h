@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.36 2002/01/14 18:53:35 scottheavner Exp $
+ *  $Id: lde.h,v 1.37 2002/01/27 23:11:51 scottheavner Exp $
  */
 
 #ifndef LDE_H
@@ -242,6 +242,7 @@ volatile struct _lde_flags {
   int logtofile;
   int nosymbolic_guid;
   int byteswap;
+  int displaydeleted;
 } lde_flags;
 
 extern struct sbinfo *sb;

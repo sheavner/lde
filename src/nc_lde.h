@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.h,v 1.12 2001/02/23 23:40:04 scottheavner Exp $
+ *  $Id: nc_lde.h,v 1.13 2002/01/27 23:11:51 scottheavner Exp $
  */
 #ifndef LDE_NC_LDE_H
 #define LDE_NC_LDE_H
@@ -29,7 +29,11 @@
 #define PLAIN ( HELP_NO_BANNER | HELP_WIDE )
 
 #define WIN_COL 80
+#if ALPHA_CODE
+#define HEADER_SIZE 3
+#else
 #define HEADER_SIZE 2
+#endif
 #define TRAILER_SIZE 1
 #define VERT (LINES-HEADER_SIZE-TRAILER_SIZE)
 #define HOFF ((COLS-WIN_COL)/2)
@@ -37,12 +41,15 @@
 #define HELP_KEY_SIZE 12
 
 /* Curses variables */
-extern int    WHITE_ON_BLUE, WHITE_ON_RED, RED_ON_BLACK;
+extern int    WHITE_ON_BLUE, WHITE_ON_RED, RED_ON_BLACK, GREEN_ON_BLACK,BLACK_ON_CYAN;
 extern WINDOW *header, *workspace, *trailer;
 
 extern unsigned long current_inode;
 extern unsigned long current_block;
 extern unsigned long fake_inode_zones[];
+
+extern char rel_path[];
+extern char ldemode[];
 
 /* nc_lde.c */
 extern int nc_mgetch(void);

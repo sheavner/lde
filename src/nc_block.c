@@ -1,9 +1,9 @@
- /*
+/*
  *  lde/nc_block.c -- The Linux Disk Editor
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.31 2001/11/26 00:07:23 scottheavner Exp $
+ *  $Id: nc_block.c,v 1.32 2002/01/27 23:11:51 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -59,6 +59,10 @@ static void cdump_block(unsigned long nr, bm_cursor *curs)
   const char block_is_used[10]  = "::::::::::";
   const char block_not_used[10] = ":NOT:USED:";
   const char block_is_bad[10]   = ":BAD::BAD:";
+
+  /* indicate we are in block mode */
+  strcpy(ldemode,"Block     ");
+  update_header();
 
   werase(workspace);
 

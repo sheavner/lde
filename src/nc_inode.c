@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_inode.c,v 1.24 2002/01/13 03:55:49 scottheavner Exp $
+ *  $Id: nc_inode.c,v 1.25 2002/01/27 23:11:51 scottheavner Exp $
  */
 
 #include <ctype.h>
@@ -133,6 +133,10 @@ static void cdump_inode_values(unsigned long nr, struct Generic_Inode *GInode, i
 #if HAVE_GETGRGID
   struct group *NC_GROUP = NULL;
 #endif
+
+  /* update header to show we are in INODE mode */
+  strcpy(ldemode,"Inode       ");
+  update_header();
 
   if (highlight_field&LDE_DUMP_ILABELS) {
     cdump_inode_labels();

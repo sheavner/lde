@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.46 2002/01/14 18:53:35 scottheavner Exp $
+ *  $Id: main_lde.c,v 1.47 2002/01/27 23:11:51 scottheavner Exp $
  */
 
 #if HAVE_FCNTL_H
@@ -80,7 +80,7 @@ char *badblocks_directory = NULL;
 
 int CURR_DEVICE = 0;
 volatile struct _lde_flags lde_flags = 
-  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } ;
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } ;
 
 void (*lde_warn)(char *fmt, ...) = tty_warn;
 int  (*mgetch)(void) = tty_mgetch;

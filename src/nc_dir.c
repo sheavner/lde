@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_dir.c,v 1.19 2001/11/26 00:07:23 scottheavner Exp $
+ *  $Id: nc_dir.c,v 1.20 2002/01/27 23:11:51 scottheavner Exp $
  */
 
 #include <string.h>
@@ -128,6 +128,11 @@ static void highlight_dir_entry(WINDOW *win, int nr, int *last, int screen_off,l
 static void redraw_dir_window(WINDOW *win,int max_entries, int screen_off, lde_buffer *buffer)
 {
   int i;
+
+  /* show which mode we are in */
+  strcpy(ldemode,"Directory");
+  update_header();
+
   werase(win);
   for (i=0;((i<VERT)&&(i<=max_entries));i++)
     (void) dump_dir_entry(win, i, screen_off, buffer, 0);
