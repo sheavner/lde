@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.8 1998/05/30 18:10:11 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.9 1998/06/05 20:55:44 sdh Exp $
  */
 
 /* 
@@ -16,12 +16,18 @@
 
 #include <unistd.h>
 #include <string.h>
+#include <sys/types.h>
 #include <linux/msdos_fs.h>
 #include "lde.h"
 #include "no_fs.h"
 #include "msdos_fs.h"
 #include "tty_lde.h"
 #include "recover.h"
+
+/* Hack for redefinition of msdos_boot_sector by some rogue patch? */
+#ifdef BS_NAMED_FAT
+#define msdos_boot_sector fat_boot_sector
+#endif
 
 static struct Generic_Inode *DOS_read_inode(unsigned long nr);
 static char* DOS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
