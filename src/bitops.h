@@ -21,14 +21,13 @@
 #endif
 
 #if defined(USE_KERNEL_BITOPS)
-/* We don't use these yet, but to keep the compiler happy, prototype them now */
-extern int change_bit(int nr, void * addr);
-extern int find_first_zero_bit(void * addr, unsigned size);
-extern int find_next_zero_bit (void * addr, int size, int offset);
-extern unsigned long ffz(unsigned long word);
+
 #include <asm/bitops.h>
+
 #else
+
 extern int set_bit(int nr,void * addr);
 extern int clear_bit(int nr,void * addr);
 extern int test_bit(int nr,void * addr);
+
 #endif
