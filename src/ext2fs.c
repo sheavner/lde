@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: ext2fs.c,v 1.22 1998/07/05 18:20:33 sdh Exp $
+ *  $Id: ext2fs.c,v 1.23 2001/02/07 18:31:13 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-0.4a package by Remy Card. 
@@ -107,6 +107,7 @@ static struct fs_constants EXT2_constants = {
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
   &EXT2_inode_fields,
+  "ext2"                        /* char *text_name */
 };
 
 static unsigned long group_desc_count, group_desc_size;

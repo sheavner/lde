@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_block.c,v 1.27 1998/08/11 07:22:27 sdh Exp $
+ *  $Id: nc_block.c,v 1.28 2001/02/07 18:31:13 sdh Exp $
  */
 
 #include <stdio.h>
@@ -208,9 +208,9 @@ static void update_block_help(void)
   static char help_1[80], help_8[80];
 
   sprintf(help_1,"View block under cursor (%s block ptr is %d bytes)",
-	  text_names[fsc->FS],fsc->ZONE_ENTRY_SIZE);
+	  fsc->text_name,fsc->ZONE_ENTRY_SIZE);
   sprintf(help_8,"View inode under cursor (%s inode ptr is %d bytes)",
-	  text_names[fsc->FS],fsc->INODE_ENTRY_SIZE);
+	  fsc->text_name,fsc->INODE_ENTRY_SIZE);
   block_help[BHELP_BLOCK].description = help_1;
   block_help[BHELP_INODE].description = help_8;
 

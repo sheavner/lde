@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: msdos_fs.c,v 1.12 1998/08/11 04:52:10 sdh Exp $
+ *  $Id: msdos_fs.c,v 1.13 2001/02/07 18:31:13 sdh Exp $
  */
 
 /* 
@@ -92,6 +92,7 @@ static struct fs_constants DOS_constants = {
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
   &DOS_inode_fields,
+  "msdos"                       /* char *text_name */
 };
 
 static struct Generic_Inode DOS_junk_inode;

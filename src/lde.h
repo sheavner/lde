@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: lde.h,v 1.25 1998/06/15 00:48:15 sdh Exp $
+ *  $Id: lde.h,v 1.26 2001/02/07 18:31:13 sdh Exp $
  */
 
 #ifndef LDE_H
@@ -30,7 +30,7 @@ extern int  (*mgetch)(void);
 		       */
 
 
-enum lde_fstypes { AUTODETECT, NONE, MINIX, XIAFS, EXT2, DOS };
+enum lde_fstypes { AUTODETECT, NONE, MINIX, XIAFS, EXT2, DOS, ISO9660, LAST_FSTYPE };
 extern char *text_names[]; /* defined in main.c */
 
 struct _lde_buffer {
@@ -195,6 +195,7 @@ struct fs_constants {
   int ZONE_ENTRY_SIZE;
   int INODE_ENTRY_SIZE;
   struct inode_fields * inode;
+  char *text_name;
 };
 
 /* File system specific commands */

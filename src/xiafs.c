@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: xiafs.c,v 1.18 1998/07/05 18:20:49 sdh Exp $
+ *  $Id: xiafs.c,v 1.19 2001/02/07 18:31:13 sdh Exp $
  */
 
 #include <string.h>
@@ -78,6 +78,7 @@ static struct fs_constants XIAFS_constants = {
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
   &XIAFS_inode_fields,
+  "xiafs"                       /* char *text_name */
 };
 
 static struct Generic_Inode* XIAFS_read_inode(unsigned long nr)

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: minix.c,v 1.15 1998/07/05 18:20:40 sdh Exp $
+ *  $Id: minix.c,v 1.16 2001/02/07 18:31:13 sdh Exp $
  */
 
 /* 
@@ -83,6 +83,7 @@ struct fs_constants MINIX_constants = {
   2,                            /* int ZONE_ENTRY_SIZE */
   2,                            /* int INODE_ENTRY_SIZE */
   &MINIX_inode_fields,          /* struct * inode_fields */
+  "minix"                       /* char *text_name */
 };
 
 static struct Generic_Inode* MINIX_read_inode(unsigned long inode_nr)

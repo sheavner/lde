@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: main_lde.c,v 1.26 1998/12/07 20:08:14 sdh Exp $
+ *  $Id: main_lde.c,v 1.27 2001/02/07 18:31:13 sdh Exp $
  */
 
 #include <fcntl.h>
@@ -21,6 +21,8 @@
 #include "no_fs.h"
 #include "recover.h"
 #include "tty_lde.h"
+
+#include "iso9660.h"
 
 #ifdef HAVE_EXT2FS
 #include "ext2fs.h"
@@ -87,6 +89,7 @@ char *text_names[] = { "autodetect",
 #ifdef HAVE_MSDOSFS
 		       , "msdos"
 #endif
+			   , "iso9660"
  };
 
 char *inode_map=NULL;
@@ -158,8 +161,8 @@ int check_root(void)
   
 void read_tables(int fs_type)
 {
-  char super_block_buffer[2048];
-  sb->blocksize = 2048; /* Want to read in two blocks */
+  char super_block_buffer[17*2048];
+  sb->blocksize = 17*2048; /* Want to read in two blocks */
 
   /* Pull in first two blocks from the file system.  Xiafs info is
    * in the first block.  Minix, ext2fs is in second block (to leave
@@ -189,6 +192,9 @@ void read_tables(int fs_type)
     DOS_init(super_block_buffer);
   } else
 #endif
+  if ( ((fs_type==AUTODETECT)&&(ISO9660_test(super_block_buffer))) || (fs_type==ISO9660) ) {
+    ISO9660_init(super_block_buffer);
+  } else
   {
     lde_warn("No file system found on device");
     NOFS_init(super_block_buffer);

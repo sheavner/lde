@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: nc_lde.c,v 1.32 1998/08/11 03:58:20 sdh Exp $
+ *  $Id: nc_lde.c,v 1.33 2001/02/07 18:31:13 sdh Exp $
  */
 
 #include <stdio.h>
@@ -212,7 +212,7 @@ void restore_header(void)
 
   werase(header);
   sprintf(echo_string,"%s v%s : %s : %s",
-	  program_name,VERSION,text_names[fsc->FS],device_name);
+	  program_name,VERSION,fsc->text_name,device_name);
   mvwprintw(header,0,(COLS-strlen(echo_string))/2-1,echo_string);
   update_header();
 #endif

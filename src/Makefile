@@ -3,15 +3,15 @@
 #################################################################
 
 SRCS = $(FS_SRCS) no_fs.c recover.c \
-       main_lde.c $(LDE_CURSES_SRC) tty_lde.c bitops.c
+       main_lde.c $(LDE_CURSES_SRC) tty_lde.c bitops.c iso9660.
 
 OBJS = $(FS_OBJS) no_fs.o recover.o \
-       main_lde.o $(LDE_CURSES_OBJ) tty_lde.o bitops.o swiped.a
+       main_lde.o $(LDE_CURSES_OBJ) tty_lde.o bitops.o iso9660.o swiped.a
 
 HEADERS = lde.h nc_lde.h bitops.h nc_block_help.h nc_inode_help.h \
 	nc_lde_help.h no_fs.h xiafs.h curses.h minix.h nc_dir.h \
 	nc_lde.h recover.h ext2fs.h nc_block.h nc_inode.h tty_lde.h \
-	msdos_fs.h keymap.h
+	msdos_fs.h keymap.h iso9660.h
 
 dummy:
 	( cd .. ; ${MAKE} )

@@ -1,9 +1,9 @@
 /*
- *  lde/no_fs.c -- The Linux Disk Editor
+ *  lde/iso9660.c -- The Linux Disk Editor
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: no_fs.c,v 1.15 2001/02/07 18:31:13 sdh Exp $
+ *  $Id: iso9660.c,v 1.1 2001/02/07 18:31:13 sdh Exp $
  *
  *  The following routines were taken almost verbatim from
  *  the e2fsprogs-1.02 package by Theodore Ts'o and Remy Card.
@@ -20,6 +20,7 @@
 #include "lde.h"
 #include "tty_lde.h"
 #include "no_fs.h"
+#include "iso9660.h"
 
 static struct Generic_Inode *NOFS_read_inode(unsigned long nr);
 static char* NOFS_dir_entry(int i, lde_buffer *block_buffer, unsigned long *inode_nr);
@@ -84,33 +85,33 @@ static struct fs_constants NOFS_constants = {
   4,                            /* int ZONE_ENTRY_SIZE */
   4,                            /* int INODE_ENTRY_SIZE */
   &NOFS_inode_fields,
-  "no file sytem"               /* char *text_name */
+  "iso9660"                     /* char *text_name */
 };
 
-static struct Generic_Inode NOFS_junk_inode;
+static struct Generic_Inode ISO9660_junk_inode;
 
-struct Generic_Inode *NOFS_init_junk_inode(void)
+struct Generic_Inode *ISO9660_init_junk_inode(void)
 {
   int i;
 
-  NOFS_junk_inode.i_mode        = 0UL;
-  NOFS_junk_inode.i_uid         = 0UL;
-  NOFS_junk_inode.i_size        = 0UL;
-  NOFS_junk_inode.i_atime       = 0UL;
-  NOFS_junk_inode.i_ctime       = 0UL;
-  NOFS_junk_inode.i_mtime       = 0UL;
-  NOFS_junk_inode.i_gid         = 0UL;
-  NOFS_junk_inode.i_links_count = 0UL;
+  ISO9660_junk_inode.i_mode        = 0UL;
+  ISO9660_junk_inode.i_uid         = 0UL;
+  ISO9660_junk_inode.i_size        = 0UL;
+  ISO9660_junk_inode.i_atime       = 0UL;
+  ISO9660_junk_inode.i_ctime       = 0UL;
+  ISO9660_junk_inode.i_mtime       = 0UL;
+  ISO9660_junk_inode.i_gid         = 0UL;
+  ISO9660_junk_inode.i_links_count = 0UL;
   
   for (i=0; i<INODE_BLKS; i++)
-    NOFS_junk_inode.i_zone[i] = 0UL;
+    ISO9660_junk_inode.i_zone[i] = 0UL;
 
-  return &NOFS_junk_inode;
+  return &ISO9660_junk_inode;
 }
 
 static struct Generic_Inode *NOFS_read_inode(unsigned long nr)
 {
-  return &NOFS_junk_inode;
+  return &ISO9660_junk_inode;
 }
 
 /* Always returns 0 */
@@ -154,7 +155,7 @@ static void NOFS_sb_init(char * sb_buffer)
 
   fstat(CURR_DEVICE, &statbuf);
 
-  sb->blocksize = 1024;
+  sb->blocksize = 2048;
 
   /* Try to look up the size of the file/device */
   sb->nzones = ((unsigned long)statbuf.st_size+(sb->blocksize-1UL))/
@@ -193,13 +194,13 @@ static void NOFS_sb_init(char * sb_buffer)
   firsttime = 0;
 }
 
-void NOFS_init(char * sb_buffer)
+void ISO9660_init(char * sb_buffer)
 {
   fsc = &NOFS_constants;
 
   NOFS_sb_init(sb_buffer);
 
-  (void) NOFS_init_junk_inode();
+  (void) ISO9660_init_junk_inode();
 
   sb->namelen = 1;
   sb->dirsize = 1;
@@ -246,4 +247,23 @@ static unsigned long NOFS_get_device_size(void)
     }
   lde_seek_block(0);
   return (low + 1);
+}
+
+
+int ISO9660_test(void *sb_buffer)
+{
+  char *testbuffer = (char *)sb_buffer + 16*2048 + 1;
+  char s[3] = {0};
+
+  lde_warn("TESTING ISO9660");
+  s[0] = testbuffer[2];
+  s[1] = testbuffer[3];
+  lde_warn(s);
+
+  if (!strncmp("CD001",testbuffer,5)) {
+    lde_warn("Found iso9660 filesystem on device");
+    return 1;
+  }
+
+  return 0;
 }
