@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.43 2005/05/19 06:39:27 scottheavner Exp $
+ *  $Id: recover.c,v 1.42.2.1 2005/05/19 06:47:55 scottheavner Exp $
  */
 
 #include <stdio.h>
