@@ -1,6 +1,6 @@
 .\" Copyright 1993, 1996 Scott D. Heavner (sdh@po.cwru.edu)
 .\" May be distributed under the GNU General Public License
-.TH LDE 8 "23 September 1996" "Linux 2.0" "Linux Programmer's Manual"
+.TH LDE 8 "19 May 2005" "" ""
 .SH NAME
 lde \- a curses based file system viewer/editor for Linux
 .SH SYNOPSIS

@@ -1,726 +1,500 @@
+LDE(8)                                                                  LDE(8)
 
 
 
-LDE(8)              Linux Programmer's Manual              LDE(8)
-
-
-NAME
+NNAAMMEE
        lde - a curses based file system viewer/editor for Linux
 
-SYNOPSIS
-       lde device
+SSYYNNOOPPSSIISS
+       llddee [options] device
 
-DESCRIPTION
-       lde  supports  the  three  most popular file systems under
-       Linux at the time of its  inception:  ext2fs,  minix,  and
-       xiafs.   It  also  has  minimal support for msdos FAT file
-       systems and a nofs system in which case lde will  function
-       as  a  binary  editor.   lde will attempt to automatically
-       detect the file system present on the device or file  when
-       it  is  started,  if it does not recognize the file system
-       present on the device, it will default to nofs.
+DDEESSCCRRIIPPTTIIOONN
+       llddee  supports  the  three  most popular file systems under Linux at the
+       time of its inception: ext2fs, minix, and xiafs.  It also  has  minimal
+       support  for msdos FAT file systems and a nofs system in which case llddee
+       will function as a binary editor.  llddee will  attempt  to  automatically
+       detect  the  file  system  present  on  the  device  or file when it is
+       started, if it does not  recognize  the  file  system  present  on  the
+       device, it will default to nofs.
 
-       lde allows you to view and edit  disk  blocks  in  hex  or
-       ASCII  mode,  view a block that contains directory entries
-       in a readable fashion, and view and edit formatted inodes.
-       lde  is  a  great  help when recovering deleted files (see
-       doc/UNERASE included with the lde  distribution  for  more
+       llddee  allows you to view and edit disk blocks in hex or ASCII mode, view
+       a block that contains directory entries in a readable fashion, and view
+       and edit formatted inodes.  llddee is a great help when recovering deleted
+       files (see doc/UNERASE included with  the  llddee  distribution  for  more
        info).
 
-       The  device  parameter  is  a required option for lde.  If
-       omitted, it will print a warning and refuse to start.  The
-       default  mode  for  lde is to use a curses interface; this
-       can be overriden by some of the options listed below.
+       The device parameter is a required option for llddee..  If omitted, it will
+       print a warning and refuse to start.  The default mode for  llddee  is  to
+       use  a  curses  interface; this can be overriden by some of the options
+       listed below.
 
 
-OPTIONS
-       -a, --all
-              Indicates that searches should be performed on  the
-              entire  disk.   If  -a  is not specified, only data
-              zones which are marked not in use will be searched.
+OOPPTTIIOONNSS
+       --aa,, ----aallll
+              Indicates that searches should be performed on the entire  disk.
+              If  --aa is not specified, only data zones which are marked not in
+              use will be searched.
 
-       --append
-              Always  append  data to existing recovery file.  If
-              file does not exist, create new file.
+       ----aappppeenndd
+              Always append data to existing recovery file.  If file does  not
+              exist, create new file.
 
-       -b (--block) block_number
-              Format a single block as hex and dump it  to  stan-
-              dard  output.   Specify  -N  to  dump more than one
-              block.
+       --bb ((----bblloocckk)) bblloocckk__nnuummbbeerr
+              Format  a  single  block  as hex and dump it to standard output.
+              Specify --NN to dump more than one block.
 
-       -B block_number
-              Format all blocks after  specifed  block_number  as
-              hex and dump to standard output.  You can use -N to
-              specify the number of blocks to display.
+       --BB bblloocckk__nnuummbbeerr
+              Format all blocks after specifed block_number as hex and dump to
+              standard output.  You can use --NN to specify the number of blocks
+              to display.
 
-       --blanked-indirects
-              Linux <= 2.0.33 blanks all the indirect blocks when
-              truncating  an  inode.  The inode still knows where
-              the 1x/2x/3x indirect blocks are, but they're  full
-              of  zeros.   This  was  a  quick hack that works to
+       ----bbllaannkkeedd--iinnddiirreeccttss
+              Linux <= 2.0.33 blanks all the indirect blocks  when  truncating
+              an  inode.   The  inode  still knows where the 1x/2x/3x indirect
+              blocks are, but they're full of zeros.  This was  a  quick  hack
+              that  works  to  restore small (>12k <~500k) unfragmented files.
+              It can be toggled via the flags menu in the curses interface.
 
+       --dd bblloocckk__nnuummbbeerr
+              Dump a block's data to standard out as unformatted binary  data,
+              (  like  ccaatt and faster than dddd ).  Specify --NN to dump more than
+              one block.
 
+       --DD bblloocckk__nnuummbbeerr
+              Dump all blocks after block_number to standard out as  unformat-
+              ted binary data.  You can use --NN to specify the number of blocks
+              to dump.
 
-Linux 2.0               23 September 1996                       1
+       --ff,, ----ffiillee rreeccoovveerryy__ffiillee__nnaammee
+              Signal lde that we want to recover an inode to a file and  spec-
+              ify  its name.  You should specify the inode number to be recov-
+              ered with the --ii option.
 
+       --gg,, ----ggrreepp
+              This option was designed to work with grep output.  Grep a  file
+              for  lost  data,  pipe it through awk to yield just byte offsets
+              where the desired string lies.  llddee will  then  find  the  block
+              corresponding  to  the  desired  offset and try to find an inode
+              which references this block.  A sample script is  included  with
+              the llddee distribution (crash_recovery/grep-inode).
 
-
-
-
-LDE(8)              Linux Programmer's Manual              LDE(8)
-
-
-              restore small (>12k <~500k) unfragmented files.  It
-              can  be  toggled  via  the flags menu in the curses
-              interface.
-
-       -d block_number
-              Dump a block's data to standard out as  unformatted
-              binary  data,  (  like  cat  and  faster than dd ).
-              Specify -N to dump more than one block.
-
-       -D block_number
-              Dump all blocks after block_number to standard  out
-              as  unformatted  binary  data.   You  can use -N to
-              specify the number of blocks to dump.
-
-       -f, --file recovery_file_name
-              Signal lde that we want to recover an  inode  to  a
-              file  and specify its name.  You should specify the
-              inode number to be recovered with the -i option.
-
-       -g, --grep
-              This option was designed to work with grep  output.
-              Grep  a  file for lost data, pipe it through awk to
-              yield just byte offsets where  the  desired  string
-              lies.   lde  will then find the block corresponding
-              to the desired offset and  try  to  find  an  inode
-              which  references  this  block.  A sample script is
-              included with the  lde  distribution  (crash_recov-
-              ery/grep-inode).
-
-       -h, --help
+       --hh,, ----hheellpp
               Display extended help.
 
-       -i (--inode) inode_number
-              Format  and dump a single inode to standard output.
-              Specify -N to dump more than one inode.
+       --ii ((----iinnooddee)) iinnooddee__nnuummbbeerr
+              Format  and  dump a single inode to standard output.  Specify --NN
+              to dump more than one inode.
 
-       -I inode_number
-              Format and dump all inodes  after  inode_number  to
-              standard  output.   You  can  use -N to specify the
-              number of inodes to display.
+       --II iinnooddee__nnuummbbeerr
+              Format and dump all inodes after inode_number to  standard  out-
+              put.  You can use --NN to specify the number of inodes to display.
 
-       --indirects
-              Search the filesystem for blocks  that  looks  like
-              indirect blocks.
+       ----iinnddiirreeccttss
+              Search the  filesystem  for  blocks  that  looks  like  indirect
+              blocks.
 
-       --ilookup
-              When  searching,  if we find a match, activate this
-              flag to lookup the inode which contains the matched
-              block.   It  might  be easier and faster to do this
-              with paper and use lde to interactively lookup only
-              the  blocks  which have a high probability of being
-              the one you want.  --ilookup can also  be  used  if
-              the  -B or -b option is specified to try to find an
-              inode reference  for  the  specifed  blocks.   When
+       ----iillooookkuupp
+              When searching, if we find a match, activate this flag to lookup
+              the inode which contains the matched block.  It might be  easier
+              and  faster  to  do this with paper and use lde to interactively
+              lookup only the blocks which have a high  probability  of  being
+              the  one  you  want.  ----iillooookkuupp can also be used if the --BB or --bb
+              option is specified to try to find an inode  reference  for  the
+              specifed blocks.  When using --BB you may want to specify --NN also.
 
+       ----llooggttooffiillee
+              Debugging option.  All of  lde's  messages  will  be  dumped  to
+              /tmp/ldeerrors.
 
+       --LL ----lleennggtthh
+              Sets search string length (when using --TT with a filename).
 
-Linux 2.0               23 September 1996                       2
+       --NN ----lliimmiitt
+              Sets  the  number of blocks to display when using inode or block
+              dumps.  If unspecified, default is to the end of the  filesystem
+              ( --II --BB --DD ) or a single block ( --ii --bb --dd ).
 
+              --NN can also be used to specify a block to begin/resume searching
+              at.  If unspecified in this usage, it defaults to the first data
+              zone.
 
+       --OO ----ooffffsseett
+              Sets  search string offset (when using --TT with a filename).  The
+              first byte in the  template  file  is  0.   When  searching  for
+              matches, the block will be examined starting at this offset.
 
+       --pp,, --rr,, ----ppaarraannooiidd,, ----ssaaffee,, ----rreeaadd--oonnllyy
+              Open  the  device  read  only.  Once set, this cannot be toggled
+              from within the program.
 
-
-LDE(8)              Linux Programmer's Manual              LDE(8)
-
-
-              using -B you may want to specify -N also.
-
-       --logtofile
-              Debugging  option.   All  of lde's messages will be
-              dumped to /tmp/ldeerrors.
-
-       -L --length
-              Sets search string length (when  using  -T  with  a
-              filename).
-
-       -N --limit
-              Sets  the  number  of  blocks to display when using
-              inode or block dumps.  If unspecified,  default  is
-              to the end of the filesystem ( -I -B -D ) or a sin-
-              gle block ( -i -b -d ).
-
-              -N  can  also  be  used  to  specify  a  block   to
-              begin/resume  searching at.  If unspecified in this
-              usage, it defaults to the first data zone.
-
-       -O --offset
-              Sets search string offset (when  using  -T  with  a
-              filename).   The first byte in the template file is
-              0.  When searching for matches, the block  will  be
-              examined starting at this offset.
-
-       -p, -r, --paranoid, --safe, --read-only
-              Open  the  device read only.  Once set, this cannot
-              be toggled from within the program.
-
-       -q, --quiet
+       --qq,, ----qquuiieett
               Turn off bell.
 
-       --recoverable
-              When searching, check that any inodes found contain
-              a  deleted  file  that may be recovered.  --ilookup
-              must also be activated for this option to have  any
-              effect.   If  no  blocks are marked used by another
-              inode, "recovery possible"  will  be  printed.   If
-              blocks  are used by another file "recovery NOT pos-
-              sible" will be printed  to  the  screen.   You  may
-              still  be  able  to get some data back even when it
-              reports that recovery is not possible.  To  get  an
-              idea  of  how many blocks are in use, you will have
-              to check its recoverablilty from lde via its curses
-              interface (see Recover mode below).
+       ----rreeccoovveerraabbllee
+              When searching, check that any inodes found  contain  a  deleted
+              file  that  may  be recovered.  ----iillooookkuupp must also be activated
+              for this option to have any effect.  If  no  blocks  are  marked
+              used  by another inode, "recovery possible" will be printed.  If
+              blocks are used by another file "recovery NOT possible" will  be
+              printed  to  the screen.  You may still be able to get some data
+              back even when it reports that recovery is not possible.  To get
+              an  idea  of  how many blocks are in use, you will have to check
+              its recoverablilty  from  lde  via  its  curses  interface  (see
+              Recover mode below).
 
-              If  --recoverable is used with -I 1 , it will check
-              all the deleted inodes to see if they can be recov-
-              ered.   The  deletion  time  of  the  inode will be
-              printed to the screen if it is recoverable.
+              If  ----rreeccoovveerraabbllee  is  used  with  --II  11 , it will check all the
+              deleted inodes to see if they can be  recovered.   The  deletion
+              time  of the inode will be printed to the screen if it is recov-
+              erable.
 
-       -s (--bs or --blocksize) block_size
-              Override blocksize which  lde  has  detected.   The
+       --ss ((----bbss oorr ----bblloocckkssiizzee)) bblloocckk__ssiizzee
+              Override blocksize which lde has detected.   The  blocksize  may
+              have  been  read from the information (superblock) stored on the
+              disk or is what lde would consider  the  default  blocksize  for
+              that  type  of  filesystem  (generally  1024  bytes).  With this
+              option, you can force lde to use a different blocksize.
 
+       ----ssuuppeerrssccaann
+              Try to find ext2 signature  on  device.  Supersedes  functionaly
+              previously provided by ffiinndd__eexxtt22__ffss.
 
+       --SS ssttrriinngg
+              Search  disk  for  data  (of questionable usefulness).  This was
+              more for searching for a specific type of  file  (which  is  now
+              easier  with  --TT ) rather than file data.  To search for data or
+              strings, use the --grep option.  If you insist on using --SS which
+              might  be prudent occasionally, The offset of the string must be
+              specified with --OO , and each block will  only  be  inspected  at
+              that  offset.  If --OO is not specified, then 0 is assumed and the
+              string must lie at the start of a block.  You can  also  specify
+              the  block to begin/resume searching from with --NN which defaults
+              to the first data zone.
 
-Linux 2.0               23 September 1996                       3
+       --tt ffssttyyppee
+              Override the auto-detect. fstype = {no,  minix,  xiafs,  ext2fs,
+              msdos}
 
+       --TT ttyyppee
+              Search  disk  for data. This will search the start of each block
+              for numbers found in /etc/magic for certain types of files, cur-
+              rently supported types are {gz, tgz, script}.
 
+              NNoottee::  type  tgz only finds tar files that were created with gnu
+              tar using its cfz options.  Use gz to find tar files  that  were
+              compressed after creation (or through a pipe?).
 
+              If  you  specify a filename after the --TT option, it will read in
+              the first block of the file and search the filesystem for  some-
+              thing  which matches it exactly.  This may be useful for finding
+              deleted copies of files (i.e.  you've  found  version  1.0,  but
+              deleted  version  1.5 and now want to recover it) or with the --LL
+              and --OO options, you can pick off a  few  bytes  and  search  for
+              magic  numbers  in a certain file type.  When using the filename
+              option, you really should specify --LL and --OO or they will default
+              to  BLOCKSIZE  and  0.   You  can  also  specify  the  block  to
+              begin/resume searching from with --NN which defaults to the  first
+              data zone.
 
-
-LDE(8)              Linux Programmer's Manual              LDE(8)
-
-
-              blocksize  may  have been read from the information
-              (superblock) stored on the  disk  or  is  what  lde
-              would  consider the default blocksize for that type
-              of filesystem (generally 1024  bytes).   With  this
-              option, you can force lde to use a different block-
-              size.
-
-       -S string
-              Search disk for data (of questionable  usefulness).
-              This  was more for searching for a specific type of
-              file (which is now easier with  -T  )  rather  than
-              file  data.  To search for data or strings, use the
-              --grep option.  If you insist  on  using  -S  which
-              might  be  prudent  occasionally, The offset of the
-              string must be specified with -O , and  each  block
-              will only be inspected at that offset. If -O is not
-              specified, then 0 is assumed and  the  string  must
-              lie  at the start of a block.  You can also specify
-              the block to begin/resume searching  from  with  -N
-              which defaults to the first data zone.
-
-       -t fstype
-              Override  the  auto-detect.  fstype  =  {no, minix,
-              xiafs, ext2fs, msdos}
-
-       -T type
-              Search disk for data. This will search the start of
-              each block for numbers found in /etc/magic for cer-
-              tain types of files, currently supported types  are
-              {gz, tgz, script}.
-
-              Note:  type tgz only finds tar files that were cre-
-              ated with gnu tar using its cfz options.  Use gz to
-              find  tar files that were compressed after creation
-              (or through a pipe?).
-
-              If you specify a filename after the -T  option,  it
-              will read in the first block of the file and search
-              the  filesystem  for  something  which  matches  it
-              exactly.   This  may  be useful for finding deleted
-              copies of files (i.e. you've found version 1.0, but
-              deleted  version 1.5 and now want to recover it) or
-              with the -L and -O options, you can pick off a  few
-              bytes  and  search  for  magic numbers in a certain
-              file type.  When using  the  filename  option,  you
-              really  should  specify  -L  and  -O  or  they will
-              default to BLOCKSIZE and 0.  You can  also  specify
-              the  block  to  begin/resume searching from with -N
-              which defaults to the first data zone.
-
-       -V, --version
+       --VV,, ----vveerrssiioonn
               Display version information.
 
-
-
-
-
-Linux 2.0               23 September 1996                       4
-
-
-
-
-
-LDE(8)              Linux Programmer's Manual              LDE(8)
-
-
-       -w, --write
+       --ww,, ----wwrriittee
               Allow writes to the disk.
 
 
 
-CURSES INTERFACE
-       The lde main screen displays the file system's  superblock
-       in  the  workspace  window.  The header window will be the
-       same for all modes and indicates the program name and ver-
-       sion, the device, the current selected inode, and the cur-
-       rent selected block.  There are also nine digits (and some
-       extra  characters  shifted-12456  on an American keyboard,
-       sorry I skip '#' which is reserved for  another  function)
-       "0123456789!@$%^"  which  indicate  the  status of a bogus
-       inode which can be used for file recovery.  A digit  means
-       the  inode  block  entry  has not been filled yet, a minus
-       sign indicates that it has been filled.
+CCUURRSSEESS IINNTTEERRFFAACCEE
+       The  llddee  main  screen  displays  the  file  system's superblock in the
+       workspace window.  The header window will be the same for all modes and
+       indicates  the  program  name  and  version,  the  device,  the current
+       selected inode, and the current selected block.  There  are  also  nine
+       digits  (and  some  extra  characters shifted-12456 on an American key-
+       board, sorry I  skip  '#'  which  is  reserved  for  another  function)
+       "0123456789!@$%^"  which indicate the status of a bogus inode which can
+       be used for file recovery.  A digit means the inode block entry has not
+       been filled yet, a minus sign indicates that it has been filled.
 
-       While displaying the superblock, you can use the following
-       keys which are valid in most modes:
+       While  displaying  the superblock, you can use the following keys which
+       are valid in most modes:
 
-              b      to enter block mode
+              bb      to enter block mode
 
-              d      display  the  directory contents of the cur-
-                     rent inode or block
+              dd      display the directory contents of the  current  inode  or
+                     block
 
-              f      menu of runtime flags
+              ff      menu of runtime flags
 
-              i      to enter inode mode
+              ii      to enter inode mode
 
-              r      to enter recover mode
+              rr      to enter recover mode
 
-              s      return to super block mode ( only valid from
-                     other modes )
+              ss      return  to super block mode ( only valid from other modes
+                     )
 
-              q      to quit
+              qq      to quit
 
-              v      view the error/warning log
+              vv      view the error/warning log
 
-              ^L     to repaint the screen
+              ^^LL     to repaint the screen
 
-              ^O     display menu of valid choices ( also F2 )
+              ^^OO     display menu of valid choices ( also FF22 )
 
-              F1     display help screen ( also M-h or ?  )
+              FF11     display help screen ( also MM--hh or ??  )
 
-       I  have  tried to implement cursor motion modes similar to
-       both vi and emacs (M = meta key, ^ = control key,  ESC  is
-       recognized  as the meta key, M-ESC is recognized occasion-
-       ally as ESC -- to exit menus).
+       I have tried to implement cursor motion modes similar to  both  vi  and
+       emacs  (M  =  meta  key, ^ = control key, ESC is recognized as the meta
+       key, M-ESC is recognized occasionally as ESC -- to exit menus).
 
                         vi    emacs
                UP       k      ^P
               DOWN      j      ^N
               LEFT      h      ^B
-
-
-
-Linux 2.0               23 September 1996                       5
-
-
-
-
-
-LDE(8)              Linux Programmer's Manual              LDE(8)
-
-
               RIGHT     l      ^F
               PG_UP     ^U     M-v
               PG_DN     ^D     ^V
 
 
-       Inode mode:
+       IInnooddee mmooddee::
 
-              Once in inode mode, the current inode will be  dis-
-              played in the workspace window.
+              Once in inode mode, the current inode will be displayed  in  the
+              workspace window.
 
 
-              PG_DOWN
+              PPGG__DDOOWWNN
                      Make next inode the current inode.
 
-              PG_UP  Make previous inode the current inode.
+              PPGG__UUPP  Make previous inode the current inode.
 
-              arrows Move  cursor  to  different fields of inode.
-                     Up and left go back one field, down or right
-                     will go to the next field.
+              aarrrroowwss Move cursor to different fields of inode.  Up and left go
+                     back one field, down or right will go to the next  field.
 
-              0123456789!@#$%^
-                     Add  corresponding  block  entry  from  this
-                     inode to the recovery list.
+              00112233445566778899!!@@##$$%%^^
+                     Add  corresponding  block  entry  from  this inode to the
+                     recovery list.
 
-              B      Switch to block mode, examining block  under
-                     cursor.
+              BB      Switch to block mode, examining block under cursor.
 
-              b      Switch  to  block  mode,  examining  current
-                     block (displayed in status line).
+              bb      Switch to block mode, examining current block  (displayed
+                     in status line).
 
-              c      Copy inode to inode copy buffer.
+              cc      Copy inode to inode copy buffer.
 
-              e      Edit inode information.  Use the  cursor  to
-                     select  the field you want to edit, then hit
-                     RET ^M ^J or e and a line will pop up at the
-                     bottom  of  the  screen, enter the new value
-                     here.  Entering a blank line will leave  the
+              ee      Edit  inode  information.   Use  the cursor to select the
+                     field you want to edit, then hit RREETT ^^MM ^^JJ  or  ee  and  a
+                     line  will  pop up at the bottom of the screen, enter the
+                     new value here.  Entering a blank  line  will  leave  the
                      value unchanged.
 
-                     Dates  can  be  entered  in any format other
-                     than the one displayed on the  screen.   The
-                     year  must  be  kept near the month and day.
-                     Use  formats  like  "24SEP96  10:00:01"   or
-                     "10:00:01  Sep  24,  1996".  "12/24/96" will
-                     probably default to the American interpreta-
-                     tion  MM/DD/YY.   I  did  not write the date
-                     parser, so I don't want  to  hear  any  com-
-                     plaints about it.
+                     Dates  can  be  entered  in any format other than the one
+                     displayed on the screen.  The year must be kept near  the
+                     month  and  day.   Use formats like "24SEP96 10:00:01" or
+                     "10:00:01  Sep  24,  1996".   "12/24/96"  will   probably
+                     default  to  the American interpretation MM/DD/YY.  I did
+                     not write the date parser, so I don't want  to  hear  any
+                     complaints about it.
 
-              p      Paste inode from inode copy buffer.
+              pp      Paste inode from inode copy buffer.
 
-              r      Switch to recover mode.
+              rr      Switch to recover mode.
 
-              R      Switch  to  recover mode, copy current inode
+              RR      Switch to recover mode, copy current inode block informa-
+                     tion into recovery inode.
 
-
-
-Linux 2.0               23 September 1996                       6
-
-
-
-
-
-LDE(8)              Linux Programmer's Manual              LDE(8)
-
-
-                     block information into recovery inode.
-
-              #      This will prompt the user to enter a  number
-                     and  it  will  then  make  that  the current
-                     inode.  The number may be  entered  as  hex-
-                     adecimal  (leading 'x', '0x', or '$'), octal
+              ##      This will prompt the user to enter a number and  it  will
+                     then  make  that  the  current  inode.  The number may be
+                     entered as hexadecimal (leading 'x', '0x', or '$'), octal
                      (leading ''), or decimal.
 
-              M-b    View inode in its raw block format.
+              MM--bb    View inode in its raw block format.
 
-       Block Mode:
+       BBlloocckk MMooddee::
 
-       In block mode, the current block will be displayed in hex-
-       adecimal  and ASCII.  The numbers along the left hand side
-       of the screen are hexadecimal offsets from  the  beginning
-       of  the  block.   As much of the block as possible will be
-       displayed.  If the block is marked unused, the central row
-       of ':' will spell out NOT USED.
+       In  block  mode, the current block will be displayed in hexadecimal and
+       ASCII.  The numbers along the left hand side of the screen are hexadec-
+       imal  offsets from the beginning of the block.  As much of the block as
+       possible will be displayed.  If the block is marked unused, the central
+       row of ':' will spell out NOT USED.
 
 
-              PG_DOWN
+              PPGG__DDOOWWNN
                      Display next chunk of this block.
 
-              PG_UP  Display previous chunk of this block.
+              PPGG__UUPP  Display previous chunk of this block.
 
-              +      Make next block the current block.
+              ++      Make next block the current block.
 
-              -      Make previous block the current block.
+              --      Make previous block the current block.
 
-              arrow  Move cursor.
+              aarrrrooww  Move cursor.
 
-              b      View block under cursor.  lde will interpret
-                     the byte under the cursor as the start of  a
-                     block  pointer  (as  if  it  were part of an
-                     indirect block).  This will be  a  two  byte
-                     pointer  for  the  minix  file  system, four
-                     bytes for ext2fs and xiafs.
+              bb      View  block  under  cursor.   llddee will interpret the byte
+                     under the cursor as the start of a block pointer  (as  if
+                     it  were  part of an indirect block).  This will be a two
+                     byte pointer for the minix file system,  four  bytes  for
+                     ext2fs and xiafs.
 
-              B      Interpret blocks under  cursor  as  a  block
-                     pointer and make it the current block.
+              BB      Interpret blocks under cursor as a block pointer and make
+                     it the current block.
 
-              c      Copy block to copy buffer.
+              cc      Copy block to copy buffer.
 
-              d      Dump  block  as  a  directory (see directory
-                     popup description below).
+              dd      Dump block as a directory (see directory  popup  descrip-
+                     tion below).
 
-              e      Edit the data in hex or ascii mode.   TAB  (
-                     ^I)  switches between hex and ascii editing.
-                     While  in  hex  edit,  the  keys   A-F   and
-                     0123456789  will not perform their lde func-
-                     tions, but are used to enter new  data.   In
-                     ascii  edit,  most  keys  (chars 32-126) are
-                     used to enter new data.  Characters  outside
-                     this range must be entered in hex mode, they
-
-
-
-Linux 2.0               23 September 1996                       7
-
-
-
-
-
-LDE(8)              Linux Programmer's Manual              LDE(8)
-
-
-                     will be displayed on the ASCII display as  a
+              ee      Edit  the  data in hex or ascii mode.  TTAABB ( _^_I) switches
+                     between hex and ascii editing.  While in  hex  edit,  the
+                     keys  AA--FF and 00112233445566778899 will not perform their lde func-
+                     tions, but are used to enter new data.   In  ascii  edit,
+                     most  keys  (chars  32-126)  are  used to enter new data.
+                     Characters outside this range  must  be  entered  in  hex
+                     mode,  they  will  be displayed on the ASCII display as a
                      period.
 
-                     Editing will exit on write block ( ^W ) or a
-                     command  which  goes  to  another  block  or
-                     leaves  block mode.  To discard your changes
-                     and re-read the block use ^A or view another
-                     block  and  come  back.   You will always be
-                     prompted [Yes/Discard changes/Continue edit]
-                     before a write occurs.  Select y to save the
-                     block to disk, d to discard your changes and
-                     re-read the data from disk, or c if you made
-                     a mistake and want to go back and make  some
-                     more changes before saving this block.
+                     Editing will exit on write block (  ^^WW  )  or  a  command
+                     which  goes  to  another  block or leaves block mode.  To
+                     discard your changes and re-read the block use ^^AA or view
+                     another block and come back.  You will always be prompted
+                     [Yes/Discard  changes/Continue  edit]  before   a   write
+                     occurs.  Select yy to save the block to disk, dd to discard
+                     your changes and re-read the data from disk, or cc if  you
+                     made  a  mistake  and  want to go back and make some more
+                     changes before saving this block.
 
-                     It  is  probably  a good idea to unmount the
-                     file system before you do any writes to  it.
-                     My  guess  is that bad things will happen if
-                     you try  to  write  the  inode/block  tables
-                     while  someone else is using the filesystem.
+                     It is probably a good idea to  _u_n_m_o_u_n_t  _t_h_e  _f_i_l_e  _s_y_s_t_e_m
+                     _b_e_f_o_r_e  _y_o_u  _d_o  _a_n_y  _w_r_i_t_e_s _t_o _i_t.  My guess is that bad
+                     things will happen if you try to  write  the  inode/block
+                     tables while someone else is using the filesystem.
 
-              I      View inode under cursor.  lde will interpret
-                     the byte under the cursor as the start of an
-                     inode pointer (as if  it  were  part  of  an
-                     directory  entry).   This will be a two byte
-                     pointer for  the  minix  file  system,  four
-                     bytes for ext2fs and xiafs.
+              II      View  inode  under  cursor.   llddee will interpret the byte
+                     under the cursor as the start of an inode pointer (as  if
+                     it  were part of an directory entry).  This will be a two
+                     byte pointer for the minix file system,  four  bytes  for
+                     ext2fs and xiafs.
 
-              n, p   Next/previous  block  in  file.  If the dis-
-                     played file is indexed by the current inode,
-                     you  can  step to the next or previous block
-                     in the chain.
+              nn,, pp   Next/previous  block  in  file.  If the displayed file is
+                     indexed by the current inode, you can step to the next or
+                     previous block in the chain.
 
-              p      Paste block from copy buffer.
+              pp      Paste block from copy buffer.
 
-              w      Write the  current  block  to  the  recovery
-                     file.
+              ww      Write the current block to the recovery file.
 
-              0123456789!@#$%^
-                     tag  this  block  to  be  recovered.   Under
-                     Minix, this will display nine  blocks  which
-                     represent  the  block  pointers in an inode.
-                     0-6 are direct blocks,  7  is  the  indirect
-                     block,  and  8 is the double indirect block.
-                     One day there may  be  an  option  for  more
-                     direct blocks to make recovery easier.  When
-                     a block is  tagged,  the  status  line  will
-                     reflect  this.   To  untag  a  block,  go to
-                     recover mode and set the block's pointer  to
-                     zero.
+              00112233445566778899!!@@##$$%%^^
+                     tag  this  block to be recovered.  Under Minix, this will
+                     display nine blocks which represent the block pointers in
+                     an  inode.   0-6  are  direct  blocks,  7 is the indirect
+                     block, and 8 is the double indirect block.  One day there
+                     may  be an option for more direct blocks to make recovery
+                     easier.  When a block is tagged,  the  status  line  will
+                     reflect  this.   To untag a block, go to recover mode and
+                     set the block's pointer to zero.
 
-              #      This  will  prompt the user to enter a block
-                     number.  The numbers may be entered  in  the
-                     same   format   described   in   inode  mode
+              ##      This will prompt the user to enter a block  number.   The
+                     numbers  may  be  entered in the same format described in
+                     inode mode (decimal, hex, or octal).
 
+              ^^RR     Look up inode which references this block.
 
+              //      Search for a string.  You will be prompted  for  a  case-
+                     sensative  search  string.  The search will proceede from
+                     the current block, if a match is found, the block pointer
+                     will  be  advanced  and  the  matching block will be dis-
+                     played.
 
-Linux 2.0               23 September 1996                       8
+       RReeccoovveerr MMooddee::
 
-
-
-
-
-LDE(8)              Linux Programmer's Manual              LDE(8)
+       In recover mode, the tagged blocks are displayed and may be  edited  by
+       hand.   When  they are correct the user can dump the file.  The user is
+       prompted for a filename which can be 80  chars,  the  default  file  is
+       "./RECOVER.file".
 
 
-                     (decimal, hex, or octal).
+              00112233445566778899!!@@##$$%%^^
+                     Will  prompt  the  user  to enter a numeric value for the
+                     specified block index.  The format of the input should be
+                     the same as that described in inode mode.
 
-              ^R     Look up inode which references this block.
+              cc      Check that all the blocks marked for recovery are unused.
+                     Complete recovery will be impossible if  any  blocks  are
+                     reported in use, but you might be able to salvage a large
+                     chunk of your file.
 
-              /      Search for a string.  You will  be  prompted
-                     for  a  case-sensative  search  string.  The
-                     search will proceede from the current block,
-                     if  a match is found, the block pointer will
-                     be advanced and the matching block  will  be
-                     displayed.
+              rr      Write out the recovered file.
 
-       Recover Mode:
+              uu      Unmark all blocks.  The recovery  inode  will  be  filled
+                     with zeroes.
 
-       In  recover  mode, the tagged blocks are displayed and may
-       be edited by hand.  When they are  correct  the  user  can
-       dump  the file.  The user is prompted for a filename which
-       can be 80 chars, the default file is "./RECOVER.file".
+       DDiirreeccttoorryy VViieeww
 
-
-              0123456789!@#$%^
-                     Will prompt the  user  to  enter  a  numeric
-                     value  for  the  specified block index.  The
-                     format of the input should be  the  same  as
-                     that described in inode mode.
-
-              c      Check  that all the blocks marked for recov-
-                     ery are unused.  Complete recovery  will  be
-                     impossible  if  any  blocks  are reported in
-                     use, but you might  be  able  to  salvage  a
-                     large chunk of your file.
-
-              r      Write out the recovered file.
-
-              u      Unmark  all blocks.  The recovery inode will
-                     be filled with zeroes.
-
-       Directory View
-
-       Accessable from inode and block mode.  In block  mode,  it
-       formats  the  current  block  as a directory entry with no
-       syntax checking (i.e. it might not really be  a  directory
-       block).   In  inode  mode,  it  uses the block pointers to
-       determine what to display.  You can use the  up  and  down
-       arrow  keys  to  scroll  the display if there are too many
-       entries to display at once.
+       Accessable  from  inode  and block mode.  In block mode, it formats the
+       current block as a directory entry with no  syntax  checking  (i.e.  it
+       might  not  really  be  a directory block).  In inode mode, it uses the
+       block pointers to determine what to display.  You can use  the  up  and
+       down  arrow keys to scroll the display if there are too many entries to
+       display at once.
 
 
-       d      If the cursor is on a directory, it will follow the
-              link  and  display  that directory. Use D to do the
-              same and set the current inode to the new directory
-              inode.
+       dd      If the cursor is on a directory, it will  follow  the  link  and
+              display that directory. Use DD to do the same and set the current
+              inode to the new directory inode.
 
-       i      Set  the  current inode to the inode under the cur-
-              sor.
+       ii      Set the current inode to the inode under the cursor.
 
+       II      Set the current inode and immediately view it in inode mode.
 
-
-Linux 2.0               23 September 1996                       9
-
-
+       nn,, pp   Next/previous block in directory.  If the directory being viewed
+              is  indexed  by  the  current inode, you can step to the next or
+              previous block in the chain.
 
 
-
-LDE(8)              Linux Programmer's Manual              LDE(8)
-
-
-       I      Set the current inode and immediately  view  it  in
-              inode mode.
-
-       n, p   Next/previous block in directory.  If the directory
-              being viewed is indexed by the current  inode,  you
-              can  step  to  the  next  or  previous block in the
-              chain.
-
-
-EXAMPLES (command line)
+EEXXAAMMPPLLEESS ((ccoommmmaanndd lliinnee))
        lde -I 1 -N 10 /dev/hda1
               Display inodes 1-10 on the screen.
 
        lde -b 34 /dev/hda1 | more
-              Display block 34 on the screen  (formatted  in  hex
-              and ascii).
+              Display block 34 on the screen (formatted in hex and ascii).
 
        lde -D 100 -N 51 /dev/hda1 > MyOuput
-              Cat  blocks  100-150 to stdout (binary data), which
-              is equivalent to
+              Cat blocks 100-150 to stdout (binary data), which is  equivalent
+              to
 
-              dd  if=/dev/hda1   of=MyOutput   bs=1024   count=51
-              skip=100
+              dd if=/dev/hda1 of=MyOutput bs=1024 count=51 skip=100
 
        lde -I 1 --recoverable /dev/hda5
-              Display  all  inodes  on  /dev/hda5 which have been
-              deleted, but can be recovered.
+              Display all inodes on /dev/hda5 which have been deleted, but can
+              be recovered.
 
        lde -I 1 --recoverable /dev/hda5 | grep "Sep 23"
-              Display all inodes on  /dev/hda5  which  have  been
-              deleted  today  September 23, but can be recovered.
-              The date format is that of ctime(3):
+              Display all inodes on /dev/hda5 which have  been  deleted  today
+              September  23, but can be recovered.  The date format is that of
+              ccttiimmee(3):
 
                      "Wed Jun 30 21:49:08 1993"
 
-              Note: the day will have a leading space if is  less
-              than 10.
+              NNoottee:: the day will have a leading space if is less than 10.
 
        lde -b 100 --ilookup /dev/hda1
-              Find  first  inode  that  references  block  100 on
-              /dev/hda1 (to search for multiple  occurances,  use
-              the curses interface).
+              Find first inode that references  block  100  on  /dev/hda1  (to
+              search for multiple occurances, use the curses interface).
 
        lde --paranoid -T tgz --ilookup --recoverable /dev/hda5
-              Find all tgz files which have been deleted, display
-              possible inodes and check  if  it  is  possible  to
-              recover  the  files, open the file system read only
-              while searching.
+              Find  all  tgz  files  which have been deleted, display possible
+              inodes and check if it is possible to recover  the  files,  open
+              the file system read only while searching.
 
-       See docs/UNERASE included with the  lde  distribution  for
-       more  examples  and  instructions  for  the best way to go
-       about restoring files.
+       See  docs/UNERASE  included with the lde distribution for more examples
+       and instructions for the best way to go about restoring files.
 
 
+SSEEEE AALLSSOO
+       ffsscckk(8), ffsscckk..mmiinniixx(8), ee22ffsscckk(8), xxffsscckk(8), ddeebbuuggffss(8)
 
-
-
-Linux 2.0               23 September 1996                      10
-
-
-
-
-
-LDE(8)              Linux Programmer's Manual              LDE(8)
-
-
-SEE ALSO
-       fsck(8), fsck.minix(8), e2fsck(8), xfsck(8), debugfs(8)
-
-AUTHOR
+AAUUTTHHOORR
        Scott D. Heavner (sdh@po.cwru.edu)
 
-       For more info, see the lde  project  page  at  sourceforge
-       <http://lde.sourceforge.net/>.
+       For  more   info,   see   the   lde   project   page   at   sourceforge
+       _<_h_t_t_p_:_/_/_l_d_e_._s_o_u_r_c_e_f_o_r_g_e_._n_e_t_/_>.
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Linux 2.0               23 September 1996                      11
-
-
+                                  19 May 2005                           LDE(8)
