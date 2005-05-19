@@ -5,7 +5,7 @@
 lde \- a curses based file system viewer/editor for Linux
 .SH SYNOPSIS
 .B "lde
-device
+[options] device
 .SH DESCRIPTION
 
 .B lde
@@ -205,6 +205,10 @@ been read from the information (superblock) stored on the disk or is
 what lde would consider the default blocksize for that type of
 filesystem (generally 1024 bytes).  With this option, you can force
 lde to use a different blocksize.
+.TP
+.B \-\-superscan
+Try to find ext2 signature on device. Supersedes functionaly previously provided by
+.BR find_ext2_fs .
 .TP
 .B \-S string
 Search disk for data (of questionable usefulness).  This was more for searching for a

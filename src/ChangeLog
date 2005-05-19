@@ -1,3 +1,8 @@
+2005-05-18    Scott Heavner
+	- import fixes from debian 2.6.0.6
+          - Fix grep for >4GB offsets (closes: #226432)
+          - inode scanning should continue after first inode found (closes: #226446)
+
 2003-12-06    Scott Heavner
 	* recover.c: search_for_superblocks()
 	  - fix bad buffer allocation, appears when running ppc tests

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1994  Scott D. Heavner
  *
- *  $Id: recover.c,v 1.42 2003/12/07 19:27:14 scottheavner Exp $
+ *  $Id: recover.c,v 1.43 2005/05/19 06:39:27 scottheavner Exp $
  */
 
 #include <stdio.h>
@@ -587,24 +587,25 @@ unsigned long find_inode(unsigned long nr, unsigned long last_nr)
 void parse_grep(void)
 {
   unsigned long inode_nr, blknr;
+  unsigned long long offset;
   int i, miss_count=0;
 
-  while ( (i=scanf("%ld\n",&blknr))!=EOF ) {
+  while ( (i=scanf("%Ld\n",&offset))!=EOF ) {
     if (i) {
       miss_count = 0;
-      if (blknr) {
-	blknr = blknr / sb->blocksize + 1;
+      if (offset) {
+	blknr = offset / sb->blocksize + 1;
 	inode_nr = find_inode(blknr, 0UL);
-	if (inode_nr) {
+	while (inode_nr) {
 	  printf("Block 0x%lX indexed by inode 0x%lX",blknr,inode_nr);
 	  if (FS_cmd.inode_in_use(inode_nr))
 	    printf(" (This inode is marked in use)");
 	  if (FS_cmd.zone_in_use(blknr))
 	    printf(" (This zone is marked in use)");
 	  printf("\n");
+          inode_nr = find_inode(blknr, 0UL);
 	}
-	else
-	  printf("Block 0x%lX is not referenced by any inode.\n",blknr);
+        printf("Block 0x%lX has no (more) references.\n",blknr);
       }
     }
     else /* EOF doesn't seem to work */
