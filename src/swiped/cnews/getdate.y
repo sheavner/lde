@@ -24,7 +24,13 @@ static time_t timezone = 0;
 
 	static int timeflag, dateflag, dayflag, relflag;
 	static time_t relsec, relmonth;
-	static int hh, mm, ss, merid, daylight;
+	static int hh, mm, ss, merid;
+        /* Have to protect daylight with this autoconf variable,
+         * because it may be defined in time.h.  */
+#if HAVE_DAYLIGHT
+#else
+	static int daylight;
+#endif
 	static int dayord, dayreq;
 	static int month, day, year;
 	static int ourzone;

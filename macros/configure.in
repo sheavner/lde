@@ -209,6 +209,12 @@ then
 fi
 
 dnl ************************************************************************
+dnl Check whether daylight is declared to avoid a conflict with
+dnl swiped/cnews/getdate.
+dnl ************************************************************************
+AC_CHECK_DECL(daylight,[AC_DEFINE([HAVE_DAYLIGHT])],,[#include <time.h>])
+
+dnl ************************************************************************
 dnl I haven't bothered to do anything with these yet, so why check for them?
 dnl ************************************************************************
 

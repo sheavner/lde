@@ -1,0 +1,4 @@
+2006-04-17  Felix Gatzemeier  <fxg@i3.Informatik.RWTH-Aachen.DE>
+
+	* getdate.y: Protected daylight against time.h.
+
