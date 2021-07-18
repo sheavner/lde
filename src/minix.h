@@ -13,7 +13,7 @@ extern int MINIX_zone_in_use(unsigned long inode_nr);
 extern int MINIX_is_system_block(unsigned long nr);
 extern unsigned long MINIX_map_inode(unsigned long nr);
 extern void MINIX_read_tables(void);
-extern void MINIX_init(void *sb_buffer);
-extern int MINIX_test(void *sb_buffer, int use_offset);
+extern void MINIX_init(char *sb_buffer);
+extern int MINIX_test(char *sb_buffer, int use_offset);
 
 #endif

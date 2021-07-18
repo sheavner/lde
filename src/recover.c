@@ -13,8 +13,10 @@
 #endif
 #include <ctype.h>
 #include <string.h>
-
-#ifdef   HAVE_UNAME
+#if HAVE_IO_H
+#include <io.h>
+#endif
+#if HAVE_UNAME
 #include <sys/utsname.h>
 #endif
 
@@ -590,7 +592,7 @@ void parse_grep(void)
   unsigned long long offset;
   int i, miss_count=0;
 
-  while ( (i=scanf("%Ld\n",&offset))!=EOF ) {
+  while ( (i=scanf("%lld\n",&offset))!=EOF ) {
     if (i) {
       miss_count = 0;
       if (offset) {
@@ -759,6 +761,8 @@ void search_fs(unsigned char *search_string, int search_len, int search_off, uns
 
 }
 
+#if HAVE_CURSES
+
 /* Do a exact pattern search across the filesystem, 
  *  only used in curses interface */
 int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, int *moffset) {
@@ -820,7 +824,11 @@ int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, i
   
   free(buffer);
 #else
-#warning No memmem() found, UI/Curses block search disabled.
+#ifdef _MSC_VER
+#pragma message("No memmem() found, UI / Curses block search disabled.")
+#else
+#warning No memmem() found, UI / Curses block search disabled.
+#endif
   lde_warn("UI/Curses block search needs memmem, try recompiling.");
 #endif
 
@@ -830,6 +838,7 @@ int search_blocks(char *searchstring, unsigned long sbnr, unsigned long *mbnr, i
   return retval;
 }
 
+#endif /* HAVE_CURSES */
 
 int search_for_superblocks(int fs_type) {
   unsigned long sbnr = 0;
@@ -854,12 +863,12 @@ int search_for_superblocks(int fs_type) {
 
     if ( fs_type == AUTODETECT ) {
       for ( i = AUTODETECT+1 ; lde_typedata[i].test; i++) {
-	if (lde_typedata[i].test(&buffer,0)) {
+	if (lde_typedata[i].test(buffer,0)) {
 	  lde_warn("Found %s superblock at 0x%lx",lde_typedata[i].name,sbnr);
 	}
       }
     } else {
-      if (lde_typedata[fs_type].test(&buffer,0)) {
+      if (lde_typedata[fs_type].test(buffer,0)) {
 	lde_warn("Found %s superblock at 0x%lx",lde_typedata[fs_type].name,sbnr);
       }
     }

@@ -20,9 +20,9 @@
 struct _lde_typedata {
   char *name;
   /* Test function, pass in buffer and use_offset flag */
-  int (*test)(void *buffer, int use_offset);
+  int (*test)(char *buffer, int use_offset);
   /* Init function, pass address of super block start */
-  void (*init)(void *sb_buffer);
+  void (*init)(char *sb_buffer);
 };
 extern struct _lde_typedata lde_typedata[];
 

@@ -7,7 +7,7 @@
  */
 
 struct Generic_Inode *DOS_init_junk_inode(void);
-void DOS_init(void *sb_buffer);
-int DOS_test(void *sb_buffer, int use_offset);
+void DOS_init(char *sb_buffer);
+int DOS_test(char *sb_buffer, int use_offset);
 
 

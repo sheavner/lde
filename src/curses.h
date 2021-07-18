@@ -6,8 +6,12 @@
  *  $Id: curses.h,v 1.1 1994/09/05 22:57:42 sdh Exp $
  */
 
+#if HAVE_CURSES
+
 #ifdef NC_HEADER
 #include <ncurses.h>
 #else
 #include <curses.h>
+#endif
+
 #endif

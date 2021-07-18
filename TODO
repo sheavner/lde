@@ -1,3 +1,11 @@
+2021-07-17  Scott Heavner
+
+	* Testcode has timezone issues, only works in pacific time?
+
+	* Basic functionality for dates when no-bison
+
+	* MSC hacks?
+
 Sat Jan 17 18:34:17 1998  Scott D. Heavner  <sdh@fishmonger>
 
 	* gpm support only works on my system when I am root?  Most lde

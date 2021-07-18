@@ -7,7 +7,7 @@
  */
 
 struct Generic_Inode *NOFS_init_junk_inode(void); /* export to minix.c */
-void NOFS_init(void * sb_buffer, unsigned long blocksize);
+void NOFS_init(char * sb_buffer, unsigned long blocksize);
 unsigned long NOFS_get_device_size(void);
 
 

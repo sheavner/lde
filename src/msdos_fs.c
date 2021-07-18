@@ -20,10 +20,20 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#if HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+#if HAVE_SYS_FCNTL_H
+#include <sys/fcntl.h>
+#endif
+#if HAVE_IO_H
+#include <io.h>
+#endif
+
+#include "lde.h"
 
 #include "swiped/linux/msdos_fs.h"
 
-#include "lde.h"
 #include "no_fs.h"
 #include "msdos_fs.h"
 #include "tty_lde.h"
@@ -239,7 +249,7 @@ static int DOS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
   if (i*sb->dirsize >= block_buffer->size) {
     cname[0] = 0;
   } else {
-    dir = block_buffer->start+(i*sb->dirsize);
+    dir = (struct msdos_dir_entry *)(block_buffer->start+(i*sb->dirsize));
 
     d->inode_nr = (unsigned long) ldeswab16(dir->start) + (((unsigned long)ldeswab16(dir->starthi))<<16);
     DOS_dir_inode = d->inode_nr;
@@ -350,7 +360,7 @@ static void DOS_sb_init(void *sb_buffer)
   sb->norm_first_data_zone = 0;
 }
 
-void DOS_init(void *sb_buffer)
+void DOS_init(char *sb_buffer)
 {
   fsc = &DOS_constants;
 
@@ -374,10 +384,9 @@ void DOS_init(void *sb_buffer)
 }
 
 
-int DOS_test(void *sb_buffer, int use_offset)
+int DOS_test(char *sb_buffer, int use_offset)
 {
-  struct fat_boot_sector *Boot;
-  Boot = sb_buffer;
+  struct fat_boot_sector *Boot = (struct fat_boot_sector *)sb_buffer;
 
   if ( !(strncmp(Boot->system_id,"MSDOS",5)) ||
        !(strncmp(Boot->system_id,"IBM  ",5)) ||

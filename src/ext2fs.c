@@ -22,9 +22,8 @@
 #endif
 #include <ctype.h>
 
-#include "swiped/linux/ext2_fs.h"
-
 #include "lde.h"
+#include "swiped/linux/ext2_fs.h"
 #include "ext2fs.h"
 #include "tty_lde.h"
 #include "recover.h"
@@ -40,7 +39,7 @@ static int EXT2_zone_in_use(unsigned long nr);
 static int EXT2_is_system_block(unsigned long nr);
 static int EXT2_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d);
 static void EXT2_read_tables(void);
-static void EXT2_sb_init(void * sb_buffer);
+static void EXT2_sb_init(char * sb_buffer);
 
 #ifdef JQDIR
 static unsigned long EXT2_next_entry(struct ext2_dir_entry_2 *bp, void *end );
@@ -214,7 +213,7 @@ static int EXT2_write_inode(unsigned long ino, struct Generic_Inode *GInode)
 /* Reads the table indicating used/unused inodes from disk */
 static void EXT2_read_inode_bitmap (unsigned long nr)
 {
-  int i;
+  unsigned long i;
   char *local_map = inode_map;
   size_t bytes_read = sb->s_inodes_per_group / 8;
 
@@ -325,7 +324,7 @@ int EXT2_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
   static char cname[EXT2_NAME_LEN+1];
 
   int j, name_len, retval = 0;
-  void *end;
+  char *end;
   struct ext2_dir_entry_2 *dir;
 
   dir = (void *) block_buffer->start;
@@ -339,34 +338,34 @@ int EXT2_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
   for (j=0; j<i; j++) {
 
     /* Test we haven't moved pointer past end of allocated memory */
-    if ( (void *)&(dir->rec_len) >= end ) {
+    if ( (char *)&(dir->rec_len) >= end ) {
       return 0;
     }
 
 #ifdef JQDIR
     if(lde_flags.displaydeleted) {
-      dir = (void *)dir + EXT2_next_entry(dir, end);
+      dir = (char *)dir + EXT2_next_entry(dir, end);
       d->isdel = EXT2_is_deleted();
     } else
 #endif
-      dir = (void *)dir + ldeswab16(dir->rec_len);
+      dir = (struct ext2_dir_entry_2 *)((char *)dir + ldeswab16(dir->rec_len));
 
-    if ( (void *)dir >= end ) {
+    if ( (char *)dir >= end ) {
       return 0;
     }
   }
 
   /* Test for overflow, could be spanning multiple blocks */
-  if ( (void *)dir + sizeof(dir->inode) <= end ) { 
+  if ( (char *)dir + sizeof(dir->inode) <= end ) { 
     d->inode_nr = ldeswab32(dir->inode);
     if (d->inode_nr) retval = 1;
   }
 
   /* Chance this could overflow ? */
-  if ( (void *)&(dir->name_len) < end ) {
+  if ( (char *)&(dir->name_len) < end ) {
     name_len = (int)dir->name_len;
-    if ( (void *)dir->name + name_len > end ) {
-      name_len = end - (void *)dir->name;
+    if ( dir->name + name_len > end ) {
+      name_len = end - dir->name;
     }
     if ( name_len > EXT2_NAME_LEN ) {
       name_len = EXT2_NAME_LEN;
@@ -465,7 +464,7 @@ static void EXT2_read_tables()
 }
 
 /* Copy superblock info from disk into lde's sb structure */
-static void EXT2_sb_init(void *sb_buffer)
+static void EXT2_sb_init(char *sb_buffer)
 {
   double temp;
   struct ext2_super_block *Super;
@@ -495,7 +494,7 @@ static void EXT2_sb_init(void *sb_buffer)
 /* After determining that we are working with an ext2 file system,
  * init lde to use the proper function calls, fill in lde's superblock,
  * and read the inode/block in use tables from disk. */
-void EXT2_init(void *sb_buffer)
+void EXT2_init(char *sb_buffer)
 {
   fsc = &EXT2_constants;
 
@@ -517,7 +516,7 @@ void EXT2_init(void *sb_buffer)
 }
 
 /* Tests if this disk/file has the EXT2MAGIC in the proper location */
-int EXT2_test(void *sb_buffer, int use_offset)
+int EXT2_test(char *sb_buffer, int use_offset)
 {
   struct ext2_super_block *Super;
 

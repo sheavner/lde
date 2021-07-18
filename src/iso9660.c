@@ -194,7 +194,7 @@ static void ISO9660_sb_init(char * sb_buffer)
   firsttime = 0;
 }
 
-void ISO9660_init(void * sb_buffer)
+void ISO9660_init(char * sb_buffer)
 {
   fsc = &ISO9660_constants;
 
@@ -217,7 +217,7 @@ void ISO9660_init(void * sb_buffer)
   FS_cmd.map_block = map_block;
 }
 
-int ISO9660_test(void *sb_buffer, int use_offset)
+int ISO9660_test(char *sb_buffer, int use_offset)
 {
   if (use_offset)
     sb_buffer += ISO9660_constants.supertest_offset;

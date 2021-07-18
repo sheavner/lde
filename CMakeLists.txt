@@ -21,13 +21,7 @@ include(CheckSymbolExists)
 include(CheckIncludeFile)
 include(CheckTypeSize)
 
-# ubuntu 14 doesn't find curses, but will find forced ncurses.  first match should be stored successfully on other systems.
 find_package(Curses)
-#if (CURSES_FOUND)
-#else (CURSES_FOUND)
-    #set(CURSES_NEED_NCURSES TRUE)
-    #find_package(Curses)
-#endif(CURSES_FOUND)
 if (CURSES_FOUND)
 else (CURSES_FOUND)
     list(REMOVE_ITEM SRCS "src/nc_block.c" "src/nc_dir.c" "src/nc_inode.c" "src/nc_lde.c")

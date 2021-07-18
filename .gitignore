@@ -1,4 +1,11 @@
 Makefile
 lde
+lde.exe
 old
-configure.scan
+getdate.c
+getdate.h
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
+crash_recovery/find_ext2_fs
+crash_recovery/find_ext2_fs.exe

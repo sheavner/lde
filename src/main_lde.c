@@ -16,6 +16,9 @@
 #if HAVE_SYS_FCNTL_H
 #include <sys/fcntl.h>
 #endif
+#if HAVE_IO_H
+#include <io.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +27,10 @@
 #endif
 #include <time.h>
 
+#if HAVE_IO_H
+#include <io.h>
+#endif
+#include <sys/types.h>
 #include <sys/stat.h>
 
 #include "lde.h"
@@ -31,7 +38,7 @@
 #include "recover.h"
 #include "tty_lde.h"
 
-#ifdef HAS_CURSES
+#ifdef HAVE_CURSES
 #  include "curses.h"
 #  include "nc_lde.h"
 #endif
@@ -78,6 +85,7 @@ unsigned char *zone_count = NULL;
 
 struct sbinfo sb2, *sb = &sb2;
 struct fs_constants *fsc = NULL;
+lde_fs_cmd FS_cmd;
 
 char *badblocks_directory = NULL;
 
@@ -465,10 +473,11 @@ int main(int argc, char ** argv)
 
   struct Generic_Inode *GInode = NULL;
 
+  struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0UL, 0UL, NULL, NULL, NULL, 0, 0, 0, 0 };
+
+#if HAVE_SIGACTION
   sigset_t sa_mask;
   struct sigaction intaction ;
-
-  struct _main_opts main_opts = { 0, 0, 0, AUTODETECT, 0, 0, 0UL, 0UL, NULL, NULL, NULL, 0, 0, 0, 0 };
 
   /* Set things up to handle control-c:  just sets lde_flags.quit_now to 1 */
   sigemptyset(&sa_mask);
@@ -476,6 +485,7 @@ int main(int argc, char ** argv)
   intaction.sa_mask = sa_mask;
   intaction.sa_flags = SA_RESTART;
   sigaction(SIGINT,&intaction,NULL);
+#endif
 
   /* quick test for endianness, blindly assuming sizeof(char) != sizeof(long) */
   *(char *)&endian = 1;
@@ -512,8 +522,10 @@ int main(int argc, char ** argv)
     exit(1);
   }
 
+#if HAVE_SYNC
   for (i=0 ; i<3 ; i++)
     sync();
+#endif
 
   NOFS_init(NULL,0);
 
@@ -656,7 +668,7 @@ int main(int argc, char ** argv)
     exit(0);
   }
 
-#ifdef HAS_CURSES
+#ifdef HAVE_CURSES
   interactive_main();
 #endif
 

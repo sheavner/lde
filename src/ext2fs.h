@@ -7,8 +7,8 @@
  *
  */
 
-void EXT2_init(void *sb_buffer);
-int EXT2_test(void *sb_buffer, int use_offset);
+void EXT2_init(char *sb_buffer);
+int EXT2_test(char *sb_buffer, int use_offset);
 
 #ifdef JQDIR
 /* struct to hold directory entries */

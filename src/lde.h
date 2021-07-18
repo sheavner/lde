@@ -9,17 +9,23 @@
 #ifndef LDE_H
 #define LDE_H
 
+#include <time.h>
+
 #ifndef LDE_VERSION
 #define LDE_VERSION "2.6"
-#endif
-
-#ifndef O_BINARY
-#define O_BINARY 0
 #endif
 
 #if HAVE_BZERO
 #else
 #define bzero(a,b) memset((a),0,(b))
+#endif
+
+#ifdef _MSC_VER
+#include "swiped/fileutils-3.12/filemode.h"
+#endif
+
+#ifndef O_BINARY
+#define O_BINARY 0
 #endif
 
 extern char *program_name;
@@ -40,7 +46,7 @@ extern int  (*mgetch)(void);
 
 struct _lde_buffer {
   unsigned long size;
-  void *start;
+  char *start;
 };
 typedef struct _lde_buffer lde_buffer;
 
@@ -94,18 +100,15 @@ struct sbinfo {
 	unsigned long last_block_size;
 };
 
-/* The generic inode, in actuality it is an ext2fs inode,
- * if you wish to add more fields for a new fs, please add
- * them at the end, so that the ext2fs inode remains intact.
- */
+/* The generic inode, we do field by field copies from the specialized inodes */
 struct Generic_Inode {
   unsigned short i_mode;                   /* File mode */
   unsigned short i_uid;                    /* Owner Uid */
   unsigned long  i_size;                   /* Size in bytes */
-  unsigned long  i_atime;                  /* Access time */
-  unsigned long  i_ctime;                  /* Creation time */
-  unsigned long  i_mtime;                  /* Modification time */
-  unsigned long  i_dtime;                  /* Deletion Time */
+  time_t         i_atime;                  /* Access time */
+  time_t         i_ctime;                  /* Creation time */
+  time_t         i_mtime;                  /* Modification time */
+  time_t         i_dtime;                  /* Deletion Time */
   unsigned short i_gid;                    /* Group Id */
   unsigned short i_links_count;            /* Links count */
   unsigned long  i_blocks;                 /* Blocks count */
@@ -211,7 +214,7 @@ struct fs_constants {
 };
 
 /* File system specific commands */
-struct {
+typedef struct {
   /* Check if inode is marked in use */
   int (*inode_in_use)(unsigned long n);
   /* Check if data zone/block is marked in use */
@@ -231,7 +234,8 @@ struct {
   unsigned long (*map_inode)(unsigned long n);
   /* Map block number in file chain to physical block on disk */
   int (*map_block)(unsigned long zone_index[], unsigned long blknr, unsigned long *mapped_block);
-} FS_cmd;
+} lde_fs_cmd;
+extern lde_fs_cmd FS_cmd;
 
 /* Flags */
 struct _lde_flags {
@@ -292,6 +296,36 @@ extern int current_error;
 #if HAVE_ASM_TYPES_H
 #include <asm/types.h>
 #endif
+
+#if HAVE_U64
+#else
+#include <stdint.h>
+#ifndef __u32
+#define __u32 uint32_t
+#endif
+#ifndef __u64
+#define __u64 uint64_t
+#endif
+#ifndef __u16
+#define __u16 uint16_t
+#endif
+#ifndef __u8
+#define __u8 uint8_t
+#endif
+#ifndef __s32
+#define __s32 uint32_t
+#endif
+#ifndef __s64
+#define __s64 uint64_t
+#endif
+#ifndef __s16
+#define __s16 uint16_t
+#endif
+#ifndef __s8
+#define __s8 uint8_t
+#endif
+#endif /* HAVE_U64 */
+
 #define ___ldeswab16(x) \
         ((__u16)( \
                 (((__u16)(x) & (__u16)0x00ffU) << 8) | \

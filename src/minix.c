@@ -16,11 +16,15 @@
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#if HAVE_IO_H
+#include <io.h>
+#endif
+
+#include "lde.h"
 
 #include "swiped/linux/minix_fs.h"
 
 #include "minix.h"
-#include "lde.h"
 #include "no_fs.h"
 #include "tty_lde.h"
 #include "recover.h"
@@ -29,7 +33,7 @@
 static struct Generic_Inode* MINIX_read_inode(unsigned long inode_nr);
 static int MINIX_write_inode(unsigned long inode_nr, struct Generic_Inode *GInode);
 static int MINIX_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d);
-static void MINIX_sb_init(void *sb_buffer);
+static void MINIX_sb_init(char *sb_buffer);
 
 struct inode_fields MINIX_inode_fields = {
   1, /*   unsigned short i_mode; */
@@ -202,7 +206,7 @@ unsigned long MINIX_map_inode(unsigned long nr)
 	  nr / sb->INODES_PER_BLOCK);
 }
 
-static void MINIX_sb_init(void *sb_buffer)
+static void MINIX_sb_init(char *sb_buffer)
 {
   struct minix_super_block *Super;
   Super =(void *)(sb_buffer + 1024);
@@ -271,7 +275,7 @@ void MINIX_read_tables()
   }
 }
 
-void MINIX_init(void *sb_buffer)
+void MINIX_init(char *sb_buffer)
 {
   fsc = &MINIX_constants;
 
@@ -301,7 +305,7 @@ void MINIX_init(void *sb_buffer)
   (void) check_root();
 }
 
-int MINIX_test(void *buffer, int use_offset)
+int MINIX_test(char *buffer, int use_offset)
 {
   struct minix_super_block *Super;
 

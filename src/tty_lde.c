@@ -19,6 +19,9 @@
 #if HAVE_SYS_FCNTL_H
 #include <sys/fcntl.h>
 #endif
+#if HAVE_IO_H
+#include <io.h>
+#endif
 #include <time.h>
 #if HAVE_PWD_H
 #include <pwd.h>
@@ -30,6 +33,7 @@
 #include <errno.h>
 #endif
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
 
 #include "lde.h"

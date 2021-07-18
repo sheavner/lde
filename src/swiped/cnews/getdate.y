@@ -7,13 +7,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #if HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
 #include <ctype.h>
 #include <time.h>
 
-time_t lde_getdate(char *p);
+extern time_t lde_getdate(char *p);
+
+extern int yylex();
 
 #if HAVE_TIMEZONE
 #else
@@ -205,7 +208,7 @@ daylcorr(time_t future, time_t now)
 
 static char *lptr;
 
-yylex()
+int yylex()
 {
 	extern int yylval;
 	int sign;

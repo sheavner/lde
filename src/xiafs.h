@@ -6,5 +6,5 @@
  *  $Id: xiafs.h,v 1.6 2001/11/26 03:10:41 scottheavner Exp $
  */
 
-void XIAFS_init(void *sb_buffer);
-int XIAFS_test(void *sb_buffer, int use_offset);
+void XIAFS_init(char *sb_buffer);
+int XIAFS_test(char *sb_buffer, int use_offset);

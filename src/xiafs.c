@@ -12,11 +12,12 @@
 #endif
 #include <sys/types.h>
 
+#include "lde.h"
+
 #include "swiped/linux/minix_fs.h"
 #include "swiped/linux/xia_fs.h"
 #include "swiped/linux/xia_fs_sb.h"
 
-#include "lde.h"
 #include "minix.h"
 #include "recover.h"
 #include "tty_lde.h"
@@ -155,7 +156,7 @@ static int XIAFS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
   static char cname[_XIAFS_NAME_LEN+1];
 
   int j, name_len, rec_len, retval = 0;
-  void *end;
+  char *end;
   struct xiafs_direct *dir;
 
   dir = (void *) block_buffer->start;
@@ -168,13 +169,13 @@ static int XIAFS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
   /* Directories are variable length, we have to examine all the previous ones to get to the current one */
   for (j=0; j<i; j++) {
 
-    if ( (void *)&(dir->d_name_len) >= end ) {
+    if ( (char *)&(dir->d_name_len) >= end ) {
       return 0;
     }
     rec_len = XIA_DIR_REC_LEN(dir->d_name_len);
 
     /* Test we haven't moved pointer past end of allocated memory */
-    if ( (void *)&(dir->d_rec_len) >= end ) {
+    if ( (char *)&(dir->d_rec_len) >= end ) {
       return 0;
     }
 
@@ -182,24 +183,24 @@ static int XIAFS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
       d->isdel = 1;
     }
 
-    dir = (void *)dir + rec_len ;
+    dir = (struct xiafs_direct *)((char *)dir + rec_len);
 
-    if ( (void *)dir >= end ) {
+    if ( (char *)dir >= end ) {
       return 0;
     }
   }
 
   /* Test for overflow, could be spanning multiple blocks */
-  if ( (void *)dir + sizeof(dir->d_ino) <= end ) { 
+  if ( (char *)dir + sizeof(dir->d_ino) <= end ) { 
     d->inode_nr = ldeswab32(dir->d_ino);
     if (d->inode_nr) retval = 1;
   }
 
   /* Chance this could overflow ? */
-  if ( (void *)&(dir->d_name_len) < end ) {
+  if ( (char *)&(dir->d_name_len) < end ) {
     name_len = (int)dir->d_name_len;
-    if ( (void *)dir->d_name + name_len > end ) {
-      name_len = end - (void *)dir->d_name;
+    if ( (char *)dir->d_name + name_len > end ) {
+      name_len = end - (char *)dir->d_name;
     }
     if ( name_len > _XIAFS_NAME_LEN ) {
       name_len = _XIAFS_NAME_LEN;
@@ -239,7 +240,7 @@ static void XIAFS_sb_init(void *sb_buffer)
   sb->last_block_size = sb->blocksize;
 }
 
-void XIAFS_init(void *sb_buffer)
+void XIAFS_init(char *sb_buffer)
 {
   fsc = &XIAFS_constants;
 
@@ -260,14 +261,13 @@ void XIAFS_init(void *sb_buffer)
   (void) check_root();
 }
 
-int XIAFS_test(void *sb_buffer, int use_offset)
+int XIAFS_test(char *sb_buffer, int use_offset)
 {
-  struct xiafs_super_block *Super;
-  Super = sb_buffer;
+  struct xiafs_super_block *Super = (struct xiafs_super_block *) sb_buffer;
 
   if ( !use_offset ) {
-    use_offset = (int) ( (void *)(&(Super->s_magic)) -
-                         (void *)(&(Super->s_zone_size)) ) ;
+    use_offset = (int) ( (char *)(&(Super->s_magic)) -
+                         (char *)(&(Super->s_zone_size)) ) ;
     if ( *(__u32 *)(sb_buffer + use_offset) == ldeswab32(_XIAFS_SUPER_MAGIC) )
        return 1;
     else

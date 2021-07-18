@@ -173,6 +173,7 @@ struct msdos_dir_slot {
 	__u8    name11_12[4];	/* last 2 characters in name */
 };
 
+#if 0
 struct vfat_slot_info {
 	int is_long;		       /* was the found entry long */
 	int long_slots;		       /* number of long slots in filename */
@@ -181,6 +182,7 @@ struct vfat_slot_info {
 	loff_t shortname_offset;       /* dir offset for shortname start */
 	int ino;		       /* ino for the file */
 };
+#endif
 
 /* Determine whether this FS has kB-aligned data. */
 #define MSDOS_CAN_BMAP(mib) (!(((mib)->cluster_size & 1) || \

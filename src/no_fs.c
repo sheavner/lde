@@ -19,6 +19,9 @@
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#if HAVE_IO_H
+#include <io.h>
+#endif
  
 #include "lde.h"
 #include "tty_lde.h"
@@ -200,7 +203,7 @@ static void NOFS_sb_init(char * sb_buffer, unsigned long blocksize)
   firsttime = 0;
 }
 
-void NOFS_init(void * sb_buffer, unsigned long blocksize)
+void NOFS_init(char * sb_buffer, unsigned long blocksize)
 {
   fsc = &NOFS_constants;
 

@@ -46,14 +46,18 @@
 /*
  * Debug code
  */
-#ifdef EXT2FS_DEBUG
+#ifdef _MSC_VER
+#	define ext2_debug(f, ...)	/**/
+#else
+#  ifdef EXT2FS_DEBUG
 #	define ext2_debug(f, a...)	{ \
 					printk ("EXT2-fs DEBUG (%s, %d): %s:", \
 						__FILE__, __LINE__, __FUNCTION__); \
 				  	printk (f, ## a); \
 					}
-#else
+#  else
 #	define ext2_debug(f, a...)	/**/
+#  endif
 #endif
 
 /*
