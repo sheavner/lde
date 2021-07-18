@@ -7,6 +7,9 @@
  */
 
 #include <signal.h>
+#if HAVE_ERRNO_H
+#include <errno.h>
+#endif
 #if HAVE_GETOPT_H
 #include <getopt.h>
 #endif
@@ -56,8 +59,8 @@ struct _main_opts
   int fs_type;
   int grep_mode;
   int dump_all;
-  unsigned dump_start;
-  unsigned dump_end;
+  unsigned long dump_start;
+  unsigned long dump_end;
   void (*dumper)(unsigned long nr);
   char *search_string;
   char *recover_file_name;
@@ -85,7 +88,8 @@ char *inode_buffer = NULL;
 unsigned char *inode_count = NULL;
 unsigned char *zone_count = NULL;
 
-struct sbinfo sb2, *sb = &sb2;
+static struct sbinfo sb2;
+struct sbinfo *sb = &sb2;
 struct fs_constants *fsc = NULL;
 lde_fs_cmd FS_cmd;
 
@@ -101,35 +105,42 @@ int (*mgetch)(void) = tty_mgetch;
 struct _lde_typedata lde_typedata[] = LDE_ALLTYPES;
 
 /* Check if device is mounted, return 1 if is mounted else 0 */
-static int check_mount(char *device_name)
+static int check_mount(char *name)
 {
-  int fd;
-  char *mtab;
-  struct stat statbuf;
-
-  fd = open("/etc/mtab", O_RDONLY | O_BINARY);
+#ifdef _MSC_VER
+  lde_flags.mounted = 0;
+  return lde_flags.mounted;
+#else
+  int fd = open("/etc/mtab", O_RDONLY | O_BINARY);
   if (fd > 0) {
+    struct stat statbuf;
     fstat(fd, &statbuf);
-
-    mtab = malloc(statbuf.st_size + 1);
+    char *mtab = malloc(statbuf.st_size + 1);
     if (mtab == NULL) {
       lde_warn("Out of memory reading /etc/mtab");
       close(fd);
       exit(-1);
     }
-    read(fd, mtab, statbuf.st_size);
+    int bytesRead = read(fd, mtab, statbuf.st_size);
     close(fd);
-
-    /* Set last character to 0 (we've allocated a space for the 0) */
-    mtab[statbuf.st_size] = 0;
-    if (strstr(mtab, device_name))
-      lde_flags.mounted = 1;
-    else
+    if (-1 == bytesRead) {
+      lde_warn("Cannot read from /etc/mtab cannot check if mounted, errno=%d [%s]", errno, strerror(errno));
       lde_flags.mounted = 0;
+    } else {
+      /* Set last character to 0 (we've allocated a space for the 0) */
+      mtab[statbuf.st_size] = 0;
+      if (strstr(mtab, name))
+        lde_flags.mounted = 1;
+      else
+        lde_flags.mounted = 0;
+    }
     free(mtab);
+  } else {
+    lde_warn("Cannot open /etc/mtab cannot check if mounted, errno=%d [%s]", errno, strerror(errno));
+    lde_flags.mounted = 0;
   }
-
   return lde_flags.mounted;
+#endif
 }
 
 /* Define a handler for Interrupt signals: Ctrl-C */
@@ -467,7 +478,6 @@ int main(int argc, char **argv)
 {
   int i, hasdata, fp;
   unsigned long nr, inode_nr;
-  char *thispointer;
   volatile long endian = 0L;
 
   struct Generic_Inode *GInode = NULL;
@@ -486,6 +496,10 @@ int main(int argc, char **argv)
   intaction.sa_mask = sa_mask;
   intaction.sa_flags = SA_RESTART;
   sigaction(SIGINT, &intaction, NULL);
+#endif
+
+#ifdef _MSC_VER
+  _tzset();
 #endif
 
   /* quick test for endianness, blindly assuming sizeof(char) != sizeof(long) */
@@ -612,9 +626,7 @@ int main(int argc, char **argv)
                 (check_recover_file(GInode->i_zone, GInode->i_size))) {
               printf("Inode 0x%lX recovery possible", nr);
               if (fsc->inode->i_dtime) {
-                thispointer = ctime((time_t *)&(GInode->i_dtime));
-                thispointer[24] = 0;
-                printf(" (deleted %24s)", thispointer);
+                printf(" (deleted %24s)", lde_ctime((time_t *)&(GInode->i_dtime)));
               }
               if (fsc->inode->i_size) {
                 if (GInode->i_size > 1024 * 1024)

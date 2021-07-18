@@ -420,7 +420,8 @@ int block_mode(void)
 
   /* Want to allocate enough room for two screenfuls of data, 
    * compute the size of one screen full here */
-  curs.bps = (VERT * (COLS - HOFF) + (sb->blocksize - 1)) / sb->blocksize + 1;
+  curs.bps =
+    (((long)VERT) * (COLS - HOFF) + (sb->blocksize - 1)) / sb->blocksize + 1;
 
   /* Allocate space for buffers, abort on error */
   curs.data = malloc(sb->blocksize * (2 * curs.bps + 1));

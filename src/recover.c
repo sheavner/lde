@@ -904,7 +904,7 @@ int search_for_superblocks(int fs_type)
 
   for (; sbnr < sb->nzones; ++sbnr) {
     bytesread = nocache_read_block(sbnr, &buffer, 512);
-    if (bytesread < 0)
+    if (-1 == bytesread)
       break;
 
     if (fs_type == AUTODETECT) {

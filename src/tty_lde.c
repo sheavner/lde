@@ -64,7 +64,7 @@ void log_error(char *echo_string)
 
   if (lde_flags.logtofile && (fp = fopen("/tmp/ldeerrors", "a"))) {
     time(&t);
-    fprintf(fp, "%s - %s\n", ctime(&t), echo_string);
+    fprintf(fp, "%s - %s\n", lde_ctime(&t), echo_string);
     fclose(fp);
   }
   if ((++current_error) >= ERRORS_SAVED)
@@ -475,9 +475,9 @@ void dump_inode(unsigned long nr)
   else
     printf("%10s", "");
   if (fsc->inode->i_mtime)
-    printf("%24s", ctime(&GInode->i_mtime));
+    printf("%24s\n", lde_ctime(&GInode->i_mtime));
   else
-    printf("%24s", "");
+    printf("%24s\n", "");
 
   /*--- TYPE on a line ---*/
   if (fsc->inode->i_mode)
@@ -524,13 +524,13 @@ void dump_inode(unsigned long nr)
 
   /*--- Display times ---*/
   if (fsc->inode->i_atime)
-    printf("ACCESS TIME:           %24s", ctime(&GInode->i_atime));
+    printf("ACCESS TIME:           %24s\n", lde_ctime(&GInode->i_atime));
   if (fsc->inode->i_ctime)
-    printf("CREATION TIME:         %24s", ctime(&GInode->i_ctime));
+    printf("CREATION TIME:         %24s\n", lde_ctime(&GInode->i_ctime));
   if (fsc->inode->i_mtime)
-    printf("MODIFICATION TIME:     %24s", ctime(&GInode->i_mtime));
+    printf("MODIFICATION TIME:     %24s\n", lde_ctime(&GInode->i_mtime));
   if (fsc->inode->i_dtime)
-    printf("DELETION TIME:         %24s", ctime(&GInode->i_dtime));
+    printf("DELETION TIME:         %24s\n", lde_ctime(&GInode->i_dtime));
 
   /*--- Display blocks ---*/
   j = -1;
@@ -571,4 +571,22 @@ char *entry_type(unsigned long imode)
   else if (S_ISSOCK(imode))
     return "socket        ";
   return "???           ";
+}
+
+#ifdef _MSC_VER
+#define localtime_r(a, b) localtime_s((b), (a))
+#endif
+
+const char *lde_ctime(const time_t *input)
+{
+  static char sbuf[70]; // we're single threaded
+  struct tm tbuf;
+
+  localtime_r(input, &tbuf); // MSVC version does not return pointer to tbuf
+  if (strftime(sbuf, sizeof(sbuf), "%c", &tbuf)) {
+    sbuf[sizeof(sbuf) - 1] = 0;
+    return sbuf;
+  } else {
+    return "[CONV ERR]";
+  }
 }

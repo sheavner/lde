@@ -192,7 +192,7 @@ static void cdump_inode_values(unsigned long nr,
   if (fsc->inode->i_size)
     mvwprintw(workspace, 0, 32, "%9ld", GInode->i_size);
   if (fsc->inode->i_mtime)
-    mvwprintw(workspace, 0, 43, "%24s", ctime(&GInode->i_mtime));
+    mvwprintw(workspace, 0, 43, "%24s", lde_ctime(&GInode->i_mtime));
 
   if (!FS_cmd.inode_in_use(nr))
     mvwprintw(workspace, 1, 30, "(NOT USED)");
@@ -287,7 +287,7 @@ static void cdump_inode_values(unsigned long nr,
       park_y = 7;
       park_x = 20;
     }
-    mvwaddnstr(workspace, 7, 20, ctime(&GInode->i_atime), 25);
+    mvwaddnstr(workspace, 7, 20, lde_ctime(&GInode->i_atime), 25);
     wattroff(workspace, WHITE_ON_RED);
   }
 
@@ -297,7 +297,7 @@ static void cdump_inode_values(unsigned long nr,
       park_y = 8;
       park_x = 20;
     }
-    mvwaddnstr(workspace, 8, 20, ctime(&GInode->i_ctime), 25);
+    mvwaddnstr(workspace, 8, 20, lde_ctime(&GInode->i_ctime), 25);
     wattroff(workspace, WHITE_ON_RED);
   }
 
@@ -307,7 +307,7 @@ static void cdump_inode_values(unsigned long nr,
       park_y = 9;
       park_x = 20;
     }
-    mvwaddnstr(workspace, 9, 20, ctime(&GInode->i_mtime), 24);
+    mvwaddnstr(workspace, 9, 20, lde_ctime(&GInode->i_mtime), 24);
     wattroff(workspace, WHITE_ON_RED);
   }
 
@@ -317,7 +317,7 @@ static void cdump_inode_values(unsigned long nr,
       park_y = 10;
       park_x = 20;
     }
-    mvwaddnstr(workspace, 10, 20, ctime(&GInode->i_dtime), 25);
+    mvwaddnstr(workspace, 10, 20, lde_ctime(&GInode->i_dtime), 25);
     wattroff(workspace, WHITE_ON_RED);
   }
 
@@ -445,8 +445,8 @@ void parse_edit(WINDOW *workspace,
   int *modified,
   struct Generic_Inode *GInode,
   int highlight_field,
-  int park_x,
-  int park_y)
+  int p_park_x,
+  int p_park_y)
 {
   unsigned long a;
   int result = 0;
@@ -484,7 +484,7 @@ void parse_edit(WINDOW *workspace,
     ungetch(c);
     echo();
     nodelay(workspace, TRUE);
-    wmove(workspace, park_y, park_x);
+    wmove(workspace, p_park_y, p_park_x);
     wgetnstr(workspace, cinput, 10);
     nodelay(workspace, FALSE);
     noecho();

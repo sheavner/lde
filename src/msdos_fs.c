@@ -251,7 +251,7 @@ static int DOS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
   bzero(d, sizeof(lde_dirent));
   d->name = cname;
 
-  if (i * sb->dirsize >= block_buffer->size) {
+  if (((long)i) * sb->dirsize >= block_buffer->size) {
     cname[0] = 0;
   } else {
     dir = (struct msdos_dir_entry *)(block_buffer->start + (i * sb->dirsize));
@@ -262,12 +262,11 @@ static int DOS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
 
     slot = (void *)dir;
     if ((slot->attr == 0xF) && (!slot->reserved)) {
-      int i;
-      for (i = 0; i < 5; i++) {
-        cname[i] = slot->name0_4[i * 2];
+      for (int j = 0; j < 5; ++j) {
+        cname[j] = slot->name0_4[j * 2];
       }
-      for (i = 0; i < 6; i++) {
-        cname[i + 5] = slot->name5_10[i * 2];
+      for (int j = 0; j < 6; ++j) {
+        cname[j + 5] = slot->name5_10[j * 2];
       }
       cname[11] = slot->name11_12[0];
       cname[12] = slot->name11_12[2];

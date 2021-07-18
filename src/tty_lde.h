@@ -10,6 +10,7 @@
 #define TTY_LDE_H
 
 #include "lde.h"
+#include <time.h>
 
 #define LDE_DISKCACHE 20
 
@@ -34,20 +35,21 @@ typedef struct _cached_block cached_block;
 #define NEVER_CACHE 4
 #define CHARBUFFER 8
 
-void log_error(char *echo_string);
-void tty_warn(char *fmt, ...);
-void no_warn(char *fmt, ...);
-int tty_mgetch(void);
-unsigned long lookup_blocksize(unsigned long nr);
-unsigned long read_num(char *cinput);
-void *cache_read_block(unsigned long block_nr, void *dest, int force);
-size_t nocache_read_block(unsigned long block_nr, void *dest, size_t size);
-void init_disk_cache(void);
-unsigned long lde_seek_block(unsigned long block_nr);
-int write_block(unsigned long block_nr, void *data_buffer);
-void ddump_block(unsigned long nr);
-void dump_block(unsigned long nr);
-void dump_inode(unsigned long nr);
-char *entry_type(unsigned long imode);
+extern void log_error(char *echo_string);
+extern void tty_warn(char *fmt, ...);
+extern void no_warn(char *fmt, ...);
+extern int tty_mgetch(void);
+extern const char* lde_ctime(const time_t *t);
+extern unsigned long lookup_blocksize(unsigned long nr);
+extern unsigned long read_num(char *cinput);
+extern void *cache_read_block(unsigned long block_nr, void *dest, int force);
+extern size_t nocache_read_block(unsigned long block_nr, void *dest, size_t size);
+extern void init_disk_cache(void);
+extern unsigned long lde_seek_block(unsigned long block_nr);
+extern int write_block(unsigned long block_nr, void *data_buffer);
+extern void ddump_block(unsigned long nr);
+extern void dump_block(unsigned long nr);
+extern void dump_inode(unsigned long nr);
+extern char *entry_type(unsigned long imode);
 
 #endif

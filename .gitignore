@@ -1,3 +1,5 @@
+.vs
+.vscode
 Makefile
 lde
 lde.exe
@@ -11,3 +13,4 @@ cmake_install.cmake
 Testing
 crash_recovery/find_ext2_fs
 crash_recovery/find_ext2_fs.exe
+test/test-msvc.sh
