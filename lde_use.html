@@ -1,0 +1,303 @@
+<!DOCTYPE HTML PUBLIC>
+<html>
+
+<head>
+<TITLE>LDE - Usage
+</TITLE>
+</head>
+
+<BODY TEXT="#000000" BGCOLOR="#669999" LINK="#E0E0E0" 
+   VLINK="#551A8B" ALINK="#FF0000">
+
+<center>
+<img src="lde.gif" alt="">
+</center>
+
+<p>
+<i>This is one page that looks best when viewed with a graphical
+browser, I have looked at it using Netscape and lynx.  There are no
+important images here, but the tables don't
+look very nice using lynx.  You should use
+<A HREF="http://www.anybrowser.org/campaign/">Any Browser</a>
+that formats tables nicely.
+</i>
+
+<p>
+This is a very quick walk through <a href="lde.html">lde</a>'s
+major modes.  When you start <a href="lde.html">lde</a>, it will first
+display the startup error/warning log with messages about the
+filesystem found on the specified device.  Hit any key and <a
+href="lde.html">lde</a> will display some of the information contained
+in the file system's super block.
+
+<p>
+<center>
+<table border=5 BGCOLOR="white" cellpadding=0 cellspacing=0>
+<tr BGCOLOR="blue"><td><font color="white"><pre>                     lde v2.4.0Alpha2 : minix : /dev/hda3
+Inode:          1 (0x00000001)  Block:          0 (0x00000000)  012345678       
+<tr><td><pre>
+
+
+
+
+                    Inodes:            13943 (0x00003677)
+                    Blocks:            41830 (0x0000A366)
+                    Firstdatazone:       446 (N=446)
+                    Zonesize:           1024 (0x0400)
+                    Maximum size:  268966912 (0x10081C00)
+
+                    * Directory entries are 30 characters.
+                    * Inode map occupies 2 blocks.
+                    * Zone map occupies 6 blocks.
+                    * Inode table occupies 436 blocks.
+
+
+
+
+
+
+                    F)lags, I)node, B)locks, R)ecover File
+</table></PRE></PRE>
+</center>
+
+<p>
+While displaying the superblock, the keys for the other major modes are
+listed at the bottom of the screen.  We will zip through all of them,
+starting with inode mode.
+
+<p>
+<center>
+<table border=5 BGCOLOR="white" cellpadding=0 cellspacing=0>
+<tr BGCOLOR="blue"><td><font color="white"><pre>                     lde v2.4.0Alpha2 : minix : /dev/hda3
+Inode:          1 (0x00000001)  Block:          0 (0x00000000)  012345678       
+<tr><td><pre>
+
+drwxr-xr-x  25 root     system       1408  Wed Jul  2 01:06:23 1997
+
+TYPE: directory     LINKS:  25                 DIRECT BLOCKS=    <font color="red">0x000001BE</font>
+MODE: \0755         FLAGS: \04                                   0x0000678D
+UID: 00000(root)    GID: 00000(system)
+SIZE: 1408          SIZE(BLKS):
+
+ACCESS TIME:
+CREATION TIME:
+MODIFICATION TIME:  Wed Jul  2 01:06:23 1997   INDIRECT BLOCK=
+DELETION TIME:                                 2x INDIRECT BLOCK=
+
+
+
+
+
+
+
+
+                  F1/H for help.  F2/^O for menu.  Q to quit
+</table></PRE></PRE></center>
+
+<p>
+Inode mode starts on the file system's root directory inode.  Looking at
+the information above, we can see that it is indeed a directory with 25
+entries (links) owned by root.system.  Pressing the arrow keys will move the
+cursor between fields.  The first direct block is shown highlighted, if we
+press 'd' now, we can view this inode formatted as a directory.
+
+<p>
+<center>
+<table border=5 BGCOLOR="white" cellpadding=0 cellspacing=0>
+<tr BGCOLOR="blue"><td><font color="white"><pre>                     lde v2.4.0Alpha2 : minix : /dev/hda3
+Inode:          1 (0x00000001)  Block:          0 (0x00000000)  012345678       
+<tr border=0><td><pre>0x00000001: drwxr-xr-x  25      1408 .
+0x00000001: drwxr-xr-x  25      1408 ..
+0x0000047D: drwxr-xr-x   2        64 boot
+0x000001AD: drwxr-xr-x   2      2144 bin
+0x0000007F: drwxr-xr-x   2      8128 dev
+0x00000153: drwxr-xr-x  10       384 dos
+0x0000015A: drwxr-xr-x  19      8544 etc
+0x000002D0: drwxr-xr-x   2        64 fishmonger
+0x000001A9: drwxr-xr-x   3      3712 sbin
+0x00000290: drwxr-xr-x   2        64 home
+0x00000291: lrwxrwxrwx   1         9 info
+<tr bgcolor="red" border=0><td><font color="white"><pre>0x00000292: drwxr-xr-x   3      2016 lib
+<tr><td><pre>0x000002E9: drwxrwxrwx   2       864 links
+0x000002FF: drwxr-xr-x   2       160 mnt
+0x00000300: drwxr-xr-x   2        64 mnt2
+0x00000301: drwxrwxr-x   2        64 mnt3
+0x00000302: dr-xr-xr-x   2        64 proc
+0x00000000:                          mnbt
+0x0000003D: drwxr-xr-x   3        96 man
+0x00000305: drwxrwxr-x   2       224 shlib
+0x0000030A: lrwxrwxrwx   1        11 stimpy
+                  F1/H for help.  F2/^O for menu.  Q to quit</table>
+</pre></pre></pre></pre></center>
+
+<p>
+You can use the arrows to scroll through all the directory entries associated
+with inode number 1 which we were viewing earlier.  Clicking on a directory
+will view that directory.
+
+
+<p>
+<center>
+<table border=5 BGCOLOR="white" cellpadding=0 cellspacing=0>
+<tr BGCOLOR="blue"><td><font color="white"><pre>                     lde v2.4.0Alpha2 : minix : /dev/hda3
+Inode:          1 (0x00000001)  Block:          0 (0x00000000)  012345678       
+<tr border=0><td><pre>0x00000292: drwxr-xr-x   3      2016 .
+0x00000001: drwxr-xr-x  25      1408 ..
+0x00000293: lrwxrwxrwx   1        25 libX11.so.3
+0x00000294: lrwxrwxrwx   1        24 libXt.so.3
+0x00000160: lrwxrwxrwx   1        12 cpp
+0x00000004: drwxr-xr-x  10       384 modules
+0x00000297: lrwxrwxrwx   1        25 libXaw.so.3
+0x0000050C: -r-xr-xr-x   1     43502 libkpathsea.so.2.6
+0x00000517: lrwxrwxrwx   1        20 libkpathsea.so.2
+<tr bgcolor="red"><td><font color="white"><pre>0x0000029A: -rwxr-xr-x   1    634880 libc.so.4.6.27
+<tr border=0><td><pre>0x0000029B: -rwxr-xr-x   1    110592 libm.so.4.6.27
+0x0000029C: lrwxrwxrwx   1        14 libc.so.4
+0x00000518: lrwxrwxrwx   1        18 libkpathsea.so
+0x000002B9: -rwxr-xr-x   1     49152 libcurses.so.0.1.2
+0x000002BA: lrwxrwxrwx   1        13 libf2c.so.0
+0x000002BB: -rwxr-xr-x   1    533508 libf2c.so.0.7
+0x000002BC: lrwxrwxrwx   1        12 libgr.so.1
+0x000002BD: lrwxrwxrwx   1        14 libm.so.4
+0x000002BE: -rwxr-xr-x   1    630784 libc-lite.so.4.6.27
+0x000002BF: lrwxrwxrwx   1        19 libc-lite.so.4
+0x00000511: -rwxr-xr-x   2     24580 ld.so
+                  F1/H for help.  F2/^O for menu.  Q to quit
+</table></pre></pre></pre></pre></center>
+
+<p>
+We can use this method to locate the file we are interested in, maybe
+libc.so.4.6.27.  We can then view its inode by pressing 'I'.
+
+<p>
+<center>
+<table border=5 BGCOLOR="white" cellpadding=0 cellspacing=0>
+<tr BGCOLOR="blue"><td><font color="white"><pre>                     lde v2.4.0Alpha2 : minix : /dev/hda3
+Inode:        666 (0x0000029A)  Block:          0 (0x00000000)  012345678       
+<tr border=0><td><pre>
+
+-rwxr-xr-x   1 root     system     634880  Tue Dec 13 16:39:05 1994
+
+TYPE: regular file  LINKS:   1                 DIRECT BLOCKS=    <font color="red">0x00001E2C</font>
+MODE: \0755         FLAGS: \10                                   0x00001E2D
+UID: 00000(root)    GID: 00000(system)                           0x00001E2E
+SIZE: 634880        SIZE(BLKS):                                  0x00001E2F
+                                                                 0x00001E30
+ACCESS TIME:                                                     0x00001E31
+CREATION TIME:                                                   0x00001E32
+MODIFICATION TIME:  Tue Dec 13 16:39:05 1994   INDIRECT BLOCK=   0x00001E33
+DELETION TIME:                                 2x INDIRECT BLOCK=0x00002034
+
+
+
+
+
+
+
+
+
+                  F1/H for help.  F2/^O for menu.  Q to quit
+</TABLE></PRE></PRE></CENTER>
+
+<p>
+This information looks correct, now lets have a look at the contents of the
+file.  Hit 'B' to view the highlighted block.
+
+<p>
+<center>
+<table border=5 BGCOLOR="white" cellpadding=0 cellspacing=0>
+<tr BGCOLOR="blue"><td><font color="white"><pre>                     lde v2.4.0Alpha2 : minix : /dev/hda3
+Inode:        666 (0x0000029A)  Block:       7724 (0x00001E2C)  012345678
+<tr border=0><td><pre>0078B000  <font color="red">CC</font> 00 64 00 00 00 09 00  :  00 B0 00 00 98 EE 02 00   <font color="red">.</font>.d.............
+0078B010  00 00 00 00 20 F0 FF 5F  :  00 00 00 00 00 00 00 00   .... .._........
+0078B020  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B030  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B040  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B050  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B060  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B070  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B080  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B090  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B0A0  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B0B0  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B0C0  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B0D0  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B0E0  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B0F0  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B100  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B110  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B120  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B130  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+0078B140  00 00 00 00 00 00 00 00  :  00 00 00 00 00 00 00 00   ................
+                  F1/H for help.  F2/^O for menu.  Q to quit
+</TABLE></PRE></PRE></CENTER>
+
+<p>
+We're looking at the first block of libc.  It is possible to edit this block
+in hex or ASCII and then write it back to the disk.  Let's not do that,
+instead, go back to inode mode and hit 'R'.  This will copy the contents of
+libc's inode into the "recovery inode" and switch to recovery mode.
+
+<p>
+<center>
+<table border=5 BGCOLOR="white" cellpadding=0 cellspacing=0>
+<tr BGCOLOR="blue"><td><font color="white"><pre>                     lde v2.4.0Alpha2 : minix : /dev/hda3
+Inode:        666 (0x0000029A)  Block:       7724 (0x00001E2C)  ---------       
+</font><tr><td><pre>
+
+
+
+
+
+                    DIRECT BLOCKS:       0 : 0x00001E2C
+                                         1 : 0x00001E2D
+                                         2 : 0x00001E2E
+                                         3 : 0x00001E2F
+                                         4 : 0x00001E30
+                                         5 : 0x00001E31
+                                         6 : 0x00001E32
+                    INDIRECT BLOCK:      7 : 0x00001E33
+                    2x INDIRECT BLOCK:   8 : 0x00002034
+
+
+
+
+
+    Change blocks with adjacent characters.  Q to quit.  R to dump to file    
+</TABLE></PRE></PRE></CENTER>
+
+<p>
+From recovery mode, we can write out the file indexed by this inode to
+disk.  It may not sound very important, but this is how you would undelete 
+a unix file.  This "recovery inode" is not stored on the disk and you can
+put whatever you want in it.  However, the indirect blocks are stored on
+the disk.  Most of the time, the inode information will be preserved after
+you delete a file, and you can just undelete the entire file at once.  If
+there have been disk writes since you deleted the file, the inode information
+may have been overwritten, in which case you may have to do a lot of work to
+recover the file.  See the file <a href="UNERASE.txt">UNERASE</a> 
+in the <a href="lde.html">lde</a> distribution for help with these
+harder cases.
+
+<p>
+This is a very simple document.  You could probably figure all this
+out on your own just playing with <a href="lde.html">lde</a> for a few
+seconds and it really doesn't accentuate any of <a
+href="lde.html">lde</a>'s really nifty features which can be used to
+find deleted files.  See the <a href="lde_man.txt">man page</a> and
+the <a href="UNERASE.txt">UNERASE</a> document for examples and more
+detailed explainations.
+
+<center><hr></center>
+
+<A HREF="http://www.anybrowser.org/campaign/"><img 
+        align="left" src="anybrowser3.gif" 
+        ALT="Best Viewed With Any Browser *"
+        WIDTH=88 HEIGHT=31 BORDER=0></A>
+
+<A href="http://sourceforge.net"><IMG
+	src="http://sourceforge.net/sflogo.php?group_id=20753"
+	align="right" width="88" height="31" border=0></A>
+
+</body>
+</html>
