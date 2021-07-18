@@ -1,5 +1,0 @@
-2006-04-17  Felix Gatzemeier  <fxg@i3.Informatik.RWTH-Aachen.DE>
-
-	* configure.in: Added a check for the 'daylight' variable, since
-	cnews' one clashes with the one from time.h on my system.
-
