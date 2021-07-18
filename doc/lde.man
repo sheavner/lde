@@ -1,4 +1,4 @@
-.\" Copyright 1993, 1996 Scott D. Heavner (sdh@po.cwru.edu)
+.\" Copyright 1993, 1996 Scott D. Heavner
 .\" May be distributed under the GNU General Public License
 .TH LDE 8 "23 September 1996" "Linux 2.0" "Linux Programmer's Manual"
 .SH NAME
@@ -666,7 +666,7 @@ and instructions for the best way to go about restoring files.
 .BR xfsck (8),
 .BR debugfs (8)
 .SH AUTHOR
-Scott D. Heavner (sdh@po.cwru.edu)
+Scott D. Heavner
 .PP
 For more info, see the lde project page at sourceforge
 .IR "<http://lde\.sourceforge\.net/>" "."

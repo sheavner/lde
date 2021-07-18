@@ -7,7 +7,7 @@ Description:	This allows you to view some Linux fs's (a la Norton disk edit), he
 		to another partition.  Supports ext2, minix, xiafs, and generic binary editor
                 mode.
 Keywords:	unerase recover undelete Norton edit disk file restore
-Author:		sdh@po.cwru.edu (Scott D. Heavner)
+Author:		Scott Heavner
 Primary-site:	sunsite.unc.edu /pub/Linux/system/filesystems
 		360k lde-2.3.4.tar.gz
 Original-site:  http://www.geocities.com/CapeCanaveral/Lab/7731/lde.html

@@ -16,5 +16,5 @@ zeroed.  I wrote a small kernel patch and used it successfully for
 most of last year, but according to Ted, it probably won't work.
 Looking it over, I think he's right, so I've stopped using and
 distributing it.  Most of the kernel developers are working on Linux
-2.1, but if anyone has a fix for 2.0 or wants to work on one, email me
-(sdh@po.cwru.edu).
+2.1, but if anyone has a fix for 2.0 or wants to work on one, email me.
+

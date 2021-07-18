@@ -4,7 +4,7 @@
 #include <fcntl.h>
 #include "../src/swiped/linux/ext2_fs.h"
 
-/* (C) 1994 Scott Heavner (sdh@po.cwru.edu) */
+/* (C) 1994 Scott Heavner */
 
 /* find_ext2_fs.c -- greps a full disk devices for remnants of an ext2 partition.
  *                   Will be most useful to recover from a bad fdisk experience.

@@ -1,4 +1,4 @@
-/* msdos_info - v1.0 94/11/05 - Scott Heavner (sdh@po.cwru.edu) */
+/* msdos_info - v1.0 94/11/05 - Scott Heavner */
 
 /* This file will print out the information contained in the
  * boot record of any msdos filesystem.  It will also print

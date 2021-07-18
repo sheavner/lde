@@ -668,7 +668,7 @@ SEE ALSO
        fsck(8), fsck.minix(8), e2fsck(8), xfsck(8), debugfs(8)
 
 AUTHOR
-       Scott D. Heavner (sdh@po.cwru.edu)
+       Scott D. Heavner
 
        For more info, see the lde  project  page  at  sourceforge
        <http://lde.sourceforge.net/>.
