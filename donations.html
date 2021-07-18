@@ -4,7 +4,7 @@
 <TITLE>LDE - The Linux Disk Editor</TITLE>
 <style type="text/css">
 <!--
-	OL,UL,P,BODY,TD,TR,TH,FORM { font-family: verdana,arial,helvetica,sans-serif; font-size:x-small; color: #333333; }
+	A.left,OL.left,UL.left,P.left,BODY.left,TD.left,TR.left,TH.left,FORM.left { font-family: verdana,arial,helvetica,sans-serif; font-size:x-small; color: #333333; } 
 
 	H1 { font-size: x-large; font-family: verdana,arial,helvetica,sans-serif; }
 	H2 { font-size: large; font-family: verdana,arial,helvetica,sans-serif; }
@@ -49,19 +49,20 @@
 -->
 </style>
 </head>
-<body text="#333333" link="#6666aa" alink="#aa6666" vlink="#6666aa" bgcolor="#6C7198" leftmargin="0" rightmargin="0" topmargin="0" bottommargin="0" marginwidth="0" marginheight="0">
+<body text="#333333" link="#6666aa" alink="#aa6666" vlink="#6666aa" leftmargin="0" rightmargin="0" topmargin="0" bottommargin="0" marginwidth="0" marginheight="0">
 
-<table cellpadding="0" cellspacing="0" border="0" width="100%">
+<table cellpadding="0" cellspacing="0" border="0" width="100%" style="height:100%; position:absolute;">
 <tr valign="top">
 <td background="leftbar1.png" width="17"><img src="transparent_pixel.gif" width="17"></td>
-<td width="141" background="steel3.jpg" bgcolor="#cfd1d4" align="left" valign="top">
+<td class="left" width="141" background="steel3.jpg" bgcolor="#cfd1d4" align="left" valign="top">
 &nbsp;<br>
 <b>DOCUMENTATION</b><br>
+&nbsp;&nbsp;<a href="index.html">intro</a><br>
 &nbsp;&nbsp;<a href="lde_use.html">screenshots</a><br>
 &nbsp;&nbsp;<a href="lde_man.txt">man&nbsp;page</a><br>
 &nbsp;&nbsp;<a href="UNERASE.txt">unerase&nbsp;tips</a><br>
 <table border="0" cellpadding="0" cellspacing="0">
-<tr valign="top"><td>&nbsp;&nbsp;<a href="donations.html">donations</a></td>
+<tr valign="top"><td class="left">&nbsp;&nbsp;<a href="donations.html">donations</a></td>
 <td>&nbsp;</td>
 </table>
 <br><b>DOWNLOAD</b><br>
@@ -80,20 +81,15 @@
 <br clear=all>
 
 <p>
-Make a donation to show your appreciation and support further development. I released lde as a GNU project to try to give something back to the linux community and have no plans of getting rich on this project, but some people have asked where they might send donations to show their thanks. If you were able to use lde to get out of a (major) jam, consider sending $5 or more.
+Make a donation to show your appreciation and support further development. I released lde as a GNU project to try to give something back to the linux community and have no plans of getting rich on this project, but some people have asked where they might send donations to show their thanks. If you were able to use lde to get out of a jam, consider sending $5 or more.
 
 <p>
 
 <center>
-<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
-<input type="hidden" name="cmd" value="_xclick">
-<input type="hidden" name="business" value="sdh@po.cwru.edu">
-<input type="hidden" name="item_name" value="Linux Disk Editor (lde)">
-<input type="hidden" name="item_number" value="Donate Page Donation">
-<input type="hidden" name="no_note" value="1">
-<input type="hidden" name="currency_code" value="USD">
-<input type="hidden" name="tax" value="0">
-<input type="image" src="https://www.paypal.com/en_US/i/btn/x-click-but04.gif" border="0" name="submit" alt="Make your donation with PayPal - it's fast, free and secure!">
+<form action="https://www.paypal.com/donate" method="post" target="_top">
+<input type="hidden" name="hosted_button_id" value="FBNXAXAFA9J3W" />
+<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+<img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1" />
 </form>
 </center>
 
