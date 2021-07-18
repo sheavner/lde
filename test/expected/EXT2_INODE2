@@ -1,0 +1,23 @@
+User requested autodetect filesystem. Checking device . . .
+Found ext2fs on device.
+-------------------------------------------------------------------------------
+INODE: 2      (0x00000002) 
+drwxr-xr-x	 501      0             1024 Sun Nov 25 15:22:55 2001
+TYPE:                  directory     
+LINKS:                 8
+MODEFLAGS.MODE:        004.0755
+SIZE:                  1024    
+BLOCK COUNT:           2       
+UID:                   00501
+GID:                   00000
+ACCESS TIME:           Sun Nov 25 15:39:22 2001
+CREATION TIME:         Sun Nov 25 15:22:55 2001
+MODIFICATION TIME:     Sun Nov 25 15:22:55 2001
+DELETION TIME:         Wed Dec 31 16:00:00 1969
+DIRECT BLOCKS:         0x00000009 
+                       
+                       
+INDIRECT BLOCK:        
+DOUBLE INDIRECT BLOCK: 
+TRIPLE INDIRECT BLOCK: 
+

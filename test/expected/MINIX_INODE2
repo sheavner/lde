@@ -1,0 +1,17 @@
+User requested autodetect filesystem. Checking device . . .
+Found a minixfs on device.
+-------------------------------------------------------------------------------
+INODE: 2      (0x00000002) 
+drwxrwxr-x	 501      246           1632 Sun Nov 25 15:22:23 2001
+TYPE:                  directory     
+LINKS:                 2
+MODEFLAGS.MODE:        004.0775
+SIZE:                  1632    
+UID:                   00501
+GID:                   00246
+MODIFICATION TIME:     Sun Nov 25 15:22:23 2001
+DIRECT BLOCKS:         0x00000007 0x00000026 
+                       
+INDIRECT BLOCK:        
+DOUBLE INDIRECT BLOCK: 
+

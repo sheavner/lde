@@ -1,0 +1,3 @@
+User requested autodetect filesystem. Checking device . . .
+Found xia_fs on device
+Recovered data written to 'results/XIAFS_RECOVER'

@@ -1,0 +1,4 @@
+User requested autodetect filesystem. Checking device . . .
+Found ext2fs on device.
+48 hits on possible indirect block at 0x40
+Total indirect blocks 1.

@@ -1,0 +1,4 @@
+User requested autodetect filesystem. Checking device . . .
+Found xia_fs on device
+15 hits on possible indirect block at 0x1F
+Total indirect blocks 1.

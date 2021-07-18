@@ -1,0 +1,3 @@
+User requested autodetect filesystem. Checking device . . .
+Found a minixfs on device.
+Match at block 0x32, no unused inode found.

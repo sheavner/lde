@@ -1,0 +1,19 @@
+User requested autodetect filesystem. Checking device . . .
+Found xia_fs on device
+-------------------------------------------------------------------------------
+INODE: 2      (0x00000002) 
+----------	 0        0                0 Sun Dec 31 16:23:30 1989
+TYPE:                  regular file  
+LINKS:                 1
+MODEFLAGS.MODE:        010.0000
+SIZE:                  0       
+UID:                   00000
+GID:                   00000
+ACCESS TIME:           Sun Dec 31 16:23:30 1989
+CREATION TIME:         Wed Dec 31 16:00:00 1969
+MODIFICATION TIME:     Sun Dec 31 16:23:30 1989
+DIRECT BLOCKS:         
+                       
+INDIRECT BLOCK:        
+DOUBLE INDIRECT BLOCK: 
+

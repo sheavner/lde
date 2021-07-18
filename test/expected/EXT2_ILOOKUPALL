@@ -1,0 +1,4 @@
+User requested autodetect filesystem. Checking device . . .
+Found ext2fs on device.
+Match at block 0x2D, check inode 0x11.
+Match at block 0x5C, no inode found.

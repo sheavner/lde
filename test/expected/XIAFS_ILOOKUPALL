@@ -1,0 +1,4 @@
+User requested autodetect filesystem. Checking device . . .
+Found xia_fs on device
+Match at block 0x20, check inode 0x19.
+Match at block 0x2F, check inode 0x3.

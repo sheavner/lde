@@ -1,0 +1,4 @@
+User requested autodetect filesystem. Checking device . . .
+Found a minixfs on device.
+14 hits on possible indirect block at 0x54
+Total indirect blocks 1.
