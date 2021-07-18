@@ -12,4 +12,3 @@ time_t lde_getdate(char *p);
 
 /* fileutils-3.12/filemode.c  */
 void mode_string(unsigned short mode, char *str);
-

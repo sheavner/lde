@@ -17,7 +17,8 @@
 #include "xiafs.h"
 #include "no_fs.h"
 
-struct _lde_typedata {
+struct _lde_typedata
+{
   char *name;
   /* Test function, pass in buffer and use_offset flag */
   int (*test)(char *buffer, int use_offset);
@@ -26,20 +27,29 @@ struct _lde_typedata {
 };
 extern struct _lde_typedata lde_typedata[];
 
-
 /* Order of enum must match order of LDE_ALLTYPES */
-enum lde_fstypes { AUTODETECT, EXT2, MINIX, DOS, ISO9660, XIAFS, NONE, LAST_AUTO_FSTYPE=NONE, LAST_FSTYPE };
+enum lde_fstypes
+{
+  AUTODETECT,
+  EXT2,
+  MINIX,
+  DOS,
+  ISO9660,
+  XIAFS,
+  NONE,
+  LAST_AUTO_FSTYPE = NONE,
+  LAST_FSTYPE
+};
 
-
-#define LDE_ALLTYPES { \
-  { "autodetect", 0, 0 }, \
-  { "ext2fs", EXT2_test, EXT2_init }, \
-  { "minix", MINIX_test, MINIX_init }, \
-  { "msdos", DOS_test, DOS_init }, \
-  { "iso9660", ISO9660_test, ISO9660_init }, \
-  { "xiafs", XIAFS_test, XIAFS_init }, \
-  { "no file system", 0, 0 }, \
-  { NULL, 0, 0 } \
-}
+#define LDE_ALLTYPES                                                           \
+  {                                                                            \
+    { "autodetect", 0, 0 }, { "ext2fs", EXT2_test, EXT2_init },                \
+      { "minix", MINIX_test, MINIX_init }, { "msdos", DOS_test, DOS_init },    \
+      { "iso9660", ISO9660_test, ISO9660_init },                               \
+      { "xiafs", XIAFS_test, XIAFS_init }, { "no file system", 0, 0 },         \
+    {                                                                          \
+      NULL, 0, 0                                                               \
+    }                                                                          \
+  }
 
 #endif /* LDE_ALLFS_H */

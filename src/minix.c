@@ -30,8 +30,9 @@
 #include "recover.h"
 #include "bitops.h"
 
-static struct Generic_Inode* MINIX_read_inode(unsigned long inode_nr);
-static int MINIX_write_inode(unsigned long inode_nr, struct Generic_Inode *GInode);
+static struct Generic_Inode *MINIX_read_inode(unsigned long inode_nr);
+static int MINIX_write_inode(unsigned long inode_nr,
+  struct Generic_Inode *GInode);
 static int MINIX_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d);
 static void MINIX_sb_init(char *sb_buffer);
 
@@ -49,7 +50,8 @@ struct inode_fields MINIX_inode_fields = {
   0, /*   unsigned long  i_dtime; */
   0, /*   unsigned long  i_flags; */
   0, /*   unsigned long  i_reserved1; */
-  { 1, /*   unsigned long  i_zone[0]; */
+  {
+    1, /*   unsigned long  i_zone[0]; */
     1, /*   unsigned long  i_zone[1]; */
     1, /*   unsigned long  i_zone[2]; */
     1, /*   unsigned long  i_zone[3]; */
@@ -91,89 +93,95 @@ struct fs_constants MINIX_constants = {
   1024                          /* unsigned long supertest_offset */
 };
 
-static struct Generic_Inode* MINIX_read_inode(unsigned long inode_nr)
+static struct Generic_Inode *MINIX_read_inode(unsigned long inode_nr)
 {
   static struct Generic_Inode GInode;
   static unsigned long MINIX_last_inode = -1L;
   struct minix_inode *Inode;
   int i;
 
-  if ((inode_nr<1)||(inode_nr>sb->ninodes)) {
-    lde_warn("inode (%lu) out of range in MINIX_read_inode",inode_nr);
+  if ((inode_nr < 1) || (inode_nr > sb->ninodes)) {
+    lde_warn("inode (%lu) out of range in MINIX_read_inode", inode_nr);
     return NOFS_init_junk_inode();
   }
 
-  if (MINIX_last_inode == inode_nr) return &GInode;
+  if (MINIX_last_inode == inode_nr)
+    return &GInode;
   MINIX_last_inode = inode_nr;
 
-  Inode = ((struct minix_inode *) inode_buffer)-1+inode_nr;
+  Inode = ((struct minix_inode *)inode_buffer) - 1 + inode_nr;
 
-  GInode.i_mode        = (unsigned short) ldeswab16(Inode->i_mode);
-  GInode.i_uid         = (unsigned short) ldeswab16(Inode->i_uid);
-  GInode.i_size        = (unsigned long)  ldeswab32(Inode->i_size);
-  GInode.i_atime       = (unsigned long)  ldeswab32(Inode->i_time);
-  GInode.i_ctime       = GInode.i_atime;
-  GInode.i_dtime       = GInode.i_atime;
-  GInode.i_mtime       = GInode.i_atime;
-  GInode.i_gid         = (unsigned short) Inode->i_gid;
-  GInode.i_links_count = (unsigned short) Inode->i_nlinks;
-  
-  for (i=0; i<MINIX_constants.N_BLOCKS; i++)
-    GInode.i_zone[i] = (unsigned short) ldeswab16(Inode->i_zone[i]);
-  for (i=MINIX_constants.N_BLOCKS; i<INODE_BLKS; i++)
+  GInode.i_mode = (unsigned short)ldeswab16(Inode->i_mode);
+  GInode.i_uid = (unsigned short)ldeswab16(Inode->i_uid);
+  GInode.i_size = (unsigned long)ldeswab32(Inode->i_size);
+  GInode.i_atime = (unsigned long)ldeswab32(Inode->i_time);
+  GInode.i_ctime = GInode.i_atime;
+  GInode.i_dtime = GInode.i_atime;
+  GInode.i_mtime = GInode.i_atime;
+  GInode.i_gid = (unsigned short)Inode->i_gid;
+  GInode.i_links_count = (unsigned short)Inode->i_nlinks;
+
+  for (i = 0; i < MINIX_constants.N_BLOCKS; i++)
+    GInode.i_zone[i] = (unsigned short)ldeswab16(Inode->i_zone[i]);
+  for (i = MINIX_constants.N_BLOCKS; i < INODE_BLKS; i++)
     GInode.i_zone[i] = 0UL;
 
   return &GInode;
 }
 
-static int MINIX_write_inode(unsigned long inode_nr, struct Generic_Inode *GInode)
+static int MINIX_write_inode(unsigned long inode_nr,
+  struct Generic_Inode *GInode)
 {
   unsigned long bnr;
   int i;
   struct minix_inode *Inode;
 
   if (lde_flags.byteswap) {
-        lde_warn("INODE WRITES NOT WORKING ON BIG_ENDIAN SYSTEMS!");
-        return -1;
+    lde_warn("INODE WRITES NOT WORKING ON BIG_ENDIAN SYSTEMS!");
+    return -1;
   }
 
-  Inode = ((struct minix_inode *) inode_buffer)-1+inode_nr;
+  Inode = ((struct minix_inode *)inode_buffer) - 1 + inode_nr;
 
-  Inode->i_mode        = (unsigned short) GInode->i_mode;
-  Inode->i_uid         = (unsigned short) GInode->i_uid;
-  Inode->i_size        = (unsigned long)  GInode->i_size;
-  Inode->i_time        = (unsigned long)  GInode->i_mtime;
-  Inode->i_gid         = (unsigned short) GInode->i_gid;
-  Inode->i_nlinks      = (unsigned short) GInode->i_links_count;
-  
-  for (i=0; i<MINIX_constants.N_BLOCKS; i++)
-    Inode->i_zone[i] = (unsigned short) GInode->i_zone[i];
+  Inode->i_mode = (unsigned short)GInode->i_mode;
+  Inode->i_uid = (unsigned short)GInode->i_uid;
+  Inode->i_size = (unsigned long)GInode->i_size;
+  Inode->i_time = (unsigned long)GInode->i_mtime;
+  Inode->i_gid = (unsigned short)GInode->i_gid;
+  Inode->i_nlinks = (unsigned short)GInode->i_links_count;
 
-  bnr = (inode_nr-1)/sb->INODES_PER_BLOCK + sb->imap_blocks + 2 + sb->zmap_blocks;
+  for (i = 0; i < MINIX_constants.N_BLOCKS; i++)
+    Inode->i_zone[i] = (unsigned short)GInode->i_zone[i];
 
-  return write_block( bnr, (struct minix_inode *) inode_buffer+((inode_nr-1)/sb->INODES_PER_BLOCK) );   
+  bnr = (inode_nr - 1) / sb->INODES_PER_BLOCK + sb->imap_blocks + 2 +
+        sb->zmap_blocks;
+
+  return write_block(bnr,
+    (struct minix_inode *)inode_buffer +
+      ((inode_nr - 1) / sb->INODES_PER_BLOCK));
 }
 
 int MINIX_inode_in_use(unsigned long inode_nr)
 {
-  if ((!inode_nr)||(inode_nr>sb->ninodes)) inode_nr = 1;
-  return lde_test_bit(inode_nr,inode_map);
+  if ((!inode_nr) || (inode_nr > sb->ninodes))
+    inode_nr = 1;
+  return lde_test_bit(inode_nr, inode_map);
 }
 
 int MINIX_zone_in_use(unsigned long inode_nr)
 {
-  if (inode_nr < sb->first_data_zone) 
+  if (inode_nr < sb->first_data_zone)
     return 1;
-  else if ( inode_nr > sb->nzones )
+  else if (inode_nr > sb->nzones)
     return 0;
-  return lde_test_bit((inode_nr-sb->first_data_zone+1),zone_map);
+  return lde_test_bit((inode_nr - sb->first_data_zone + 1), zone_map);
 }
 
 /* Checks if a data block is part of the ext2 system (i.e. not a data block) */
 int MINIX_is_system_block(unsigned long nr)
 {
   /* norm_first_data_zone is first zone after bitmaps and inode table */
-  if (nr <  sb->norm_first_data_zone)
+  if (nr < sb->norm_first_data_zone)
     return 1;
 
   /* How about that, it wasn't a system block */
@@ -184,16 +192,21 @@ static int MINIX_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
 {
   static char cname[32] = { 0 };
   int retval = 0;
-  
-  bzero(d,sizeof(lde_dirent));
+
+  bzero(d, sizeof(lde_dirent));
   d->name = cname;
 
-  if (i*sb->dirsize+fsc->INODE_ENTRY_SIZE >= block_buffer->size) {
+  if (i * sb->dirsize + fsc->INODE_ENTRY_SIZE >= block_buffer->size) {
     cname[0] = 0;
   } else {
-    strncpy(cname, block_buffer->start+(i*sb->dirsize+fsc->INODE_ENTRY_SIZE), sb->namelen);
-    d->inode_nr = block_pointer(block_buffer->start,(i*sb->dirsize)/fsc->INODE_ENTRY_SIZE,fsc->INODE_ENTRY_SIZE);
-    if (d->inode_nr || cname[0]) retval = 1;
+    strncpy(cname,
+      block_buffer->start + (i * sb->dirsize + fsc->INODE_ENTRY_SIZE),
+      sb->namelen);
+    d->inode_nr = block_pointer(block_buffer->start,
+      (i * sb->dirsize) / fsc->INODE_ENTRY_SIZE,
+      fsc->INODE_ENTRY_SIZE);
+    if (d->inode_nr || cname[0])
+      retval = 1;
     d->isdel = !(d->inode_nr);
   }
 
@@ -203,52 +216,56 @@ static int MINIX_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
 unsigned long MINIX_map_inode(unsigned long nr)
 {
   return ((sb->imap_blocks + sb->zmap_blocks + sb->first_data_zone + 1UL) +
-	  nr / sb->INODES_PER_BLOCK);
+          nr / sb->INODES_PER_BLOCK);
 }
 
 static void MINIX_sb_init(char *sb_buffer)
 {
   struct minix_super_block *Super;
-  Super =(void *)(sb_buffer + 1024);
+  Super = (void *)(sb_buffer + 1024);
 
-  sb->ninodes         = ldeswab16(Super->s_ninodes);
-  sb->nzones          = ldeswab16(Super->s_nzones);
-  sb->imap_blocks     = ldeswab16(Super->s_imap_blocks);
-  sb->zmap_blocks     = ldeswab16(Super->s_zmap_blocks);
+  sb->ninodes = ldeswab16(Super->s_ninodes);
+  sb->nzones = ldeswab16(Super->s_nzones);
+  sb->imap_blocks = ldeswab16(Super->s_imap_blocks);
+  sb->zmap_blocks = ldeswab16(Super->s_zmap_blocks);
   sb->first_data_zone = ldeswab16(Super->s_firstdatazone);
-  sb->max_size        = ldeswab32(Super->s_max_size);
-  sb->zonesize        = ldeswab16(Super->s_log_zone_size);
-  sb->blocksize       = 1024;
+  sb->max_size = ldeswab32(Super->s_max_size);
+  sb->zonesize = ldeswab16(Super->s_log_zone_size);
+  sb->blocksize = 1024;
   sb->last_block_size = sb->blocksize;
-  sb->magic           = ldeswab16(Super->s_magic);
+  sb->magic = ldeswab16(Super->s_magic);
 
   sb->I_MAP_SLOTS = MINIX_I_MAP_SLOTS;
   sb->Z_MAP_SLOTS = MINIX_Z_MAP_SLOTS;
   sb->INODES_PER_BLOCK = MINIX_INODES_PER_BLOCK;
-  sb->norm_first_data_zone = (sb->imap_blocks+2+sb->zmap_blocks+INODE_BLOCKS);
+  sb->norm_first_data_zone =
+    (sb->imap_blocks + 2 + sb->zmap_blocks + INODE_BLOCKS);
 }
 
 void MINIX_read_tables()
 {
   /* Allocate space */
-  if (inode_map) free(inode_map);
-  if (zone_map) free(zone_map);
-  if (inode_buffer) free(inode_buffer);
+  if (inode_map)
+    free(inode_map);
+  if (zone_map)
+    free(zone_map);
+  if (inode_buffer)
+    free(inode_buffer);
 
-  inode_map = malloc(sb->blocksize*sb->I_MAP_SLOTS);
-  zone_map = malloc(sb->blocksize*sb->Z_MAP_SLOTS);
+  inode_map = malloc(sb->blocksize * sb->I_MAP_SLOTS);
+  zone_map = malloc(sb->blocksize * sb->Z_MAP_SLOTS);
   inode_buffer = malloc(INODE_BUFFER_SIZE);
 
-  if ((!inode_buffer)||(!zone_map)||(!inode_map))
+  if ((!inode_buffer) || (!zone_map) || (!inode_map))
     die("Unable to allocate buffer space in MINIX_read_tables()");
 
   /* Check super block info, don't die here -- just print warnings */
   if (sb->zonesize != 0 || sb->blocksize != 1024)
     lde_warn("Only 1k blocks/zones supported");
-  
+
   if (!sb->imap_blocks || sb->imap_blocks > sb->I_MAP_SLOTS)
     lde_warn("bad s_imap_blocks field in super-block");
-  
+
   if (!sb->zmap_blocks || sb->zmap_blocks > sb->Z_MAP_SLOTS)
     lde_warn("bad s_zmap_blocks field in super-block");
 
@@ -258,18 +275,18 @@ void MINIX_read_tables()
   /* Now read in tables, do 1st with nocache_read_block() to seek to proper
    * location and do subsequent with read() as they are all found sequentially
    * on the disk */
-  if (sb->imap_blocks*sb->blocksize != 
-      nocache_read_block(fsc->FIRST_MAP_BLOCK,inode_map,
-			 sb->imap_blocks*sb->blocksize)) {
+  if (sb->imap_blocks * sb->blocksize !=
+      nocache_read_block(
+        fsc->FIRST_MAP_BLOCK, inode_map, sb->imap_blocks * sb->blocksize)) {
     lde_warn("Unable to read inode map");
-    bzero(inode_map, sb->imap_blocks*sb->blocksize);
+    bzero(inode_map, sb->imap_blocks * sb->blocksize);
   }
-  if (sb->zmap_blocks*sb->blocksize != 
-      read(CURR_DEVICE,zone_map,sb->zmap_blocks*sb->blocksize)) {
+  if (sb->zmap_blocks * sb->blocksize !=
+      read(CURR_DEVICE, zone_map, sb->zmap_blocks * sb->blocksize)) {
     lde_warn("Unable to read zone map");
-    bzero(zone_map, sb->zmap_blocks*sb->blocksize);
+    bzero(zone_map, sb->zmap_blocks * sb->blocksize);
   }
-  if (INODE_BUFFER_SIZE != read(CURR_DEVICE,inode_buffer,INODE_BUFFER_SIZE)) {
+  if (INODE_BUFFER_SIZE != read(CURR_DEVICE, inode_buffer, INODE_BUFFER_SIZE)) {
     lde_warn("Unable to read inodes");
     bzero(inode_buffer, INODE_BUFFER_SIZE);
   }
@@ -290,19 +307,19 @@ void MINIX_init(char *sb_buffer)
     sb->dirsize = 32;
   }
 
-  FS_cmd.inode_in_use     = MINIX_inode_in_use;
-  FS_cmd.zone_in_use      = MINIX_zone_in_use;
-  FS_cmd.is_system_block  = MINIX_is_system_block;
+  FS_cmd.inode_in_use = MINIX_inode_in_use;
+  FS_cmd.zone_in_use = MINIX_zone_in_use;
+  FS_cmd.is_system_block = MINIX_is_system_block;
 
-  FS_cmd.dir_entry    = MINIX_dir_entry;
-  FS_cmd.read_inode   = MINIX_read_inode;
-  FS_cmd.write_inode  = MINIX_write_inode;
-  FS_cmd.map_inode    = MINIX_map_inode;
-  FS_cmd.map_block    = map_block;
+  FS_cmd.dir_entry = MINIX_dir_entry;
+  FS_cmd.read_inode = MINIX_read_inode;
+  FS_cmd.write_inode = MINIX_write_inode;
+  FS_cmd.map_inode = MINIX_map_inode;
+  FS_cmd.map_block = map_block;
 
   MINIX_read_tables();
 
-  (void) check_root();
+  (void)check_root();
 }
 
 int MINIX_test(char *buffer, int use_offset)
@@ -310,16 +327,16 @@ int MINIX_test(char *buffer, int use_offset)
   struct minix_super_block *Super;
 
   if (use_offset)
-	Super = (void *) (buffer + MINIX_constants.supertest_offset);
+    Super = (void *)(buffer + MINIX_constants.supertest_offset);
   else
-	Super = (void *) (buffer);
+    Super = (void *)(buffer);
 
-  if ( (Super->s_magic == ldeswab16(MINIX_SUPER_MAGIC)) || 
-       (Super->s_magic == ldeswab16(MINIX_SUPER_MAGIC2)) ) {
-    if (use_offset) lde_warn("Found a minixfs on device.");
+  if ((Super->s_magic == ldeswab16(MINIX_SUPER_MAGIC)) ||
+      (Super->s_magic == ldeswab16(MINIX_SUPER_MAGIC2))) {
+    if (use_offset)
+      lde_warn("Found a minixfs on device.");
     return 1;
   }
 
   return 0;
 }
-

@@ -40,7 +40,7 @@
  * C language equivalents written by Theodore Ts'o, 9/26/92
  */
 
-#if 0  /* Set and clear are unused today */
+#if 0 /* Set and clear are unused today */
 int set_bit(int nr,void * addr)
 {
 	int	mask, retval;
@@ -70,12 +70,12 @@ int clear_bit(int nr, void * addr)
 }
 #endif
 
-int lde_test_bit(int nr, void * addr)
+int lde_test_bit(int nr, void *addr)
 {
-	int		mask;
-	const __u32	*ADDR = (const __u32 *) addr;
+  int mask;
+  const __u32 *ADDR = (const __u32 *)addr;
 
-	ADDR += nr / 32;
-	mask = 1 << (nr & 0x1f);
-	return ((mask & ldeswab32(*ADDR) ) != 0);
+  ADDR += nr / 32;
+  mask = 1 << (nr & 0x1f);
+  return ((mask & ldeswab32(*ADDR)) != 0);
 }

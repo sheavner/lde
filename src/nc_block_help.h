@@ -15,45 +15,44 @@
 #define BHELP_BLOCK 1
 #define BHELP_INODE 8
 
-static lde_menu block_help[] = {
-  { CMD_CALL_MENU,"Popup menu of commands"},
-  { CMD_BLOCK_MODE_MC,"" /* This will be filled in at runtime */ },
-  { CMD_COPY, "Copy block into copy buffer"},
-  { CMD_VIEW_AS_DIR, "View block as a directory"},
-  { CMD_EDIT, "Edit block"},
-  { CMD_FLAG_ADJUST, "Menu of toggle flags"},
-  { CMD_HELP, "Calls up this help"},
-  { CMD_INODE_MODE, "Enter inode mode"},
+static lde_menu block_help[] = { { CMD_CALL_MENU, "Popup menu of commands" },
+  { CMD_BLOCK_MODE_MC, "" /* This will be filled in at runtime */ },
+  { CMD_COPY, "Copy block into copy buffer" },
+  { CMD_VIEW_AS_DIR, "View block as a directory" },
+  { CMD_EDIT, "Edit block" },
+  { CMD_FLAG_ADJUST, "Menu of toggle flags" },
+  { CMD_HELP, "Calls up this help" },
+  { CMD_INODE_MODE, "Enter inode mode" },
   { CMD_INODE_MODE_MC, NULL /* This will be filled in at runtime */ },
-  { CMD_PASTE, "Paste block from copy buffer"},
-  { CMD_EXIT_PROG, "Quit"},
-  { CMD_RECOVERY_MODE, "Enter recovery mode"},
-  { CMD_VIEW_SUPER,"View superblock"},
-  { CMD_DISPLAY_LOG, "View error/warning log"},
-  { CMD_DO_RECOVER,"Write this block's data to the recovery file"},
-  { CMD_NO_ACTION, "Move cursor (arrows)"},
-  { CMD_NEXT_BLOCK,"View next block"},
-  { CMD_PREV_BLOCK,"View previous block"},
-  { CMD_NEXT_IND_BLOCK,"View next block indexed by the current inode"},
-  { CMD_PREV_IND_BLOCK,"View previous block indexed by the current inode"},
-  { CMD_NEXT_SCREEN,"View next part of current block"},
-  { CMD_PREV_SCREEN,"View previous part of current block"},
-  { CMD_NO_ACTION, "Add block to recovery list at position (keys at top of screen)"},
-  { CMD_NUMERIC_REF, "Enter block number and view it"},
-  { CMD_ABORT_EDIT, "Abort edit.  Reread original block from disk"},
-  { CMD_REFRESH, "Refresh screen"},
-  { CMD_TOGGLE_ASCII, "Toggle hex/ascii edit. (in edit mode)"},
-  { CMD_ALL_ASCII, "Supress hex output."},
-  { CMD_FIND_STRING,"Search disk for occurances of a string."},
-  { CMD_FIND_INODE,"Find an inode which references this block"},
-  { CMD_FIND_INODE_MC,"Find an inode which references this block and view it"},
-  { CMD_WRITE_CHANGES, "Write changes to disk"},
-  { 0, NULL } 
-};
+  { CMD_PASTE, "Paste block from copy buffer" },
+  { CMD_EXIT_PROG, "Quit" },
+  { CMD_RECOVERY_MODE, "Enter recovery mode" },
+  { CMD_VIEW_SUPER, "View superblock" },
+  { CMD_DISPLAY_LOG, "View error/warning log" },
+  { CMD_DO_RECOVER, "Write this block's data to the recovery file" },
+  { CMD_NO_ACTION, "Move cursor (arrows)" },
+  { CMD_NEXT_BLOCK, "View next block" },
+  { CMD_PREV_BLOCK, "View previous block" },
+  { CMD_NEXT_IND_BLOCK, "View next block indexed by the current inode" },
+  { CMD_PREV_IND_BLOCK, "View previous block indexed by the current inode" },
+  { CMD_NEXT_SCREEN, "View next part of current block" },
+  { CMD_PREV_SCREEN, "View previous part of current block" },
+  { CMD_NO_ACTION,
+    "Add block to recovery list at position (keys at top of screen)" },
+  { CMD_NUMERIC_REF, "Enter block number and view it" },
+  { CMD_ABORT_EDIT, "Abort edit.  Reread original block from disk" },
+  { CMD_REFRESH, "Refresh screen" },
+  { CMD_TOGGLE_ASCII, "Toggle hex/ascii edit. (in edit mode)" },
+  { CMD_ALL_ASCII, "Supress hex output." },
+  { CMD_FIND_STRING, "Search disk for occurances of a string." },
+  { CMD_FIND_INODE, "Find an inode which references this block" },
+  { CMD_FIND_INODE_MC,
+    "Find an inode which references this block and view it" },
+  { CMD_WRITE_CHANGES, "Write changes to disk" },
+  { 0, NULL } };
 
 /* Popup menu in block_mode() */
-static lde_menu block_menu[] = {
-  { CMD_CALL_MENU, "MORE EDITING COMMANDS" },
+static lde_menu block_menu[] = { { CMD_CALL_MENU, "MORE EDITING COMMANDS" },
   { CMD_BLOCK_MODE_MC, "View block under cursor" },
   { CMD_VIEW_AS_DIR, "View block as a directory" },
   { CMD_EDIT, "Edit block" },
@@ -69,22 +68,18 @@ static lde_menu block_menu[] = {
   { CMD_VIEW_SUPER, "View superblock" },
   { CMD_FLAG_ADJUST, "Toggle some flags" },
   { CMD_DISPLAY_LOG, "View error/warning log" },
-  { 0, NULL }
-};
+  { 0, NULL } };
 
 /* Sub-menu in block_mode() */
-static lde_menu edit_menu[] = {
-  { CMD_ABORT_EDIT, "Abort edit" },
+static lde_menu edit_menu[] = { { CMD_ABORT_EDIT, "Abort edit" },
   { CMD_COPY, "Copy block" },
-  { CMD_PASTE, "Paste block"},
+  { CMD_PASTE, "Paste block" },
   { CMD_TOGGLE_ASCII, "Toggle Hex/ASCII mode" },
-  { CMD_WRITE_CHANGES, "Write changes to disk"},
-  { 0, NULL }
-};
+  { CMD_WRITE_CHANGES, "Write changes to disk" },
+  { 0, NULL } };
 
 /* default keymap for block mode */
-static lde_keymap blockmode_keymap[] = {
-  { '#', CMD_NUMERIC_REF },
+static lde_keymap blockmode_keymap[] = { { '#', CMD_NUMERIC_REF },
   { 'q', CMD_EXIT_PROG },
   { 'I', CMD_INODE_MODE_MC },
   { 'B', CMD_BLOCK_MODE_MC },
@@ -120,15 +115,13 @@ static lde_keymap blockmode_keymap[] = {
   { KEY_SRIGHT, CMD_NEXT_BLOCK },
   { '-', CMD_PREV_BLOCK },
   { KEY_SLEFT, CMD_PREV_BLOCK },
-  { 'f',CMD_FLAG_ADJUST },
-  { 'F',CMD_FLAG_ADJUST },
-  { LDE_CTRL('I'),CMD_TOGGLE_ASCII },
-  { 'A',CMD_ALL_ASCII },
-  { LDE_CTRL('R'),CMD_FIND_INODE },
-  { LDE_META('r'),CMD_FIND_INODE_MC },
-  { '/',CMD_FIND_STRING },
-  { 0, 0 }
-};
+  { 'f', CMD_FLAG_ADJUST },
+  { 'F', CMD_FLAG_ADJUST },
+  { LDE_CTRL('I'), CMD_TOGGLE_ASCII },
+  { 'A', CMD_ALL_ASCII },
+  { LDE_CTRL('R'), CMD_FIND_INODE },
+  { LDE_META('r'), CMD_FIND_INODE_MC },
+  { '/', CMD_FIND_STRING },
+  { 0, 0 } };
 
 #endif
-

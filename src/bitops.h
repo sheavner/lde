@@ -7,4 +7,4 @@
  *
  */
 
-extern int lde_test_bit(int nr,void * addr);
+extern int lde_test_bit(int nr, void *addr);

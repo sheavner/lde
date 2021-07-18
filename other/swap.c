@@ -49,42 +49,46 @@ int cvt_c2(char cp[2])
   memcpy(&i, cp, 2);
   return i;
 }
-  
-main(int argc, char ** argv)
+
+main(int argc, char **argv)
 {
   struct msdos_boot_sector boot;
   char *device_name, *program_name, string[9];
   int fd;
   unsigned long total_sect;
 
-  if (argc>1) {
+  if (argc > 1) {
     program_name = argv[0];
     device_name = argv[1];
   } else {
-    printf("Please enter swap device on command line: i.e. \"%s /dev/swap\"\n",argv[0]);
+    printf("Please enter swap device on command line: i.e. \"%s /dev/swap\"\n",
+      argv[0]);
     exit(-1);
   }
 
-  fd = open(device_name,O_RDWR);
+  fd = open(device_name, O_RDWR);
 
-  if ( (!fd) || (read (fd, &boot, sizeof(struct msdos_boot_sector)) != sizeof(struct msdos_boot_sector)) ) {
-    printf("Error reading from %s\n",device_name);
+  if ((!fd) || (read(fd, &boot, sizeof(struct msdos_boot_sector)) !=
+                 sizeof(struct msdos_boot_sector))) {
+    printf("Error reading from %s\n", device_name);
     exit(-2);
   }
 
-  printf("Summary for device \"%s\", system name \"%s\"\n",device_name, strncpy(string,boot.system_id,8));
-  printf("Bytes per sector:            %10d\n",cvt_c2(boot.sector_size));
-  printf("Sectors per cluster:         %10d\n",boot.cluster_size);
-  printf("FAT copies:                  %10d\n",boot.fats);
-  printf("Sectors per FAT:             %10d\n",boot.fat_length);
-  printf("Reserved sectors:            %10d\n",boot.reserved);
-  if ( cvt_c2(boot.sectors) )
-    printf("Total sectors:               %10d\n",cvt_c2(boot.sectors));
+  printf("Summary for device \"%s\", system name \"%s\"\n",
+    device_name,
+    strncpy(string, boot.system_id, 8));
+  printf("Bytes per sector:            %10d\n", cvt_c2(boot.sector_size));
+  printf("Sectors per cluster:         %10d\n", boot.cluster_size);
+  printf("FAT copies:                  %10d\n", boot.fats);
+  printf("Sectors per FAT:             %10d\n", boot.fat_length);
+  printf("Reserved sectors:            %10d\n", boot.reserved);
+  if (cvt_c2(boot.sectors))
+    printf("Total sectors:               %10d\n", cvt_c2(boot.sectors));
   else
-    printf("Total sectors:               %10ld\n",boot.total_sect);
-  printf("Max. number of root entries: %10d\n",cvt_c2(boot.dir_entries));
-  printf("Sectors per track:           %10d\n",boot.secs_track);
-  printf("Number of heads:             %10d\n",boot.heads);
+    printf("Total sectors:               %10ld\n", boot.total_sect);
+  printf("Max. number of root entries: %10d\n", cvt_c2(boot.dir_entries));
+  printf("Sectors per track:           %10d\n", boot.secs_track);
+  printf("Number of heads:             %10d\n", boot.heads);
 
   /* We are saving (all sizes in sectors):
    *   boot.reserved - any reserved space on the FS, including the boot record
@@ -93,9 +97,11 @@ main(int argc, char ** argv)
    *       - the root directory
    */
   printf("** SWAP saver: \"dd if=%s of=/var/win_swap_header bs=%d count=%d\"\n",
-	 device_name,
-	 cvt_c2(boot.sector_size),
-	 boot.reserved+(boot.fats*boot.fat_length)+(sizeof(struct msdos_dir_entry)*cvt_c2(boot.dir_entries))/cvt_c2(boot.sector_size));
+    device_name,
+    cvt_c2(boot.sector_size),
+    boot.reserved + (boot.fats * boot.fat_length) +
+      (sizeof(struct msdos_dir_entry) * cvt_c2(boot.dir_entries)) /
+        cvt_c2(boot.sector_size));
 
   close(fd);
-}  
+}

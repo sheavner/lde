@@ -1,0 +1,21 @@
+# astyle --options=.astylerc --recursive \*.c \*.h
+# This gets pretty close to the clang-format style if you don't have clang-format
+
+# No backup file suffix, i.e. don't back up the files, since this would just
+# make a mess of the source tree.  If astyle screws up, we'll rely on git.
+suffix=none
+
+--style=mozilla
+--break-one-line-headers
+--convert-tabs
+--unpad-paren
+--pad-header
+# Let's not pad inside
+# --pad-paren-in
+--align-pointer=name
+--indent=spaces=2
+# Not in v3.1
+# --indent-continuation
+# Not a good idea
+# --indent-preproc-block
+--indent-col1-comments

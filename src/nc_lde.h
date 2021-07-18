@@ -8,25 +8,25 @@
 #ifndef LDE_NC_LDE_H
 #define LDE_NC_LDE_H
 
-#include "keymap.h"		/* For lde_keymap struct definition */
+#include "keymap.h" /* For lde_keymap struct definition */
 
 #define LDE_ESC 27
-#define LDE_CTRL(x) ((x)-'A'+1)
-#define LDE_META(x) ((x)|1024)
-#define IS_LDE_CTRL(x) ( ((x)<32)?1:0 )
-#define IS_LDE_META(x) ( (LDE_META(x)==(x))?1:0 )
-#define INV_LDE_CTRL(x) ( (x)+'A'-1 )
-#define INV_LDE_META(x) ( (x)&255 )
+#define LDE_CTRL(x) ((x) - 'A' + 1)
+#define LDE_META(x) ((x) | 1024)
+#define IS_LDE_CTRL(x) (((x) < 32) ? 1 : 0)
+#define IS_LDE_META(x) ((LDE_META(x) == (x)) ? 1 : 0)
+#define INV_LDE_CTRL(x) ((x) + 'A' - 1)
+#define INV_LDE_META(x) ((x)&255)
 
 #define IS_LDE_MOUSE(x) ((x)&2048)
-#define LDE_MOUSEX(x)  (((x)&0xFF000000)>>24)
-#define LDE_MOUSEY(x)  (((x)&0xFF0000)>>16)
+#define LDE_MOUSEX(x) (((x)&0xFF000000) >> 24)
+#define LDE_MOUSEY(x) (((x)&0xFF0000) >> 16)
 
 #define HELP_NO_BANNER 1
 #define HELP_BOXED 2
 #define HELP_WIDE 4
 #define FANCY HELP_BOXED
-#define PLAIN ( HELP_NO_BANNER | HELP_WIDE )
+#define PLAIN (HELP_NO_BANNER | HELP_WIDE)
 
 #define WIN_COL 80
 #if ALPHA_CODE
@@ -35,13 +35,14 @@
 #define HEADER_SIZE 2
 #endif
 #define TRAILER_SIZE 1
-#define VERT (LINES-HEADER_SIZE-TRAILER_SIZE)
-#define HOFF ((COLS-WIN_COL)/2)
+#define VERT (LINES - HEADER_SIZE - TRAILER_SIZE)
+#define HOFF ((COLS - WIN_COL) / 2)
 
 #define HELP_KEY_SIZE 12
 
 /* Curses variables */
-extern int    WHITE_ON_BLUE, WHITE_ON_RED, RED_ON_BLACK, GREEN_ON_BLACK,BLACK_ON_CYAN;
+extern int WHITE_ON_BLUE, WHITE_ON_RED, RED_ON_BLACK, GREEN_ON_BLACK,
+  BLACK_ON_CYAN;
 extern WINDOW *header, *workspace, *trailer;
 
 extern unsigned long current_inode;
@@ -66,7 +67,9 @@ extern void nc_warn(char *fmt, ...);
 extern int error_popup(void);
 extern int do_popup_menu(lde_menu menu[], lde_keymap keys[]);
 extern void do_scroll_help(char **help_text, int fancy);
-extern void do_new_scroll_help(lde_menu help_text[], lde_keymap *kmap, int fancy);
+extern void do_new_scroll_help(lde_menu help_text[],
+  lde_keymap *kmap,
+  int fancy);
 extern char *three_text_keys(int c, lde_keymap *kmap);
 extern void show_super(void);
 extern void flag_popup(void);
