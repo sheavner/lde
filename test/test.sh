@@ -7,10 +7,16 @@
 #
 ##################################################################
 
+START_DIR="${PWD}"
+
 cd "${0%/*}"
 
 # Configuration ----------------------
-if [ -f ../lde -a -x ../lde ] ; then
+if [ x${CI_CMAKE_BIN_PATH} != x -a -f "${CI_CMAKE_BIN_PATH}/lde" -a -x "${CI_CMAKE_BIN_PATH}/lde" ] ; then
+  LDE="${CI_CMAKE_BIN_PATH}/lde"
+elif [ x${START_DIR} != x -a -f "${START_DIR}/lde" -a -x "${START_DIR}/lde" ] ; then
+  LDE="${START_DIR}/lde"
+elif [ -f ../lde -a -x ../lde ] ; then
   LDE=../lde
 elif [ -f ../lde/lde -a -x ../lde/lde ] ; then
   LDE=../lde/lde

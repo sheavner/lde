@@ -66,40 +66,39 @@ add_custom_target(tar
   EXCLUDE_FROM_ALL)
 
 enable_testing()
-# add_test(all_tests ./test/test.sh)
-add_test(SEARCH_EXT2_MAGIC ./test/test.sh SEARCH_EXT2_MAGIC)
-add_test(SEARCH_MINIX_MAGIC ./test/test.sh SEARCH_MINIX_MAGIC)
-add_test(SEARCH_XIAFS_MAGIC ./test/test.sh SEARCH_XIAFS_MAGIC)
+add_test(SEARCH_EXT2_MAGIC ${CMAKE_SOURCE_DIR}/test/test.sh SEARCH_EXT2_MAGIC)
+add_test(SEARCH_MINIX_MAGIC ${CMAKE_SOURCE_DIR}/test/test.sh SEARCH_MINIX_MAGIC)
+add_test(SEARCH_XIAFS_MAGIC ${CMAKE_SOURCE_DIR}/test/test.sh SEARCH_XIAFS_MAGIC)
 
-add_test(EXT2_INODE2 ./test/test.sh EXT2_INODE2)
-add_test(MINIX_INODE2 ./test/test.sh MINIX_INODE2)
-add_test(XIAFS_INODE2 ./test/test.sh XIAFS_INODE2)
+add_test(EXT2_INODE2 ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_INODE2)
+add_test(MINIX_INODE2 ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_INODE2)
+add_test(XIAFS_INODE2 ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_INODE2)
 
-add_test(EXT2_BLOCK55 ./test/test.sh EXT2_BLOCK55)
-add_test(MINIX_BLOCK15 ./test/test.sh MINIX_BLOCK15)
-add_test(XIAFS_BLOCK55 ./test/test.sh XIAFS_BLOCK55)
+add_test(EXT2_BLOCK55 ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_BLOCK55)
+add_test(MINIX_BLOCK15 ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_BLOCK15)
+add_test(XIAFS_BLOCK55 ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_BLOCK55)
 
-add_test(EXT2_BLOCK55_FORCE_EXT2 ./test/test.sh EXT2_BLOCK55_FORCE_EXT2)
-add_test(EXT2_BLOCK55_FORCE_MSDOS ./test/test.sh EXT2_BLOCK55_FORCE_MSDOS)
+add_test(EXT2_BLOCK55_FORCE_EXT2 ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_BLOCK55_FORCE_EXT2)
+add_test(EXT2_BLOCK55_FORCE_MSDOS ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_BLOCK55_FORCE_MSDOS)
 
-add_test(EXT2_SUPERSCAN ./test/test.sh EXT2_SUPERSCAN)
-add_test(XIAFS_SUPERSCAN ./test/test.sh XIAFS_SUPERSCAN)
-add_test(MINIX_SUPERSCAN ./test/test.sh MINIX_SUPERSCAN)
+add_test(EXT2_SUPERSCAN ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_SUPERSCAN)
+add_test(XIAFS_SUPERSCAN ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_SUPERSCAN)
+add_test(MINIX_SUPERSCAN ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_SUPERSCAN)
 
-add_test(EXT2_ILOOKUP ./test/test.sh EXT2_ILOOKUP)
-add_test(XIAFS_ILOOKUP ./test/test.sh XIAFS_ILOOKUP)
-add_test(MINIX_ILOOKUP ./test/test.sh MINIX_ILOOKUP)
+add_test(EXT2_ILOOKUP ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_ILOOKUP)
+add_test(XIAFS_ILOOKUP ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_ILOOKUP)
+add_test(MINIX_ILOOKUP ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_ILOOKUP)
 
-add_test(EXT2_ILOOKUPALL ./test/test.sh EXT2_ILOOKUPALL)
-add_test(XIAFS_ILOOKUPALL ./test/test.sh XIAFS_ILOOKUPALL)
-add_test(MINIX_ILOOKUPALL ./test/test.sh MINIX_ILOOKUPALL)
+add_test(EXT2_ILOOKUPALL ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_ILOOKUPALL)
+add_test(XIAFS_ILOOKUPALL ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_ILOOKUPALL)
+add_test(MINIX_ILOOKUPALL ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_ILOOKUPALL)
 
-add_test(MINIX_RECOVER ./test/test.sh MINIX_RECOVER)
-add_test(XIAFS_RECOVER ./test/test.sh XIAFS_RECOVER)
+add_test(MINIX_RECOVER ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_RECOVER)
+add_test(XIAFS_RECOVER ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_RECOVER)
 
-add_test(EXT2_INDIRECTS ./test/test.sh EXT2_INDIRECTS)
-add_test(XIAFS_INDIRECTS ./test/test.sh XIAFS_INDIRECTS)
-add_test(MINIX_INDIRECTS ./test/test.sh MINIX_INDIRECTS)
+add_test(EXT2_INDIRECTS ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_INDIRECTS)
+add_test(XIAFS_INDIRECTS ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_INDIRECTS)
+add_test(MINIX_INDIRECTS ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_INDIRECTS)
 
 # INCLUDES
 
