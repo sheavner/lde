@@ -1,3 +1,6 @@
+[![CMake](https://github.com/sheavner/lde/actions/workflows/cmake.yml/badge.svg)](https://github.com/sheavner/lde/actions/workflows/cmake.yml)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/23407/badge.svg)](https://scan.coverity.com/projects/sheavner-lde)
+
 This is lde, the Linux disk editor, for Minix/Linux
 partitions.  It supports what were once the three most
 popular file systems under Linux: ext2fs, minix, and xiafs (there is
