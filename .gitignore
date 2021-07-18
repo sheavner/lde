@@ -6,6 +6,8 @@ getdate.c
 getdate.h
 CMakeFiles
 CMakeCache.txt
+CTestTestfile.cmake
 cmake_install.cmake
+Testing
 crash_recovery/find_ext2_fs
 crash_recovery/find_ext2_fs.exe
