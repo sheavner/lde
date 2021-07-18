@@ -1,5 +1,7 @@
 [![CMake](https://github.com/sheavner/lde/actions/workflows/cmake.yml/badge.svg)](https://github.com/sheavner/lde/actions/workflows/cmake.yml)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/23407/badge.svg)](https://scan.coverity.com/projects/sheavner-lde)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/sheavner/lde.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sheavner/lde/alerts/)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/sheavner/lde.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sheavner/lde/context:cpp)
 
 This is lde, the Linux disk editor, for Minix/Linux
 partitions.  It supports what were once the three most
