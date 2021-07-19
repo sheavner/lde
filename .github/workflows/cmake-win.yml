@@ -1,4 +1,4 @@
-name: CMake-Win-VS
+name: CMake-MSVS
 
 on:
   push:
