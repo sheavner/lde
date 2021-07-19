@@ -43,13 +43,15 @@ elif [ -f ../lde/lde${EXE} -a -x ../lde/lde${EXE} ] ; then
   LDE=../lde/lde${EXE}
 else
   echo "Can't find lde executable, aborting test."
-  echo "EXE=${EXE}"
-  echo "LDE=${LDE}"
-  echo "CI_CMAKE_BIN_PATH=${CI_CMAKE_BIN_PATH}"
-  echo "START_DIR=${START_DIR}"
-  echo "ls = $(ls)"
-  echo "ls CI_CMAKE_BIN_PATH = $(ls ${CI_CMAKE_BIN_PATH})"
-  echo "ls START_DIR = $(find ${START_DIR})"
+  if [ x$VERBOSE = x1 ] ; then
+    echo "EXE=${EXE}"
+    echo "LDE=${LDE}"
+    echo "CI_CMAKE_BIN_PATH=${CI_CMAKE_BIN_PATH}"
+    echo "START_DIR=${START_DIR}"
+    echo "ls = $(ls)"
+    echo "ls CI_CMAKE_BIN_PATH = $(ls ${CI_CMAKE_BIN_PATH})"
+    echo "ls START_DIR = $(find ${START_DIR})"
+  fi
   exit 1
 fi
 
@@ -78,42 +80,48 @@ function ldetest {
     return
   fi
 
-  success=0
+  status=0
 
-  num=$1
+  label=$1
   shift
 
   if [ x$VERBOSE = x1 ] ; then
-	echo -n "Test: $num ... "
+    echo -n "Test: $label ... "
   fi
 
-  TMPFILE=results/${num}.$$
+  TMPFILE=results/${label}.$$
 
   "$@" > $TMPFILE 2>&1
   exit_status=$?
   if [ ${expected_status} == F -a ${exit_status} == 0 ] || [ ${expected_status} == 0 -a ${exit_status} != 0 ] ; then
-	success='Execution not as expected.'
-  elif ! $DIFF $TMPFILE expected/${num} > results/diff1.$$ 2>&1 ; then
-	success='Unexpected output.'
-  elif [ -f results/${num} ] ; then
-	if ! $DIFF results/${num} expected/${num}_RESULTS > results/diff2.$$ 2>&1 ; then
-		success='Unexpected results.'
-	fi
+    status="Execution status [${exit_status}] not as expected [${expected_status}]."
+  elif ! $DIFF $TMPFILE expected/${label} > results/diff1.$$ 2>&1 ; then
+    status='Unexpected output.'
+    if [ x$VERBOSE = x1 ] ; then
+      cat results/diff1.$$
+    fi
+  elif [ -f results/${label} ] ; then
+    if ! $DIFF results/${label} expected/${label}_RESULTS > results/diff2.$$ 2>&1 ; then
+      status='Unexpected results.'
+      if [ x$VERBOSE = x1 ] ; then
+        cat results/diff2.$$
+      fi
+    fi
   fi
 
-  if [ "x$success" != "x0" ] ; then
-	echo "*** $success ***************"
-	if [ x$STOPONERROR = x1 ] ; then	
-		exit
-	fi
+  if [ "x$status" != "x0" ] ; then
+    echo "*** $status ***************"
+    if [ x$STOPONERROR = x1 ] ; then
+      exit 1
+    fi
   else
-	if [ x$VERBOSE = x1 ] ; then
-		echo ok
-	fi
-  	let SUCCESS=$SUCCESS+1
+    if [ x$VERBOSE = x1 ] ; then
+      echo ok
+    fi
+    let SUCCESS=$SUCCESS+1
   fi
   if [ x$RETAIN != x1 ] ; then
-    $RM $TMPFILE results/diff1.$$ results/diff2.$$ results/${num}
+    $RM $TMPFILE results/diff1.$$ results/diff2.$$ results/${label}
   fi
 
   let TESTS=$TESTS+1
@@ -165,8 +173,7 @@ ldetest 0 MINIX_INDIRECTS "$LDE" -j test.minix
 echo ${SUCCESS} of ${TESTS} tests completed successfully
 
 if [ x$SUCCESS != x$TESTS ] ; then
-	exit $SUCCESS
+  exit $SUCCESS
 fi
 
 exit 0
-
