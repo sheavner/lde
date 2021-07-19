@@ -101,10 +101,6 @@ struct _lde_typedata lde_typedata[] = LDE_ALLTYPES;
 /* Check if device is mounted, return 1 if is mounted else 0 */
 static int check_mount(char *name)
 {
-#ifdef _MSC_VER
-  lde_flags.mounted = 0;
-  return lde_flags.mounted;
-#else
   int fd = open("/etc/mtab", O_RDONLY | O_BINARY);
   if (fd > 0) {
     struct stat statbuf;
@@ -130,11 +126,10 @@ static int check_mount(char *name)
     }
     free(mtab);
   } else {
-    lde_warn("Cannot open /etc/mtab cannot check if mounted, errno=%d [%s]", errno, strerror(errno));
+    /* lde_warn("Cannot open /etc/mtab cannot check if mounted, errno=%d [%s]", errno, strerror(errno)); */
     lde_flags.mounted = 0;
   }
   return lde_flags.mounted;
-#endif
 }
 
 /* Define a handler for Interrupt signals: Ctrl-C */

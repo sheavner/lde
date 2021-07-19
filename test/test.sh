@@ -7,20 +7,35 @@
 #
 ##################################################################
 
+# Configuration ----------------------
+DIFF="diff -b"
+RM="rm -f"
+if [ "x${VERBOSE}" = x ] ; then
+  VERBOSE=1
+fi
+if [ "x${ECHO_CMDS}" = x ] ; then
+  ECHO_CMDS=0
+fi
+if [ "x${RETAIN}" = x ] ; then
+  RETAIN=0
+fi
+if [ "x${STOPONERROR}" = x ] ; then
+  STOPONERROR=0
+fi
+if [ "x${LDE_TEST_TZ}" != "x" ] ; then
+  export TZ="${LDE_TEST_TZ}"
+fi
+# End Configuration ------------------
+
 START_DIR="${PWD}"
 
 cd "${0%/*}"
 
-if [ "x${LDE_TEST_TZ}" != "x" ] ; then
-  export TZ="${LDE_TEST_TZ}"
-fi
-
-# Configuration ----------------------
-if [ x"${LDE}" != x -a -f "${LDE}" -a -x "${LDE}" ] ; then
+if [ "x${LDE}" != x -a -f "${LDE}" -a -x "${LDE}" ] ; then
   true # use env variable
-elif [ x${CI_CMAKE_BIN_PATH} != x -a -f "${CI_CMAKE_BIN_PATH}/lde${EXE}" -a -x "${CI_CMAKE_BIN_PATH}/lde${EXE}" ] ; then
+elif [ "x${CI_CMAKE_BIN_PATH}" != x -a -f "${CI_CMAKE_BIN_PATH}/lde${EXE}" -a -x "${CI_CMAKE_BIN_PATH}/lde${EXE}" ] ; then
   LDE="${CI_CMAKE_BIN_PATH}/lde${EXE}"
-elif [ x${START_DIR} != x -a -f "${START_DIR}/lde${EXE}" -a -x "${START_DIR}/lde${EXE}" ] ; then
+elif [ "x${START_DIR}" != x -a -f "${START_DIR}/lde${EXE}" -a -x "${START_DIR}/lde${EXE}" ] ; then
   LDE="${START_DIR}/lde${EXE}"
 elif [ -f ../lde${EXE} -a -x ../lde${EXE} ] ; then
   LDE=../lde${EXE}
@@ -28,15 +43,15 @@ elif [ -f ../lde/lde${EXE} -a -x ../lde/lde${EXE} ] ; then
   LDE=../lde/lde${EXE}
 else
   echo "Can't find lde executable, aborting test."
+  echo "EXE=${EXE}"
+  echo "LDE=${LDE}"
+  echo "CI_CMAKE_BIN_PATH=${CI_CMAKE_BIN_PATH}"
+  echo "START_DIR=${START_DIR}"
+  echo "ls = $(ls)"
+  echo "ls CI_CMAKE_BIN_PATH = $(ls '${CI_CMAKE_BIN_PATH}')"
+  echo "ls START_DIR = $(ls '${START_DIR}')"
   exit 1
 fi
-DIFF="diff -b"
-RM="rm -f"
-VERBOSE=1
-ECHO_CMDS=0
-RETAIN=0
-STOPONERROR=0
-# End Configuration ------------------
 
 ONETEST=
 if [ x$1 != x ] ; then
