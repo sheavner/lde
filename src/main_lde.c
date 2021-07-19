@@ -138,7 +138,7 @@ static int check_mount(char *name)
 }
 
 /* Define a handler for Interrupt signals: Ctrl-C */
-static void handle_sigint(int a, void *b, void *c)
+static void handle_sigint(int a)
 {
   lde_flags.quit_now = 1;
 }
@@ -486,7 +486,7 @@ int main(int argc, char **argv)
 
   /* Set things up to handle control-c:  just sets lde_flags.quit_now to 1 */
   sigemptyset(&sa_mask);
-  intaction.sa_handler = (__sighandler_t)handle_sigint;
+  intaction.sa_handler = handle_sigint;
   intaction.sa_mask = sa_mask;
   intaction.sa_flags = SA_RESTART;
   sigaction(SIGINT, &intaction, NULL);
