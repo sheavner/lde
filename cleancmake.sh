@@ -1,2 +1,2 @@
 #/bin/sh
-rm -rf CMakeCache.txt  CMakeFiles/ cmake_install.cmake CTestTestfile.cmake Testing
+rm -rf CMakeCache.txt  CMakeFiles/ cmake_install.cmake CTestTestfile.cmake Testing test/results/*
