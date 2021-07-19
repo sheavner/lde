@@ -49,7 +49,7 @@ else
   echo "START_DIR=${START_DIR}"
   echo "ls = $(ls)"
   echo "ls CI_CMAKE_BIN_PATH = $(ls ${CI_CMAKE_BIN_PATH})"
-  echo "ls START_DIR = $(ls ${START_DIR})"
+  echo "ls START_DIR = $(find ${START_DIR})"
   exit 1
 fi
 
