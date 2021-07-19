@@ -64,39 +64,36 @@ endif(BISON_FOUND)
 # TESTS
 
 enable_testing()
-add_test(SEARCH_EXT2_MAGIC ${CMAKE_SOURCE_DIR}/test/test.sh SEARCH_EXT2_MAGIC)
-add_test(SEARCH_MINIX_MAGIC ${CMAKE_SOURCE_DIR}/test/test.sh SEARCH_MINIX_MAGIC)
-add_test(SEARCH_XIAFS_MAGIC ${CMAKE_SOURCE_DIR}/test/test.sh SEARCH_XIAFS_MAGIC)
+list(APPEND TESTING_SHELL "bash" "-c")
+function(add_lde_test name)
+  add_test(${name} ${TESTING_SHELL} "${CMAKE_SOURCE_DIR}/test/test.sh ${name}")
+endfunction(add_lde_test name)
 
-add_test(EXT2_INODE2 bash ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_INODE2)
-add_test(MINIX_INODE2 ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_INODE2)
-add_test(XIAFS_INODE2 ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_INODE2)
-
-add_test(EXT2_BLOCK55 ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_BLOCK55)
-add_test(MINIX_BLOCK15 ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_BLOCK15)
-add_test(XIAFS_BLOCK55 ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_BLOCK55)
-
-add_test(EXT2_BLOCK55_FORCE_EXT2 ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_BLOCK55_FORCE_EXT2)
-add_test(EXT2_BLOCK55_FORCE_MSDOS ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_BLOCK55_FORCE_MSDOS)
-
-add_test(EXT2_SUPERSCAN ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_SUPERSCAN)
-add_test(XIAFS_SUPERSCAN ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_SUPERSCAN)
-add_test(MINIX_SUPERSCAN ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_SUPERSCAN)
-
-add_test(EXT2_ILOOKUP ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_ILOOKUP)
-add_test(XIAFS_ILOOKUP ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_ILOOKUP)
-add_test(MINIX_ILOOKUP ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_ILOOKUP)
-
-add_test(EXT2_ILOOKUPALL ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_ILOOKUPALL)
-add_test(XIAFS_ILOOKUPALL ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_ILOOKUPALL)
-add_test(MINIX_ILOOKUPALL ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_ILOOKUPALL)
-
-add_test(MINIX_RECOVER ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_RECOVER)
-add_test(XIAFS_RECOVER ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_RECOVER)
-
-add_test(EXT2_INDIRECTS ${CMAKE_SOURCE_DIR}/test/test.sh EXT2_INDIRECTS)
-add_test(XIAFS_INDIRECTS ${CMAKE_SOURCE_DIR}/test/test.sh XIAFS_INDIRECTS)
-add_test(MINIX_INDIRECTS ${CMAKE_SOURCE_DIR}/test/test.sh MINIX_INDIRECTS)
+add_lde_test(SEARCH_EXT2_MAGIC)
+add_lde_test(SEARCH_MINIX_MAGIC)
+add_lde_test(SEARCH_XIAFS_MAGIC)
+add_lde_test(EXT2_INODE2)
+add_lde_test(MINIX_INODE2)
+add_lde_test(XIAFS_INODE2)
+add_lde_test(EXT2_BLOCK55)
+add_lde_test(MINIX_BLOCK15)
+add_lde_test(XIAFS_BLOCK55)
+add_lde_test(EXT2_BLOCK55_FORCE_EXT2)
+add_lde_test(EXT2_BLOCK55_FORCE_MSDOS)
+add_lde_test(EXT2_SUPERSCAN)
+add_lde_test(XIAFS_SUPERSCAN)
+add_lde_test(MINIX_SUPERSCAN)
+add_lde_test(EXT2_ILOOKUP)
+add_lde_test(XIAFS_ILOOKUP)
+add_lde_test(MINIX_ILOOKUP)
+add_lde_test(EXT2_ILOOKUPALL)
+add_lde_test(XIAFS_ILOOKUPALL)
+add_lde_test(MINIX_ILOOKUPALL)
+add_lde_test(MINIX_RECOVER)
+add_lde_test(XIAFS_RECOVER)
+add_lde_test(EXT2_INDIRECTS)
+add_lde_test(XIAFS_INDIRECTS)
+add_lde_test(MINIX_INDIRECTS)
 
 # INCLUDES
 

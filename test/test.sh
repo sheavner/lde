@@ -18,14 +18,14 @@ fi
 # Configuration ----------------------
 if [ x"${LDE}" != x -a -f "${LDE}" -a -x "${LDE}" ] ; then
   true # use env variable
-elif [ x${CI_CMAKE_BIN_PATH} != x -a -f "${CI_CMAKE_BIN_PATH}/lde" -a -x "${CI_CMAKE_BIN_PATH}/lde" ] ; then
-  LDE="${CI_CMAKE_BIN_PATH}/lde"
-elif [ x${START_DIR} != x -a -f "${START_DIR}/lde" -a -x "${START_DIR}/lde" ] ; then
-  LDE="${START_DIR}/lde"
-elif [ -f ../lde -a -x ../lde ] ; then
-  LDE=../lde
-elif [ -f ../lde/lde -a -x ../lde/lde ] ; then
-  LDE=../lde/lde
+elif [ x${CI_CMAKE_BIN_PATH} != x -a -f "${CI_CMAKE_BIN_PATH}/lde${EXE}" -a -x "${CI_CMAKE_BIN_PATH}/lde${EXE}" ] ; then
+  LDE="${CI_CMAKE_BIN_PATH}/lde${EXE}"
+elif [ x${START_DIR} != x -a -f "${START_DIR}/lde${EXE}" -a -x "${START_DIR}/lde${EXE}" ] ; then
+  LDE="${START_DIR}/lde${EXE}"
+elif [ -f ../lde${EXE} -a -x ../lde${EXE} ] ; then
+  LDE=../lde${EXE}
+elif [ -f ../lde/lde${EXE} -a -x ../lde/lde${EXE} ] ; then
+  LDE=../lde/lde${EXE}
 else
   echo "Can't find lde executable, aborting test."
   exit 1
