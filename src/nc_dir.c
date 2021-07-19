@@ -7,6 +7,8 @@
  *  $Id: nc_dir.c,v 1.24 2002/05/29 06:02:08 scottheavner Exp $
  */
 
+#include "lde_config.h"
+
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -262,7 +264,7 @@ static int get_inode_info(unsigned long inode_nr, lde_buffer *buffer)
 #endif /* JQDIR */
   buffer->size = GInode->i_size + sb->blocksize;
   buffer->start = malloc(buffer->size);
-  bzero(buffer->start, (int)buffer->size);
+  memset(buffer->start, 0, (int)buffer->size);
   c = count = 0UL;
 
   while (count < GInode->i_size) {

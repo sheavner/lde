@@ -20,17 +20,17 @@
 
 struct xiafs_inode
 { /* 64 bytes */
-  __u16 i_mode;
-  __u16 i_nlinks;
-  __u16 i_uid;
-  __u16 i_gid;
-  __u32 i_size; /* 8 */
-  __u32 i_ctime;
-  __u32 i_atime;
-  __u32 i_mtime;
-  __u32 i_zone[8];
-  __u32 i_ind_zone;
-  __u32 i_dind_zone;
+  uint16_t i_mode;
+  uint16_t i_nlinks;
+  uint16_t i_uid;
+  uint16_t i_gid;
+  uint32_t i_size; /* 8 */
+  uint32_t i_ctime;
+  uint32_t i_atime;
+  uint32_t i_mtime;
+  uint32_t i_zone[8];
+  uint32_t i_ind_zone;
+  uint32_t i_dind_zone;
 };
 
 /*
@@ -38,31 +38,31 @@ struct xiafs_inode
  */
 struct xiafs_super_block
 {
-  __u8 s_boot_segment[512]; /*  1st sector reserved for boot */
-  __u32 s_zone_size;        /*  0: the name says it		 */
-  __u32 s_nzones;           /*  1: volume size, zone aligned */
-  __u32 s_ninodes;          /*  2: # of inodes		 */
-  __u32 s_ndatazones;       /*  3: # of data zones		 */
-  __u32 s_imap_zones;       /*  4: # of imap zones           */
-  __u32 s_zmap_zones;       /*  5: # of zmap zones		 */
-  __u32 s_firstdatazone;    /*  6: first data zone           */
-  __u32 s_zone_shift;       /*  7: z size = 1KB << z shift   */
-  __u32 s_max_size;         /*  8: max size of a single file */
-  __u32 s_reserved0;        /*  9: reserved			 */
-  __u32 s_reserved1;        /* 10: 				 */
-  __u32 s_reserved2;        /* 11:				 */
-  __u32 s_reserved3;        /* 12:				 */
-  __u32 s_firstkernzone;    /* 13: first kernel zone	 */
-  __u32 s_kernzones;        /* 14: kernel size in zones	 */
-  __u32 s_magic;            /* 15: magic number for xiafs    */
+  uint8_t s_boot_segment[512]; /*  1st sector reserved for boot */
+  uint32_t s_zone_size;        /*  0: the name says it		 */
+  uint32_t s_nzones;           /*  1: volume size, zone aligned */
+  uint32_t s_ninodes;          /*  2: # of inodes		 */
+  uint32_t s_ndatazones;       /*  3: # of data zones		 */
+  uint32_t s_imap_zones;       /*  4: # of imap zones           */
+  uint32_t s_zmap_zones;       /*  5: # of zmap zones		 */
+  uint32_t s_firstdatazone;    /*  6: first data zone           */
+  uint32_t s_zone_shift;       /*  7: z size = 1KB << z shift   */
+  uint32_t s_max_size;         /*  8: max size of a single file */
+  uint32_t s_reserved0;        /*  9: reserved			 */
+  uint32_t s_reserved1;        /* 10: 				 */
+  uint32_t s_reserved2;        /* 11:				 */
+  uint32_t s_reserved3;        /* 12:				 */
+  uint32_t s_firstkernzone;    /* 13: first kernel zone	 */
+  uint32_t s_kernzones;        /* 14: kernel size in zones	 */
+  uint32_t s_magic;            /* 15: magic number for xiafs    */
 };
 
 struct xiafs_direct
 {
-  __u32 d_ino;
-  __u16 d_rec_len;
-  __u8 d_name_len;
-  __s8 d_name[_XIAFS_NAME_LEN + 1];
+  uint32_t d_ino;
+  uint16_t d_rec_len;
+  uint8_t d_name_len;
+  int8_t d_name[_XIAFS_NAME_LEN + 1];
 };
 
 /*

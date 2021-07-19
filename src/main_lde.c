@@ -6,6 +6,8 @@
  *  $Id: main_lde.c,v 1.53 2003/12/07 05:55:47 scottheavner Exp $
  */
 
+#include "lde_config.h"
+
 #include <signal.h>
 #if HAVE_ERRNO_H
 #include <errno.h>
@@ -15,9 +17,6 @@
 #endif
 #if HAVE_FCNTL_H
 #include <fcntl.h>
-#endif
-#if HAVE_SYS_FCNTL_H
-#include <sys/fcntl.h>
 #endif
 #if HAVE_IO_H
 #include <io.h>
@@ -43,10 +42,6 @@
 
 #ifdef HAVE_CURSES
 #include "nc_lde.h"
-#endif
-
-#ifndef __sighandler_t
-#define __sighandler_t void *
 #endif
 
 /* Some internal structures */

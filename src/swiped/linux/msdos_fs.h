@@ -13,9 +13,6 @@
  * #include <asm/byteorder.h>
 */
 #include <sys/types.h>
-#if HAVE_ASM_TYPES_H
-#include <asm/types.h>
-#endif
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -118,67 +115,67 @@
 
 struct fat_boot_sector
 {
-  __s8 ignored[3];     /* Boot strap short or near jump */
-  __s8 system_id[8];   /* Name - can be used to special case
+  int8_t ignored[3];     /* Boot strap short or near jump */
+  int8_t system_id[8];   /* Name - can be used to special case
 				   partition manager volumes */
-  __u8 sector_size[2]; /* bytes per logical sector */
-  __u8 cluster_size;   /* sectors/cluster */
-  __u16 reserved;      /* reserved sectors */
-  __u8 fats;           /* number of FATs */
-  __u8 dir_entries[2]; /* root directory entries */
-  __u8 sectors[2];     /* number of sectors */
-  __u8 media;          /* media code (unused) */
-  __u16 fat_length;    /* sectors/FAT */
-  __u16 secs_track;    /* sectors per track */
-  __u16 heads;         /* number of heads */
-  __u32 hidden;        /* hidden sectors (unused) */
-  __u32 total_sect;    /* number of sectors (if sectors == 0) */
+  uint8_t sector_size[2]; /* bytes per logical sector */
+  uint8_t cluster_size;   /* sectors/cluster */
+  uint16_t reserved;      /* reserved sectors */
+  uint8_t fats;           /* number of FATs */
+  uint8_t dir_entries[2]; /* root directory entries */
+  uint8_t sectors[2];     /* number of sectors */
+  uint8_t media;          /* media code (unused) */
+  uint16_t fat_length;    /* sectors/FAT */
+  uint16_t secs_track;    /* sectors per track */
+  uint16_t heads;         /* number of heads */
+  uint32_t hidden;        /* hidden sectors (unused) */
+  uint32_t total_sect;    /* number of sectors (if sectors == 0) */
 
   /* The following fields are only used by FAT32 */
-  __u32 fat32_length; /* sectors/FAT */
-  __u16 flags;        /* bit 8: fat mirroring, low 4: active fat */
-  __u8 version[2];    /* major, minor filesystem version */
-  __u32 root_cluster; /* first cluster in root directory */
-  __u16 info_sector;  /* filesystem info sector */
-  __u16 backup_boot;  /* backup boot sector */
-  __u16 reserved2[6]; /* Unused */
+  uint32_t fat32_length; /* sectors/FAT */
+  uint16_t flags;        /* bit 8: fat mirroring, low 4: active fat */
+  uint8_t version[2];    /* major, minor filesystem version */
+  uint32_t root_cluster; /* first cluster in root directory */
+  uint16_t info_sector;  /* filesystem info sector */
+  uint16_t backup_boot;  /* backup boot sector */
+  uint16_t reserved2[6]; /* Unused */
 };
 
 struct fat_boot_fsinfo
 {
-  __u32 reserved1;     /* Nothing as far as I can tell */
-  __u32 signature;     /* 0x61417272L */
-  __u32 free_clusters; /* Free cluster count.  -1 if unknown */
-  __u32 next_cluster;  /* Most recently allocated cluster.
+  uint32_t reserved1;     /* Nothing as far as I can tell */
+  uint32_t signature;     /* 0x61417272L */
+  uint32_t free_clusters; /* Free cluster count.  -1 if unknown */
+  uint32_t next_cluster;  /* Most recently allocated cluster.
 				 * Unused under Linux. */
-  __u32 reserved2[4];
+  uint32_t reserved2[4];
 };
 
 struct msdos_dir_entry
 {
-  __s8 name[8], ext[3];    /* name and extension */
-  __u8 attr;               /* attribute bits */
-  __u8 lcase;              /* Case for base and extension */
-  __u8 ctime_ms;           /* Creation time, milliseconds */
-  __u16 ctime;             /* Creation time */
-  __u16 cdate;             /* Creation date */
-  __u16 adate;             /* Last access date */
-  __u16 starthi;           /* High 16 bits of cluster in FAT32 */
-  __u16 time, date, start; /* time, date and first cluster */
-  __u32 size;              /* file size (in bytes) */
+  int8_t name[8], ext[3];    /* name and extension */
+  uint8_t attr;               /* attribute bits */
+  uint8_t lcase;              /* Case for base and extension */
+  uint8_t ctime_ms;           /* Creation time, milliseconds */
+  uint16_t ctime;             /* Creation time */
+  uint16_t cdate;             /* Creation date */
+  uint16_t adate;             /* Last access date */
+  uint16_t starthi;           /* High 16 bits of cluster in FAT32 */
+  uint16_t time, date, start; /* time, date and first cluster */
+  uint32_t size;              /* file size (in bytes) */
 };
 
 /* Up to 13 characters of the name */
 struct msdos_dir_slot
 {
-  __u8 id;             /* sequence number for slot */
-  __u8 name0_4[10];    /* first 5 characters in name */
-  __u8 attr;           /* attribute byte */
-  __u8 reserved;       /* always 0 */
-  __u8 alias_checksum; /* checksum for 8.3 alias */
-  __u8 name5_10[12];   /* 6 more characters in name */
-  __u16 start;         /* starting cluster number, 0 in long slots */
-  __u8 name11_12[4];   /* last 2 characters in name */
+  uint8_t id;             /* sequence number for slot */
+  uint8_t name0_4[10];    /* first 5 characters in name */
+  uint8_t attr;           /* attribute byte */
+  uint8_t reserved;       /* always 0 */
+  uint8_t alias_checksum; /* checksum for 8.3 alias */
+  uint8_t name5_10[12];   /* 6 more characters in name */
+  uint16_t start;         /* starting cluster number, 0 in long slots */
+  uint8_t name11_12[4];   /* last 2 characters in name */
 };
 
 #if 0
@@ -219,11 +216,11 @@ extern void lock_fat(struct super_block *sb);
 extern void unlock_fat(struct super_block *sb);
 extern int fat_add_cluster(struct inode *inode);
 extern struct buffer_head *fat_add_cluster1(struct inode *inode);
-extern int date_dos2unix(__u16 time, __u16 date);
+extern int date_dos2unix(uint16_t time, uint16_t date);
 extern void fat_fs_panic(struct super_block *s, const char *msg);
 extern void fat_lock_creation(void);
 extern void fat_unlock_creation(void);
-extern void fat_date_unix2dos(int unix_date, __u16 *time, __u16 *date);
+extern void fat_date_unix2dos(int unix_date, uint16_t *time, uint16_t *date);
 extern int fat__get_entry(struct inode *dir,
   loff_t *pos,
   struct buffer_head **bh,

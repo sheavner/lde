@@ -14,30 +14,29 @@
  *  Inode => FAT
  */
 
+#include "lde_config.h"
+
+#if HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+#if HAVE_IO_H
+#include <io.h>
+#endif
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#if HAVE_FCNTL_H
-#include <fcntl.h>
-#endif
-#if HAVE_SYS_FCNTL_H
-#include <sys/fcntl.h>
-#endif
-#if HAVE_IO_H
-#include <io.h>
-#endif
 
 #include "lde.h"
 
 #include "swiped/linux/msdos_fs.h"
 
-#include "no_fs.h"
 #include "msdos_fs.h"
-#include "tty_lde.h"
+#include "no_fs.h"
 #include "recover.h"
+#include "tty_lde.h"
 
 /* Hack for redefinition of msdos_boot_sector by some rogue patch? */
 #ifdef MSDOS_BS_NAMED_FAT
@@ -248,7 +247,7 @@ static int DOS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
   struct msdos_dir_slot *slot;
   int retval = 0;
 
-  bzero(d, sizeof(lde_dirent));
+  memset(d, 0, sizeof(lde_dirent));
   d->name = cname;
 
   if (((long)i) * sb->dirsize >= block_buffer->size) {

@@ -6,6 +6,8 @@
  *  $Id: nc_lde.c,v 1.44 2003/12/07 05:55:47 scottheavner Exp $
  */
 
+#include "lde_config.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -14,9 +16,6 @@
 #endif
 #if HAVE_FCNTL_H
 #include <fcntl.h>
-#endif
-#if HAVE_SYS_FCNTL_H
-#include <sys/fcntl.h>
 #endif
 #include <stdarg.h>
 
@@ -930,7 +929,7 @@ int recover_mode(void)
           fake_inode_zones[INODE_BLKS] = (unsigned long)a;
         break;
       case CMD_CLR_RECOVER:
-        bzero((char *)fake_inode_zones, sizeof(long) * (INODE_BLKS + 1));
+        memset((char *)fake_inode_zones, 0, sizeof(long) * (INODE_BLKS + 1));
         break;
       case CMD_BLOCK_MODE:
       case CMD_VIEW_SUPER:
@@ -1138,7 +1137,7 @@ char *text_key(int c, lde_keymap *kmap, int skip)
         return return_string;
 
       return_string = stat_return_string;
-      bzero(return_string, 5);
+      memset(return_string, 0, 5);
 
       /* Look for meta and ctrl keys */
       if (IS_LDE_META(c)) {
@@ -1246,7 +1245,7 @@ void interactive_main(void)
 #endif
 
   /* Clear out restore buffer */
-  bzero((void *)fake_inode_zones, sizeof(long) * (INODE_BLKS + 1));
+  memset((void *)fake_inode_zones, 0, sizeof(long) * (INODE_BLKS + 1));
 
   /* Our three curses windows */
 #if HEADER_SIZE > 0

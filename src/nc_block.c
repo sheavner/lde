@@ -6,6 +6,8 @@
  *  $Id: nc_block.c,v 1.35 2003/12/03 18:27:32 scottheavner Exp $
  */
 
+#include "lde_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

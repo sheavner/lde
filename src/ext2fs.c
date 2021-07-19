@@ -14,6 +14,8 @@
  *       EXT2_read_tables()
  */
 
+#include "lde_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,7 +49,7 @@ static unsigned long EXT2_next_entry(struct ext2_dir_entry_2 *bp, void *end);
 /* this variable holds a pointer to the last directory entry returned */
 static struct ext2_dir_entry_2 *dir_last;
 static int in_del = 0; /* processing deleted entry */
-static int ext2_check_valid_name(__u8 len, char *name, void *end);
+static int ext2_check_valid_name(uint8_t len, char *name, void *end);
 #endif /* JQDIR */
 
 /* Haven't defined ACL and stuff because inode mode doesn't do anything 
@@ -334,7 +336,7 @@ int EXT2_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
   dir = (void *)block_buffer->start;
   end = block_buffer->start + block_buffer->size;
 
-  bzero(d, sizeof(lde_dirent));
+  memset(d, 0, sizeof(lde_dirent));
   d->name = cname;
   cname[0] = 0;
 
@@ -756,7 +758,7 @@ int EXT2_is_deleted(void)
   return in_del;
 }
 
-static int ext2_check_valid_name(__u8 len, char *name, void *end)
+static int ext2_check_valid_name(uint8_t len, char *name, void *end)
 {
   int i;
   for (i = 0; i < len; i++, name++) {

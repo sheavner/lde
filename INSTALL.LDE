@@ -5,20 +5,14 @@ COMPILE AND INSTALL
 1. Configure the package for your system.
 
    Normally, you just `cd' to the package main directory and type
-`./configure'.  The lde specific options are outlined below in the
-CONFIGURE FLAGS section.  General options for configure are described
-in the INSTALL file.  Some of the newer (possibly untested) features
-of lde may not be enabled unless you specify --enable-alpha-code
-and/or --enable-beta-code.
-
-   You may also want to specify CFLAGS for the compiler (it will
-probably default to `-O2 -g'):
-
-   `CFLAGS=-O2 ./configure'
+"cmake .".  The lde specific options are outlined below in the
+CONFIGURE FLAGS section. Some of the newer (possibly untested) features
+of lde may not be enabled unless you specify -DALPHA_CODE=ON
+and/or -DBETA_CODE=ON.
 
 2. Type `make' to compile the package.
 
-3. Type `make install' (as root)
+3. Type `make install' (as root) or just run from the build folder.
 
    Installs man page and binary.  Installs lde binary in /sbin
    and changes its ownership to root.system with permission 500
@@ -27,99 +21,65 @@ probably default to `-O2 -g'):
 =======================================================================
 CONFIGURE FLAGS
 =======================================================================
-`--prefix=PATH'
-        By default, `make install' will install the package's files in
-        `/sbin' and `/usr/local/man'.  To override the usr of /sbin,
-        use `--disable-root-sbin'.  To change the installation prefix,
-        default will be `/usr/local', giving `configure' the option
-       `--prefix=PATH'.
+-DSEARCH_CURSES=OFF
+        Disable curses support.
 
-`--with-ncurses[=PATH]'
-        Use this flag with =PATH part, if your ncurses is not
-        installed in any of the places configure checks (/usr/include,
-        /usr/include/ncurses, /usr/local/include and
-        /usr/local/include/ncurses). The configure script will append
-        `lib' and `include' to find the libncurses.a and ncurses.h
-         files respectively.
+-DSEARCH_BISON=OFF
+        Disable bison support.  Any dates entered must be in the locale's
+        default format which is the same as the display format.  For
+        the USA it is "Tue May 21 13:46:22 1991""
 
-        Specify `--without-ncurses' to disable ncurses support.
-
-`--with-gpm=[PATH]'
-        Use this flag if your GPM mouse package is not installed in
-        a standard place.  configure will append `lib' and `include'
-        to find the libgpm.a and gpm.h files respectively.
-
-        Specify `--without-gpm' to disable gpm support.
-
-`--enable-read-partial-tables'
+-DREAD_PART_TABLES=ON
         This will only read one group of disk tables into memory at a
         time.  For each group on the ext2fs, we read the inode map,
         block map, and inode table into memory and retain it until we
         are asked to access a block in another group.  If
-        `--enable-read-partial-tables' is not specified, we read in
+        -DREAD_PART_TABLES=ON is not specified, we read in
         the tables for the entire partition (all groups).  Memory
         savings using partitial reads are probably not substantial,
         they should be on the order of kb, maybe 10's of kb.
 
-`--disable-inode-writes'
+-DNO_WRITE_INODE=ON
         Do not allow writes from inode mode.  To modify inodes, you
         may still edit a block containing the inodes in block mode.
 
-`--enable-paranoid'
+-DPARANOID=ON
        Open device read only at all times.  If you are scared of doing
-       damage to your disk, defining `--enable-paranoid' will open the
+       damage to your disk, using -DPARANOID=ON will open the
        device read only at all times.  You will not be able to modify
        the disk using lde.  lde will also accept a run time flag 
-       of --paranoid, but if compiled using `--enable-paranoid' there
+       of --paranoid, but if compiled using -DPARANOID=ON there
        are no runtime flags that will allow writes to the device.
 
-`--disable-kernel-bitops'
-       I try to link in code from <asm/bitops.h>.  This works for
-       linux-*-i386 for kernel 2.0.29 and possibly others.  If you see
-       compiler errors (not warnings) about the bitop code, try
-       reconfiguring using `--disable-kernel-bitops'.
-
-`--enable-alpha-code'
+-DALPHA_CODE=ON
        Define this to activate alpha code.  Sometimes I include
        untested code in releases, but it will always be surrounded by
        `#ifdef ALPHA_CODE'.  The binary included in this release will
        not contain alpha code, to compile it in yourself, specify
-       `--enable-alpha-code' when running `./configure'.
+       -DALPHA_CODE=ON when running cmake.
 
-`--disable-beta-code'
+-DBETA_CODE=OFF
        Define this to deactivate beta code.  The binary included in
        this release will contain beta code (if it is labeled an Alpha
        or Beta release), to compile lde without any code marked
-       `#ifdef BETA_CODE', specify `--disable-beta-code' when
-       running `./configure'.
+       `#ifdef BETA_CODE', specify -DBETA_CODE=OFF when
+       running cmake.
 
-`--enable-error-log[=NUMLINES]'
+-DERRORS_SAVED=NUMLINES
        Redefine the number of errors which are saved in the error
        history log.  If this option is omitted, 30 lines will be
        retained.
 
-`--enable-debug'
+-DLDE_DEBUG=ON
        This is included as a developer convenience.  It will enable
        verbose error reporting when compiling and produce a debuggable
        executable file with ALPHA and BETA code predefined.  It
        doesn't test options, it just sets them. 
 
-`--disable-root-sbin'
-       This is a cheesy way to do things, but I feel lde should be
-       installed in /sbin, not wherever the prefix is pointing.  If
-       you want the install rules to follow the prefix rules, run
-       ./configure with `--disable-root-sbin'.
-
 =======================================================================
 TROUBLE SHOOTING
 =======================================================================
 
-Bitops.c:
----------
-   Sometimes there are problems with the kernel bitop routines that I
-swipe from the kernel.  If you get compiler errors (not warnings)
-regarding set_bit, clear_bit, or anything else in bitops.c, try adding
--DNO_KERNEL_BITOPS to the CFLAGS definition in the Makefile.
 
 llseek:
 -------

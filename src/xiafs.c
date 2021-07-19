@@ -6,6 +6,8 @@
  *  $Id: xiafs.c,v 1.31 2002/02/01 03:35:20 scottheavner Exp $
  */
 
+#include "lde_config.h"
+
 #include <string.h>
 #if HAVE_UNISTD_H
 #include <unistd.h>
@@ -169,7 +171,7 @@ static int XIAFS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
   dir = (void *)block_buffer->start;
   end = block_buffer->start + block_buffer->size;
 
-  bzero(d, sizeof(lde_dirent));
+  memset(d, 0, sizeof(lde_dirent));
   d->name = cname;
   cname[0] = 0;
 
@@ -276,7 +278,7 @@ int XIAFS_test(char *sb_buffer, int use_offset)
   if (!use_offset) {
     use_offset =
       (int)((char *)(&(Super->s_magic)) - (char *)(&(Super->s_zone_size)));
-    if (*(__u32 *)(sb_buffer + use_offset) == ldeswab32(_XIAFS_SUPER_MAGIC))
+    if (*(uint32_t *)(sb_buffer + use_offset) == ldeswab32(_XIAFS_SUPER_MAGIC))
       return 1;
     else
       return 0;

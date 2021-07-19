@@ -6,6 +6,8 @@
  *  $Id: recover.c,v 1.43 2005/05/19 06:39:27 scottheavner Exp $
  */
 
+#include "lde_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #if HAVE_UNISTD_H
@@ -31,14 +33,14 @@ unsigned long block_pointer(unsigned char *ind,
   unsigned long blknr,
   int zone_entry_size)
 {
-  __u32 *lind;
-  __u16 *sind;
+  uint32_t *lind;
+  uint16_t *sind;
 
   if (zone_entry_size == 2) {
-    sind = (__u16 *)ind;
+    sind = (uint16_t *)ind;
     return ldeswab16(sind[blknr]);
   } else {
-    lind = (__u32 *)ind;
+    lind = (uint32_t *)ind;
     return ldeswab32(lind[blknr]);
   }
 }

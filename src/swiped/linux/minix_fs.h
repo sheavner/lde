@@ -3,9 +3,6 @@
 
 /* FOR LDE, BLOCK_SIZE lifted from <linux/fs.h> */
 
-#if HAVE_ASM_TYPES_H
-#include <asm/types.h>
-#endif
 #define BLOCK_SIZE_BITS 10
 #define BLOCK_SIZE (1 << BLOCK_SIZE_BITS)
 
@@ -50,13 +47,13 @@
  */
 struct minix_inode
 {
-  __u16 i_mode;
-  __u16 i_uid;
-  __u32 i_size;
-  __u32 i_time;
-  __u8 i_gid;
-  __u8 i_nlinks;
-  __u16 i_zone[9];
+  uint16_t i_mode;
+  uint16_t i_uid;
+  uint32_t i_size;
+  uint32_t i_time;
+  uint8_t i_gid;
+  uint8_t i_nlinks;
+  uint16_t i_zone[9];
 };
 
 /*
@@ -67,15 +64,15 @@ struct minix_inode
  */
 struct minix2_inode
 {
-  __u16 i_mode;
-  __u16 i_nlinks;
-  __u16 i_uid;
-  __u16 i_gid;
-  __u32 i_size;
-  __u32 i_atime;
-  __u32 i_mtime;
-  __u32 i_ctime;
-  __u32 i_zone[10];
+  uint16_t i_mode;
+  uint16_t i_nlinks;
+  uint16_t i_uid;
+  uint16_t i_gid;
+  uint32_t i_size;
+  uint32_t i_atime;
+  uint32_t i_mtime;
+  uint32_t i_ctime;
+  uint32_t i_zone[10];
 };
 
 /*
@@ -83,21 +80,21 @@ struct minix2_inode
  */
 struct minix_super_block
 {
-  __u16 s_ninodes;
-  __u16 s_nzones;
-  __u16 s_imap_blocks;
-  __u16 s_zmap_blocks;
-  __u16 s_firstdatazone;
-  __u16 s_log_zone_size;
-  __u32 s_max_size;
-  __u16 s_magic;
-  __u16 s_state;
-  __u32 s_zones;
+  uint16_t s_ninodes;
+  uint16_t s_nzones;
+  uint16_t s_imap_blocks;
+  uint16_t s_zmap_blocks;
+  uint16_t s_firstdatazone;
+  uint16_t s_log_zone_size;
+  uint32_t s_max_size;
+  uint16_t s_magic;
+  uint16_t s_state;
+  uint32_t s_zones;
 };
 
 struct minix_dir_entry
 {
-  __u16 inode;
+  uint16_t inode;
   char name[0];
 };
 

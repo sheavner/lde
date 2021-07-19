@@ -9,6 +9,8 @@
  *
  *   No file system specified.  Block edits ok.
  */
+#include "lde_config.h"
+
 #include <sys/stat.h>
 #if HAVE_UNISTD_H
 #include <unistd.h>
@@ -142,7 +144,7 @@ static int ISO9660_zero_i__ul(unsigned long nr)
 /* Returns an empty string */
 static int ISO9660_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
 {
-  bzero(d, sizeof(lde_dirent));
+  memset(d, 0, sizeof(lde_dirent));
   d->inode_nr = 1UL;
   d->name = "";
   return 0;

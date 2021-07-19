@@ -11,6 +11,8 @@
  *  Some minix calls are made by the xiafs code.
  */
 
+#include "lde_config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #if HAVE_UNISTD_H
@@ -193,7 +195,7 @@ static int MINIX_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
   static char cname[32] = { 0 };
   int retval = 0;
 
-  bzero(d, sizeof(lde_dirent));
+  memset(d, 0, sizeof(lde_dirent));
   d->name = cname;
 
   if (i * sb->dirsize + fsc->INODE_ENTRY_SIZE >= block_buffer->size) {
@@ -279,16 +281,16 @@ void MINIX_read_tables()
       nocache_read_block(
         fsc->FIRST_MAP_BLOCK, inode_map, sb->imap_blocks * sb->blocksize)) {
     lde_warn("Unable to read inode map");
-    bzero(inode_map, sb->imap_blocks * sb->blocksize);
+    memset(inode_map, 0, sb->imap_blocks * sb->blocksize);
   }
   if (sb->zmap_blocks * sb->blocksize !=
       read(CURR_DEVICE, zone_map, sb->zmap_blocks * sb->blocksize)) {
     lde_warn("Unable to read zone map");
-    bzero(zone_map, sb->zmap_blocks * sb->blocksize);
+    memset(zone_map, 0, sb->zmap_blocks * sb->blocksize);
   }
   if (INODE_BUFFER_SIZE != read(CURR_DEVICE, inode_buffer, INODE_BUFFER_SIZE)) {
     lde_warn("Unable to read inodes");
-    bzero(inode_buffer, INODE_BUFFER_SIZE);
+    memset(inode_buffer, 0, INODE_BUFFER_SIZE);
   }
 }
 

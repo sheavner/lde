@@ -1,2 +1,3 @@
 #/bin/sh
-rm -rf CMakeCache.txt  CMakeFiles/ cmake_install.cmake CTestTestfile.cmake Testing test/results/*
+rm -f CMakeCache.txt  cmake_install.cmake CTestTestfile.cmake test/results/* src/lde_config.h lde lde.exe getdate.c getdate.h
+rm -rf CMakeFiles/ Testing/

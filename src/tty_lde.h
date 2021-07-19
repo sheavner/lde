@@ -9,6 +9,8 @@
 #ifndef TTY_LDE_H
 #define TTY_LDE_H
 
+#include "lde_config.h"
+
 #include "lde.h"
 #include <time.h>
 

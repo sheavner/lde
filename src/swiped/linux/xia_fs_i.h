@@ -12,9 +12,9 @@
 
 struct xiafs_inode_info
 { /* for data zone pointers */
-  __u32 i_zone[8];
-  __u32 i_ind_zone;
-  __u32 i_dind_zone;
+  uint32_t i_zone[8];
+  uint32_t i_ind_zone;
+  uint32_t i_dind_zone;
 };
 
 #endif /* _XIA_FS_I_H */

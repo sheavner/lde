@@ -5,6 +5,8 @@
 	/*	University of North Carolina at Chapel Hill	*/
 	/*	@(#)getdate.y	2.13	9/16/86 */
 
+#include "lde_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

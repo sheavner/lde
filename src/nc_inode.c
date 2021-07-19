@@ -6,6 +6,8 @@
  *  $Id: nc_inode.c,v 1.26 2003/12/07 01:35:53 scottheavner Exp $
  */
 
+#include "lde_config.h"
+
 #include <ctype.h>
 #include <sys/stat.h>
 #include <stdlib.h>

@@ -8,6 +8,8 @@
 #ifndef LDE_NC_LDE_H
 #define LDE_NC_LDE_H
 
+#include "lde_config.h"
+
 #include "keymap.h" /* For lde_keymap struct definition */
 
 #ifdef NC_HEADER

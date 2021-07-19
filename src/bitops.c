@@ -21,59 +21,10 @@
 #include "bitops.h"
 #include "lde.h"
 
-#if HAVE_ASM_TYPES_H
-#include <asm/types.h>
-#endif
-
-/*
- * For the benefit of those who are trying to port Linux to another
- * architecture, here are some C-language equivalents.  You should
- * recode these in the native assmebly language, if at all possible.
- * To guarantee atomicity, these routines call cli() and sti() to
- * disable interrupts while they operate.  (You have to provide inline
- * routines to cli() and sti().)
- *
- * Also note, these routines assume that you have 32 bit integers.
- * You will have to change this if you are trying to port Linux to the
- * Alpha architecture or to a Cray.  :-)
- * 
- * C language equivalents written by Theodore Ts'o, 9/26/92
- */
-
-#if 0 /* Set and clear are unused today */
-int set_bit(int nr,void * addr)
-{
-	int	mask, retval;
-	int	*ADDR = (int *) addr;
-
-	ADDR += nr >> 5;
-	mask = 1 << (nr & 0x1f);
-	cli();
-	retval = (mask & *ADDR) != 0;
-	*ADDR |= mask;
-	sti();
-	return retval;
-}
-
-int clear_bit(int nr, void * addr)
-{
-	int	mask, retval;
-	int	*ADDR = (int *) addr;
-
-	ADDR += nr >> 5;
-	mask = 1 << (nr & 0x1f);
-	cli();
-	retval = (mask & *ADDR) != 0;
-	*ADDR &= ~mask;
-	sti();
-	return retval;
-}
-#endif
-
 int lde_test_bit(int nr, void *addr)
 {
   int mask;
-  const __u32 *ADDR = (const __u32 *)addr;
+  const uint32_t *ADDR = (const uint32_t *)addr;
 
   ADDR += nr / 32;
   mask = 1 << (nr & 0x1f);

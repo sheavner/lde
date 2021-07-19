@@ -6,6 +6,8 @@
  *  $Id: tty_lde.c,v 1.34 2003/12/06 08:01:46 scottheavner Exp $
  */
 
+#include "lde_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -15,9 +17,6 @@
 #endif
 #if HAVE_FCNTL_H
 #include <fcntl.h>
-#endif
-#if HAVE_SYS_FCNTL_H
-#include <sys/fcntl.h>
 #endif
 #if HAVE_IO_H
 #include <io.h>
@@ -319,7 +318,7 @@ void *cache_read_block(unsigned long block_nr, void *dest, int force)
   if ((force & FORCE_READ) || (block_nr != bp->bnr)) {
     int read_size;
 
-    bzero(bp->data, sb->blocksize);
+    memset(bp->data, 0, sb->blocksize);
 
     /* Lookup size of block (if it's the last block in a file,
      * it may be less than the blocksize of the device */

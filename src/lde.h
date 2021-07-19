@@ -9,23 +9,17 @@
 #ifndef LDE_H
 #define LDE_H
 
+#include "lde_config.h"
+
 #include <time.h>
+#include <stdint.h>
 
 #ifndef LDE_VERSION
 #define LDE_VERSION "2.6"
 #endif
 
-#if HAVE_BZERO
-#else
-#define bzero(a, b) memset((a), 0, (b))
-#endif
-
 #ifdef _MSC_VER
 #include "swiped/fileutils-3.12/filemode.h"
-#endif
-
-#ifndef O_BINARY
-#define O_BINARY 0
 #endif
 
 extern char *program_name;
@@ -38,13 +32,11 @@ extern int check_root(void);
 extern void (*lde_warn)(char *fmt, ...);
 extern int (*mgetch)(void);
 
-#define MAX_BLOCK_SIZE                                                         \
-  8224 /* must be at least EXT2_MAX_BLOCK_SIZE or whatever the biggest FS we are using */
+/* must be at least EXT2_MAX_BLOCK_SIZE or whatever the biggest FS we are using */
+#define MAX_BLOCK_SIZE 8224
 
-#define INODE_BLKS                                                             \
-  15 /* EXT2_N_BLOCKS or higher -- can't use EXT2 references after
-		       * mulitiple architecture support was added to ext2.
-		       */
+/* EXT2_N_BLOCKS or higher -- can't use EXT2 references after mulitiple architecture support was added to ext2. */
+#define INODE_BLKS 15
 
 struct _lde_buffer
 {
@@ -304,65 +296,26 @@ extern char *badblocks_directory;
 extern char *error_save[ERRORS_SAVED];
 extern int current_error;
 
-/* #define block_is_bad(x) (bit(bad_map, (x) - FIRSTBLOCK)) */
-/* #define mark_inode(x) (setbit(inode_map,(x)),changed=1) */
-/* #define unmark_inode(x) (clrbit(inode_map,(x)),changed=1) */
-/* #define mark_zone(x) (setbit(zone_map,(x)-sb->first_dat_zone+1),changed=1) */
-/* #define unmark_zone(x) (clrbit(zone_map,(x)-sb->first_data_zone+1),changed=1) */
 
-/* Byte swapping routines, taken from linux kernel v2.2.19 */
-#if HAVE_ASM_TYPES_H
-#include <asm/types.h>
-#endif
+#define ___ldeswab16(x)                                                                 \
+  ((uint16_t)((((uint16_t)(x) & (uint16_t)0x00ffU) << 8) |                              \
+           (((uint16_t)(x) & (uint16_t)0xff00U) >> 8)))
 
-#if HAVE_U64
-#else
-#include <stdint.h>
-#ifndef __u32
-#define __u32 uint32_t
-#endif
-#ifndef __u64
-#define __u64 uint64_t
-#endif
-#ifndef __u16
-#define __u16 uint16_t
-#endif
-#ifndef __u8
-#define __u8 uint8_t
-#endif
-#ifndef __s32
-#define __s32 uint32_t
-#endif
-#ifndef __s64
-#define __s64 uint64_t
-#endif
-#ifndef __s16
-#define __s16 uint16_t
-#endif
-#ifndef __s8
-#define __s8 uint8_t
-#endif
-#endif /* HAVE_U64 */
+#define ___ldeswab32(x)                                                                 \
+  ((uint32_t)((((uint32_t)(x) & (uint32_t)0x000000ffUL) << 24) |                        \
+           (((uint32_t)(x) & (uint32_t)0x0000ff00UL) << 8) |                            \
+           (((uint32_t)(x) & (uint32_t)0x00ff0000UL) >> 8) |                            \
+           (((uint32_t)(x) & (uint32_t)0xff000000UL) >> 24)))
 
-#define ___ldeswab16(x)                                                        \
-  ((__u16)((((__u16)(x) & (__u16)0x00ffU) << 8) |                              \
-           (((__u16)(x) & (__u16)0xff00U) >> 8)))
-
-#define ___ldeswab32(x)                                                        \
-  ((__u32)((((__u32)(x) & (__u32)0x000000ffUL) << 24) |                        \
-           (((__u32)(x) & (__u32)0x0000ff00UL) << 8) |                         \
-           (((__u32)(x) & (__u32)0x00ff0000UL) >> 8) |                         \
-           (((__u32)(x) & (__u32)0xff000000UL) >> 24)))
-
-#define ___ldeswab64(x)                                                        \
-  ((__u64)((__u64)(((__u64)(x) & (__u64)0x00000000000000ffULL) << 56) |        \
-           (__u64)(((__u64)(x) & (__u64)0x000000000000ff00ULL) << 40) |        \
-           (__u64)(((__u64)(x) & (__u64)0x0000000000ff0000ULL) << 24) |        \
-           (__u64)(((__u64)(x) & (__u64)0x00000000ff000000ULL) << 8) |         \
-           (__u64)(((__u64)(x) & (__u64)0x000000ff00000000ULL) >> 8) |         \
-           (__u64)(((__u64)(x) & (__u64)0x0000ff0000000000ULL) >> 24) |        \
-           (__u64)(((__u64)(x) & (__u64)0x00ff000000000000ULL) >> 40) |        \
-           (__u64)(((__u64)(x) & (__u64)0xff00000000000000ULL) >> 56)))
+#define ___ldeswab64(x)                                                                 \
+  ((uint64_t)((uint64_t)(((uint64_t)(x) & (uint64_t)0x00000000000000ffULL) << 56) |     \
+           (uint64_t)(((uint64_t)(x) & (uint64_t)0x000000000000ff00ULL) << 40) |        \
+           (uint64_t)(((uint64_t)(x) & (uint64_t)0x0000000000ff0000ULL) << 24) |        \
+           (uint64_t)(((uint64_t)(x) & (uint64_t)0x00000000ff000000ULL) << 8) |         \
+           (uint64_t)(((uint64_t)(x) & (uint64_t)0x000000ff00000000ULL) >> 8) |         \
+           (uint64_t)(((uint64_t)(x) & (uint64_t)0x0000ff0000000000ULL) >> 24) |        \
+           (uint64_t)(((uint64_t)(x) & (uint64_t)0x00ff000000000000ULL) >> 40) |        \
+           (uint64_t)(((uint64_t)(x) & (uint64_t)0xff00000000000000ULL) >> 56)))
 
 #define ldeswab16(x) ((lde_flags.byteswap) ? (___ldeswab16(x)) : (x))
 #define ldeswab32(x) ((lde_flags.byteswap) ? (___ldeswab32(x)) : (x))
