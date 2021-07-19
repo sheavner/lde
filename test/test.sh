@@ -48,8 +48,8 @@ else
   echo "CI_CMAKE_BIN_PATH=${CI_CMAKE_BIN_PATH}"
   echo "START_DIR=${START_DIR}"
   echo "ls = $(ls)"
-  echo "ls CI_CMAKE_BIN_PATH = $(ls \"${CI_CMAKE_BIN_PATH}\")"
-  echo "ls START_DIR = $(ls \"${START_DIR}\")"
+  echo "ls CI_CMAKE_BIN_PATH = $(ls ${CI_CMAKE_BIN_PATH})"
+  echo "ls START_DIR = $(ls ${START_DIR})"
   exit 1
 fi
 
