@@ -14,3 +14,4 @@ Testing
 crash_recovery/find_ext2_fs
 crash_recovery/find_ext2_fs.exe
 test/test-msvc.sh
+src/lde_config.h
