@@ -70,8 +70,8 @@ fi
 function ldetest {
 
   # $1 0 = expect zero return from executable, F = expect non-zero return [failure]
-  # $1 = test label
-  # $2+ = command
+  # $2 = test label
+  # $3+ = command
 
   expected_status=$1
   shift
@@ -173,7 +173,7 @@ ldetest 0 MINIX_INDIRECTS "$LDE" -j test.minix
 echo ${SUCCESS} of ${TESTS} tests completed successfully
 
 if [ x$SUCCESS != x$TESTS ] ; then
-  exit $SUCCESS
+  exit 1
 fi
 
 exit 0
