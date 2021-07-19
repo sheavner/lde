@@ -261,10 +261,11 @@ static int DOS_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
 
     slot = (void *)dir;
     if ((slot->attr == 0xF) && (!slot->reserved)) {
-      for (int j = 0; j < 5; ++j) {
+      int j;
+      for (j = 0; j < 5; ++j) {
         cname[j] = slot->name0_4[j * 2];
       }
-      for (int j = 0; j < 6; ++j) {
+      for (j = 0; j < 6; ++j) {
         cname[j + 5] = slot->name5_10[j * 2];
       }
       cname[11] = slot->name11_12[0];
