@@ -14,7 +14,6 @@
 #include "lde.h"
 #include "recover.h"
 #include "tty_lde.h"
-#include "curses.h"
 #include "nc_lde.h"
 #include "nc_block.h"
 #include "nc_block_help.h"

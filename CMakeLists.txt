@@ -4,7 +4,7 @@ set(PROJECT_VERSION 2.6.2)
 ADD_DEFINITIONS(-DLDE_VERSION="${PROJECT_VERSION}")
 
 # DISABLE SOME FEATURES FROM COMMAND LINE
-# cmake -DCURSES_FOUND=FALSE -DBISON_FOUND=FALSE .
+# cmake -DLDE_NO_CURSES=1 -DLDE_NO_BISON=1 .
 
 AUX_SOURCE_DIRECTORY(src SRCS)
 list(APPEND SRCS "src/swiped/fileutils-3.12/filemode.c")
@@ -14,56 +14,37 @@ if(${CMAKE_C_COMPILER_ID} MATCHES "Clang" OR ${CMAKE_C_COMPILER_ID} STREQUAL "GN
   ADD_DEFINITIONS(-Wno-pointer-sign)
 elseif(${CMAKE_C_COMPILER_ID} STREQUAL MSVC)
   add_compile_options(/wd4018 /wd4146 /wd4996 /wd4244 /wd4267)
-  ADD_DEFINITIONS(-D_CRT_DECLARE_NONSTDC_NAMES)
 endif()
 
 include(CheckSymbolExists)
 include(CheckIncludeFile)
 include(CheckTypeSize)
 
-find_package(Curses)
+if(LDE_NO_CURSES)
+else(LDE_NO_CURSES)
+  find_package(Curses)
+endif(LDE_NO_CURSES)
 if (CURSES_FOUND)
-else (CURSES_FOUND)
-    list(REMOVE_ITEM SRCS "src/nc_block.c" "src/nc_dir.c" "src/nc_inode.c" "src/nc_lde.c")
-    # message(STATUS "Removed curses files, sources are now: ${SRCS}")
+  include_directories(${CURSES_INCLUDE_DIR})
+  list(APPEND LIBS ${CURSES_LIBRARIES})
+  else (CURSES_FOUND)
+  list(REMOVE_ITEM SRCS "src/nc_block.c" "src/nc_dir.c" "src/nc_inode.c" "src/nc_lde.c")
+  # message(STATUS "Removed curses files, sources are now: ${SRCS}")
 endif(CURSES_FOUND)
 
-find_package(BISON)
+if(LDE_NO_BISON)
+else(LDE_NO_BISON)
+  find_package(BISON)
+endif(LDE_NO_BISON)
 if (BISON_FOUND)
-    bison_target(parse src/swiped/cnews/getdate.y "${CMAKE_CURRENT_BINARY_DIR}/getdate.c")
-    list(APPEND SRCS "${CMAKE_CURRENT_BINARY_DIR}/getdate.c")
+  bison_target(parse src/swiped/cnews/getdate.y "${CMAKE_CURRENT_BINARY_DIR}/getdate.c")
+  list(APPEND SRCS "${CMAKE_CURRENT_BINARY_DIR}/getdate.c")
+else(BISON_FOUND)
+  include_directories("src")
+  list(APPEND SRCS "src/swiped/cnews/fallback_getdate.c")
 endif(BISON_FOUND)
 
-add_executable(lde ${SRCS})
-install(TARGETS lde RUNTIME DESTINATION bin)
-
-if (CURSES_FOUND)
-    include_directories(${CURSES_INCLUDE_DIR})
-    target_link_libraries(lde ${CURSES_LIBRARIES})
-endif(CURSES_FOUND)
-
-add_custom_target(tar
-  COMMAND tar -cvz
-           -C .. 
-           --exclude RCS
-           --exclude CVS
-           --exclude .cvsignore
-           --exclude .vscode
-           --exclude *~
-           --exclude .depend
-           -f lde-${PROJECT_VERSION}.tar.gz
-           lde/src
-           lde/CMakeLists.txt
-           lde/INSTALL.LDE
-           lde/README
-           lde/README.cygwin
-           lde/TODO
-           lde/WARNING
-           lde/crash_recovery
-           lde/doc
-           lde/lde${CMAKE_EXECUTABLE_SUFFIX} 
-           lde/other
-  EXCLUDE_FROM_ALL)
+# TESTS
 
 enable_testing()
 add_test(SEARCH_EXT2_MAGIC ${CMAKE_SOURCE_DIR}/test/test.sh SEARCH_EXT2_MAGIC)
@@ -123,7 +104,7 @@ IF(HAVE_GETOPT_H)
 ELSE()
   ADD_DEFINITIONS(-DHAVE_GETOPT_H)
   include_directories("src/swiped/getopt")
-  set_property(TARGET lde APPEND PROPERTY SOURCES "src/swiped/getopt/getopt.c" "src/swiped/getopt/getopt.h")
+  list(APPEND SRCS "src/swiped/getopt/getopt.c" "src/swiped/getopt/getopt.h")
 ENDIF(HAVE_GETOPT_H)
 
 CHECK_INCLUDE_FILE(grp.h HAVE_GRP_H)
@@ -238,3 +219,32 @@ check_symbol_exists(uname sys/utsname.h HAVE_UNAME)
 IF(HAVE_UNAME)
   ADD_DEFINITIONS(-DHAVE_UNAME)
 ENDIF(HAVE_UNAME)
+
+# TARGETS
+
+add_custom_target(tar
+  COMMAND tar -cvz
+           -C .. 
+           --exclude RCS
+           --exclude CVS
+           --exclude .cvsignore
+           --exclude .vscode
+           --exclude *~
+           --exclude .depend
+           -f lde-${PROJECT_VERSION}.tar.gz
+           lde/src
+           lde/CMakeLists.txt
+           lde/INSTALL.LDE
+           lde/README
+           lde/README.cygwin
+           lde/TODO
+           lde/WARNING
+           lde/crash_recovery
+           lde/doc
+           lde/lde${CMAKE_EXECUTABLE_SUFFIX} 
+           lde/other
+  EXCLUDE_FROM_ALL)
+
+add_executable(lde ${SRCS})
+install(TARGETS lde RUNTIME DESTINATION bin)
+target_link_libraries(lde PUBLIC ${LIBS})

@@ -24,7 +24,6 @@
 #include "recover.h"
 #include "tty_lde.h"
 
-#include "curses.h"
 #include "nc_lde.h"
 #include "nc_lde_help.h"
 #include "nc_inode.h"

@@ -42,7 +42,6 @@
 #include "tty_lde.h"
 
 #ifdef HAVE_CURSES
-#include "curses.h"
 #include "nc_lde.h"
 #endif
 

@@ -10,6 +10,12 @@
 
 #include "keymap.h" /* For lde_keymap struct definition */
 
+#ifdef NC_HEADER
+#include <ncurses.h>
+#else
+#include <curses.h>
+#endif
+
 #define LDE_ESC 27
 #define LDE_CTRL(x) ((x) - 'A' + 1)
 #define LDE_META(x) ((x) | 1024)

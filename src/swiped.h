@@ -8,7 +8,7 @@
 
 /* cnews/getdate.y */
 #include <time.h>
-time_t lde_getdate(char *p);
+extern time_t lde_getdate(char *p);
 
 /* fileutils-3.12/filemode.c  */
-void mode_string(unsigned short mode, char *str);
+extern void mode_string(unsigned short mode, char *str);

@@ -20,7 +20,6 @@
 
 #include "lde.h"
 #include "tty_lde.h"
-#include "curses.h"
 #include "nc_lde.h"
 #include "nc_inode.h"
 #include "nc_inode_help.h"
