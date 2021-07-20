@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     exit(-argc);
   }
 
-  if ((fd = open(device_name, O_RDONLY)) < 0) {
+  if ((fd = open(device_name, O_RDONLY)) == -1) {
     printf("Can't open device %s\n", device_name);
     exit(-1);
   }

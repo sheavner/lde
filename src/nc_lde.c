@@ -838,7 +838,8 @@ void crecover_file(unsigned long inode_zones[], unsigned long filesize)
     recover_file_name[sizeof(recover_file_name)-1] = 0;
   }
 
-  if ((fp = open(recover_file_name, O_RDONLY | O_BINARY)) > 0) {
+  fp = open(recover_file_name, O_RDONLY | O_BINARY);
+  if (-1 != fp) {
     close(fp);
     fp = 0;
     if (lde_flags.always_append) {
@@ -857,12 +858,13 @@ void crecover_file(unsigned long inode_zones[], unsigned long filesize)
           break;
       }
     }
-  } else if ((fp = open(
-                recover_file_name, O_WRONLY | O_CREAT | O_BINARY, 0644)) < 0)
-  {
-    lde_warn("Cannot open file '%s'", recover_file_name);
-  }
-
+  } else {
+    fp = open(recover_file_name, O_WRONLY | O_CREAT | O_BINARY, 0644);
+    if (-1 == fp)
+    {
+      lde_warn("Cannot open file '%s'", recover_file_name);
+    }
+  }  
   if (-1 != fp) {
     lde_warn("Recovery in progress . . .");
     if (!recover_file(fp, inode_zones, filesize))

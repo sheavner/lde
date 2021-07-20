@@ -352,9 +352,9 @@ static void DOS_sb_init(void *sb_buffer)
   if (!Boot->fats) /* Could this ever happen? */
     Boot->fats = 2;
   if (ldeswab16(Boot->fat_length)) /* FAT12/16 */
-    sb->zmap_blocks = Boot->fats * ldeswab16(Boot->fat_length);
+    sb->zmap_blocks = ldeswab16(Boot->fat_length) * Boot->fats;
   else {
-    sb->zmap_blocks = Boot->fats * ldeswab32(Boot->fat32_length);
+    sb->zmap_blocks = ldeswab32(Boot->fat32_length) * Boot->fats;
     fsc->INODE_SIZE = 4;
   }
   sb->first_data_zone = ldeswab16(Boot->reserved) + sb->zmap_blocks -

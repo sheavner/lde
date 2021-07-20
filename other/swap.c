@@ -68,7 +68,7 @@ main(int argc, char **argv)
 
   fd = open(device_name, O_RDWR);
 
-  if ((!fd) || (read(fd, &boot, sizeof(struct msdos_boot_sector)) !=
+  if ((-1 == fd) || (read(fd, &boot, sizeof(struct msdos_boot_sector)) !=
                  sizeof(struct msdos_boot_sector))) {
     printf("Error reading from %s\n", device_name);
     exit(-2);

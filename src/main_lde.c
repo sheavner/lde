@@ -67,7 +67,7 @@ struct _main_opts
 struct _search_types
 {
   char *name;
-  unsigned char *string;
+  char *string;
   int length;
   int offset;
 };
@@ -103,8 +103,11 @@ static int check_mount(char *name)
 {
   static const char *MTAB_FILENAME = "/etc/mtab";
   struct stat statbuf;
-  int fd = open(MTAB_FILENAME, O_RDONLY | O_BINARY);
-  if (-1 != fd && -1 != stat(MTAB_FILENAME, &statbuf)) {
+  int sd = stat(MTAB_FILENAME, &statbuf);
+  int fd = -1;
+  if (-1 != sd)
+    fd = open(MTAB_FILENAME, O_RDONLY | O_BINARY);
+  if (-1 != sd && -1 != fd) {
     char *mtab = malloc(statbuf.st_size + 1);
     if (mtab == NULL) {
       lde_warn("Out of memory reading /etc/mtab");
@@ -239,8 +242,8 @@ static void parse_cmdline(int argc, char **argv, struct _main_opts *opts)
 {
   int option_index = 0, i;
   int c;
-  static unsigned char gzip_tar_type[4] = { 31, 138, 8, 0 };
-  static unsigned char gzip_type[] = { 31, 139 };
+  static char gzip_tar_type[4] = { 31, 138, 8, 0 };
+  static char gzip_type[] = { 31, 139 };
   struct _search_types search_types[] = { { "tgz", gzip_tar_type, 4, 0 },
     { "gz", gzip_type, 2, 0 },
     { "script", "#!/", 3, 0 },
@@ -508,7 +511,7 @@ int main(int argc, char **argv)
 #ifndef PARANOID
   if (!lde_flags.paranoid) {
     CURR_DEVICE = open(device_name, O_RDWR | O_BINARY);
-    if (CURR_DEVICE < 0) {
+    if (-1 == CURR_DEVICE) {
       lde_warn("No write access to \"%s\",  attempting to open read-only.",
                device_name);
       CURR_DEVICE = open(device_name, O_RDONLY | O_BINARY);
@@ -521,7 +524,7 @@ int main(int argc, char **argv)
     CURR_DEVICE = open(device_name, O_RDONLY | O_BINARY);
   }
 
-  if (CURR_DEVICE < 0) {
+  if (-1 == CURR_DEVICE) {
     lde_warn("Unable to open '%s'", device_name);
     exit(1);
   }
@@ -544,25 +547,24 @@ int main(int argc, char **argv)
   /* Process requests handled by tty based lde */
   if (main_opts.recover_file_name != NULL) {
     /* Check if file exists, if so, check if append flag is set and open accordingly */
-    if (((fp = open(main_opts.recover_file_name, O_RDONLY | O_BINARY)) > 0) &&
-        lde_flags.always_append) {
+    fp = open(main_opts.recover_file_name, O_RDONLY | O_BINARY);
+    if ((-1 == fp) && lde_flags.always_append) {
       close(fp);
       fp = open(main_opts.recover_file_name, O_WRONLY | O_APPEND | O_BINARY);
     } else { /* It's ok to create a new file */
-      fp =
-        open(main_opts.recover_file_name, O_WRONLY | O_CREAT | O_BINARY, 0644);
+      fp = open(main_opts.recover_file_name, O_WRONLY | O_CREAT | O_BINARY, 0644);
     }
 
     /* Make sure we got a valid file number, if so look up inode and recover it, else print warning */
-    if (fp > 0) {
+    if (-1 == fp) {
+      lde_warn("Cannot open file '%s'", main_opts.recover_file_name);
+      exit(-1);
+    } else {
       GInode = FS_cmd.read_inode(main_opts.dump_start);
       if (!recover_file(fp, GInode->i_zone, GInode->i_size))
         lde_warn("Recovered data written to '%s'", main_opts.recover_file_name);
       close(fp);
       exit(0);
-    } else {
-      lde_warn("Cannot open file '%s'", main_opts.recover_file_name);
-      exit(-1);
     }
   } else if (main_opts.dumper) {
 
