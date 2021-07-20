@@ -493,6 +493,9 @@ int directory_popup(unsigned long bnr,
     highlight_dir_entry(win, current, &last, screen_off, block_buffer);
   }
 
+  clobber_window(win);
+  free(block_buffer->start);
+  
   return 0;
 }
 

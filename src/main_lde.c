@@ -101,10 +101,10 @@ struct _lde_typedata lde_typedata[] = LDE_ALLTYPES;
 /* Check if device is mounted, return 1 if is mounted else 0 */
 static int check_mount(char *name)
 {
-  int fd = open("/etc/mtab", O_RDONLY | O_BINARY);
-  if (fd > 0) {
-    struct stat statbuf;
-    fstat(fd, &statbuf);
+  static const char *MTAB_FILENAME = "/etc/mtab";
+  struct stat statbuf;
+  int fd = open(MTAB_FILENAME, O_RDONLY | O_BINARY);
+  if (-1 != fd && -1 != stat(MTAB_FILENAME, &statbuf)) {
     char *mtab = malloc(statbuf.st_size + 1);
     if (mtab == NULL) {
       lde_warn("Out of memory reading /etc/mtab");
@@ -390,9 +390,9 @@ static void parse_cmdline(int argc, char **argv, struct _main_opts *opts)
 
       if (opts->search_string == NULL) {
         i = open(optarg, O_RDONLY | O_BINARY);
-        if (i) {
+        if (-1 != i) {
           opts->search_string = malloc(MAX_BLOCK_SIZE);
-          if (read(i, opts->search_string, MAX_BLOCK_SIZE) <= 0) {
+          if (-1 == read(i, opts->search_string, MAX_BLOCK_SIZE)) {
             free(opts->search_string);
             opts->search_string = NULL;
           }

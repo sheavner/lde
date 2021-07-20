@@ -443,11 +443,11 @@ static void EXT2_read_tables()
     group_desc[i].bg_inode_bitmap = ldeswab32(group_desc[i].bg_inode_bitmap);
     group_desc[i].bg_inode_table = ldeswab32(group_desc[i].bg_inode_table);
     group_desc[i].bg_free_blocks_count =
-      ldeswab32(group_desc[i].bg_free_blocks_count);
+      ldeswab16(group_desc[i].bg_free_blocks_count);
     group_desc[i].bg_free_inodes_count =
-      ldeswab32(group_desc[i].bg_free_inodes_count);
+      ldeswab16(group_desc[i].bg_free_inodes_count);
     group_desc[i].bg_used_dirs_count =
-      ldeswab32(group_desc[i].bg_used_dirs_count);
+      ldeswab16(group_desc[i].bg_used_dirs_count);
   }
 
   /* Allocate and read in inode map */

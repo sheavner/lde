@@ -145,8 +145,7 @@ static void cdump_inode_values(unsigned long nr,
   struct Generic_Inode *GInode,
   int highlight_field)
 {
-  unsigned long imode = 0UL, j = 0UL;
-  char f_mode[12];
+  unsigned long j = 0UL;
 #if HAVE_GETPWUID
   struct passwd *NC_PASS = NULL;
 #endif
@@ -165,8 +164,8 @@ static void cdump_inode_values(unsigned long nr,
 
   /* Line 0 looks like a directory entry */
   if (fsc->inode->i_links_count) {
-    imode = GInode->i_mode;
-    mode_string((unsigned short)imode, f_mode);
+    char f_mode[12];
+    mode_string(GInode->i_mode, f_mode);
     f_mode[10] = 0; /* Junk from canned mode_string */
     mvwprintw(workspace, 0, 0, "%10s", f_mode);
   }
@@ -200,8 +199,7 @@ static void cdump_inode_values(unsigned long nr,
 
   /* Now display it again in a longer format */
   if (fsc->inode->i_mode) {
-    sprintf(f_mode, "%07lo", imode);
-    mvwprintw(workspace, 2, 6, entry_type(imode));
+    mvwprintw(workspace, 2, 6, entry_type(GInode->i_mode));
   }
 
   if (fsc->inode->i_links_count) {
@@ -220,17 +218,17 @@ static void cdump_inode_values(unsigned long nr,
       park_y = 3;
       park_x = 6;
     }
-    mvwprintw(workspace, 3, 6, "\\%4.4s", &f_mode[3]);
+    mvwprintw(workspace, 3, 6, "\\%04o", GInode->i_mode & 0xfff);
     wattroff(workspace, WHITE_ON_RED);
   }
 
-  if (fsc->inode->i_mode_flags) {
+  if (fsc->inode->i_mode && fsc->inode->i_mode_flags) {
     if (highlight_field == I_MODE_FLAGS) {
       wattron(workspace, WHITE_ON_RED);
       park_y = 3;
       park_x = 27;
     }
-    mvwprintw(workspace, 3, 27, "\\%2.2s\n", &f_mode[1]);
+    mvwprintw(workspace, 3, 27, "\\%03o", (GInode->i_mode & 0x1ff000) >> 12);
     wattroff(workspace, WHITE_ON_RED);
   }
 

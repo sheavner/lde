@@ -155,18 +155,24 @@ static void ISO9660_sb_init(char *sb_buffer)
   static int firsttime = 1;
   struct stat statbuf;
 
-  fstat(CURR_DEVICE, &statbuf);
-
   sb->blocksize = 2048;
 
-  /* Try to look up the size of the file/device */
-  sb->nzones =
-    ((unsigned long)statbuf.st_size + (sb->blocksize - 1UL)) / sb->blocksize;
-
-  /* If we are operating on a file, figure the size of the last block */
-  sb->last_block_size = (unsigned long)statbuf.st_size % sb->blocksize;
-  if ((sb->last_block_size == 0) && (statbuf.st_size != 0))
+  if (-1 == fstat(CURR_DEVICE, &statbuf))
+  {
+    sb->nzones = 0;
     sb->last_block_size = sb->blocksize;
+  }
+  else
+  {
+    /* Try to look up the size of the file/device */
+    sb->nzones =
+      ((unsigned long)statbuf.st_size + (sb->blocksize - 1UL)) / sb->blocksize;
+
+    /* If we are operating on a file, figure the size of the last block */
+    sb->last_block_size = (unsigned long)statbuf.st_size % sb->blocksize;
+    if ((sb->last_block_size == 0) && (statbuf.st_size != 0))
+      sb->last_block_size = sb->blocksize;
+  }
 
   /* If it is a partition, look it up with the slow NOFS_get_device_size().
    * Don't want to do this the first time through because the partition

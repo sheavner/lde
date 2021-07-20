@@ -429,6 +429,8 @@ int block_mode(void)
   cb_buffer = malloc(sizeof(cached_block) * (2 * curs.bps + 1));
   if ((!curs.data) || (!cb_buffer)) {
     lde_warn("Not enough memory for block_mode buffer");
+    free(curs.data);
+    free(cb_buffer);
     return 0;
   }
 

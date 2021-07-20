@@ -52,6 +52,6 @@ extern int write_block(unsigned long block_nr, void *data_buffer);
 extern void ddump_block(unsigned long nr);
 extern void dump_block(unsigned long nr);
 extern void dump_inode(unsigned long nr);
-extern char *entry_type(unsigned long imode);
+extern char *entry_type(unsigned short imode);
 
 #endif

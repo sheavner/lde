@@ -161,22 +161,27 @@ static void NOFS_sb_init(char *sb_buffer, unsigned long blocksize)
   static int firsttime = 1;
   struct stat statbuf;
 
-  fstat(CURR_DEVICE, &statbuf);
-
   if (blocksize == 0)
     blocksize = 1024;
 
   sb->blocksize = blocksize;
 
-  /* Try to look up the size of the file/device */
-  sb->nzones =
-    ((unsigned long)statbuf.st_size + (sb->blocksize - 1UL)) / sb->blocksize;
-
-  /* If we are operating on a file, figure the size of the last block */
-  sb->last_block_size = (unsigned long)statbuf.st_size % sb->blocksize;
-  if ((sb->last_block_size == 0) && (statbuf.st_size != 0))
+  if (-1 == fstat(CURR_DEVICE, &statbuf))
+  {
+    sb->nzones = 0;
     sb->last_block_size = sb->blocksize;
+  }
+  else
+  {
+    /* Try to look up the size of the file/device */
+    sb->nzones =
+      ((unsigned long)statbuf.st_size + (sb->blocksize - 1UL)) / sb->blocksize;
 
+    /* If we are operating on a file, figure the size of the last block */
+    sb->last_block_size = (unsigned long)statbuf.st_size % sb->blocksize;
+    if ((sb->last_block_size == 0) && (statbuf.st_size != 0))
+      sb->last_block_size = sb->blocksize;
+  }
   /* If it is a partition, look it up with the slow NOFS_get_device_size().
    * Don't want to do this the first time through because the partition
    * will most likely have a file system on it and we won't have to 

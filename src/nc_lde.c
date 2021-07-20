@@ -126,7 +126,7 @@ int ncread(char *coutput, unsigned long *a, char **string)
 
 #if TRAILER_SIZE > 0
 #define window_available trailer
-#define LINE_NUMBER TRAILER_SIZE - 1
+#define LINE_NUMBER (TRAILER_SIZE - 1)
 #else
   win *window_avaliable;
   window_avaliable = newwin(5, WIN_COL, ((VERT - 5) / 2 + HEADER_SIZE), HOFF);
@@ -834,7 +834,8 @@ void crecover_file(unsigned long inode_zones[], unsigned long filesize)
     lde_warn("Recovery aborted");
     return;
   } else if (c > 0) {
-    strncpy(recover_file_name, recover_query, 80);
+    strncpy(recover_file_name, recover_query, sizeof(recover_file_name));
+    recover_file_name[sizeof(recover_file_name)-1] = 0;
   }
 
   if ((fp = open(recover_file_name, O_RDONLY | O_BINARY)) > 0) {
@@ -858,9 +859,11 @@ void crecover_file(unsigned long inode_zones[], unsigned long filesize)
     }
   } else if ((fp = open(
                 recover_file_name, O_WRONLY | O_CREAT | O_BINARY, 0644)) < 0)
+  {
     lde_warn("Cannot open file '%s'", recover_file_name);
+  }
 
-  if (fp > 0) {
+  if (-1 != fp) {
     lde_warn("Recovery in progress . . .");
     if (!recover_file(fp, inode_zones, filesize))
       lde_warn("Recovered data written to '%s'", recover_file_name);

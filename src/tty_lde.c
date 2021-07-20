@@ -219,7 +219,7 @@ static size_t mask_bad_block(unsigned long block_nr,
 
   sprintf(filename, "%s/%lX", badblocks_directory, block_nr);
   f = open(filename, O_RDONLY);
-  if (f <= 0)
+  if (-1 == f)
     return -1; /* return error, no override file found */
   act_size = read(f, dest, read_size);
   close(f);
@@ -553,7 +553,7 @@ void dump_inode(unsigned long nr)
   printf("\n");
 }
 
-char *entry_type(unsigned long imode)
+char *entry_type(unsigned short imode)
 {
   if (S_ISREG(imode))
     return "regular file  ";

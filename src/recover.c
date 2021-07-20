@@ -847,7 +847,7 @@ int search_blocks(char *searchstring,
 
   for (; sbnr < sb->nzones; sbnr += rs) {
     bytesread = nocache_read_block(sbnr, buffer, rbs);
-    if (bytesread < 0) {
+    if (-1 == bytesread) {
       retval = -1;
       break;
     }
