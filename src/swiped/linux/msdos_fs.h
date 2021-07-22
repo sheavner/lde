@@ -86,9 +86,9 @@
 #define EOF_FAT16 0xFFF8
 #define EOF_FAT32 0xFFFFFF8
 #define EOF_FAT(s)                                                             \
-  (MSDOS_SB(s)->fat_bits == 32                                                 \
-      ? EOF_FAT32                                                              \
-      : MSDOS_SB(s)->fat_bits == 16 ? EOF_FAT16 : EOF_FAT12)
+  (MSDOS_SB(s)->fat_bits == 32    ? EOF_FAT32                                  \
+    : MSDOS_SB(s)->fat_bits == 16 ? EOF_FAT16                                  \
+                                  : EOF_FAT12)
 
 /*
  * Inode flags
@@ -115,8 +115,8 @@
 
 struct fat_boot_sector
 {
-  int8_t ignored[3];     /* Boot strap short or near jump */
-  int8_t system_id[8];   /* Name - can be used to special case
+  int8_t ignored[3];      /* Boot strap short or near jump */
+  int8_t system_id[8];    /* Name - can be used to special case
 				   partition manager volumes */
   uint8_t sector_size[2]; /* bytes per logical sector */
   uint8_t cluster_size;   /* sectors/cluster */
@@ -153,7 +153,7 @@ struct fat_boot_fsinfo
 
 struct msdos_dir_entry
 {
-  int8_t name[8], ext[3];    /* name and extension */
+  int8_t name[8], ext[3];     /* name and extension */
   uint8_t attr;               /* attribute bits */
   uint8_t lcase;              /* Case for base and extension */
   uint8_t ctime_ms;           /* Creation time, milliseconds */

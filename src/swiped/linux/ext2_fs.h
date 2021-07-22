@@ -117,7 +117,7 @@ struct ext2_acl_entry /* Access Control List Entry */
   uint16_t acle_tag;   /* User or group identity */
   uint16_t acle_pad1;
   uint32_t acle_next; /* Pointer on next entry for the */
-                   /* same inode or on next free entry */
+                      /* same inode or on next free entry */
 };
 
 /*
@@ -301,14 +301,14 @@ struct ext2_super_block
   uint32_t s_free_inodes_count; /* Free inodes count */
   uint32_t s_first_data_block;  /* First Data Block */
   uint32_t s_log_block_size;    /* Block size */
-  int32_t s_log_frag_size;     /* Fragment size */
+  int32_t s_log_frag_size;      /* Fragment size */
   uint32_t s_blocks_per_group;  /* # Blocks per group */
   uint32_t s_frags_per_group;   /* # Fragments per group */
   uint32_t s_inodes_per_group;  /* # Inodes per group */
   uint32_t s_mtime;             /* Mount time */
   uint32_t s_wtime;             /* Write time */
   uint16_t s_mnt_count;         /* Mount count */
-  int16_t s_max_mnt_count;     /* Maximal mount count */
+  int16_t s_max_mnt_count;      /* Maximal mount count */
   uint16_t s_magic;             /* Magic signature */
   uint16_t s_state;             /* File system state */
   uint16_t s_errors;            /* Behaviour when detecting errors */
@@ -339,8 +339,8 @@ struct ext2_super_block
   uint32_t s_feature_incompat;       /* incompatible feature set */
   uint32_t s_feature_ro_compat;      /* readonly-compatible feature set */
   uint8_t s_uuid[16];                /* 128-bit uuid for volume */
-  char s_volume_name[16];         /* volume name */
-  char s_last_mounted[64];        /* directory where last mounted */
+  char s_volume_name[16];            /* volume name */
+  char s_last_mounted[64];           /* directory where last mounted */
   uint32_t s_algorithm_usage_bitmap; /* For compression */
   /*
 	 * Performance hints.  Directory preallocation should only
@@ -416,9 +416,9 @@ struct ext2_super_block
 
 struct ext2_dir_entry
 {
-  uint32_t inode;              /* Inode number */
-  uint16_t rec_len;            /* Directory entry length */
-  uint16_t name_len;           /* Name length */
+  uint32_t inode;           /* Inode number */
+  uint16_t rec_len;         /* Directory entry length */
+  uint16_t name_len;        /* Name length */
   char name[EXT2_NAME_LEN]; /* File name */
 };
 

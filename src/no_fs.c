@@ -166,13 +166,10 @@ static void NOFS_sb_init(char *sb_buffer, unsigned long blocksize)
 
   sb->blocksize = blocksize;
 
-  if (-1 == fstat(CURR_DEVICE, &statbuf))
-  {
+  if (-1 == fstat(CURR_DEVICE, &statbuf)) {
     sb->nzones = 0;
     sb->last_block_size = sb->blocksize;
-  }
-  else
-  {
+  } else {
     /* Try to look up the size of the file/device */
     sb->nzones =
       ((unsigned long)statbuf.st_size + (sb->blocksize - 1UL)) / sb->blocksize;

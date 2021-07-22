@@ -835,7 +835,7 @@ void crecover_file(unsigned long inode_zones[], unsigned long filesize)
     return;
   } else if (c > 0) {
     strncpy(recover_file_name, recover_query, sizeof(recover_file_name));
-    recover_file_name[sizeof(recover_file_name)-1] = 0;
+    recover_file_name[sizeof(recover_file_name) - 1] = 0;
   }
 
   fp = open(recover_file_name, O_RDONLY | O_BINARY);
@@ -860,11 +860,10 @@ void crecover_file(unsigned long inode_zones[], unsigned long filesize)
     }
   } else {
     fp = open(recover_file_name, O_WRONLY | O_CREAT | O_BINARY, 0644);
-    if (-1 == fp)
-    {
+    if (-1 == fp) {
       lde_warn("Cannot open file '%s'", recover_file_name);
     }
-  }  
+  }
   if (-1 != fp) {
     lde_warn("Recovery in progress . . .");
     if (!recover_file(fp, inode_zones, filesize))

@@ -549,9 +549,8 @@ int inode_mode()
         break;
 
       case CMD_NEXT_FIELD: /* Forward one field */
-        while (++highlight_field >= I_END || 
-               !*(&fsc->inode->i_mode + highlight_field))
-        {
+        while (++highlight_field >= I_END ||
+               !*(&fsc->inode->i_mode + highlight_field)) {
           if (highlight_field >= (I_END - 1))
             highlight_field = I_BEGIN;
         }
@@ -559,8 +558,7 @@ int inode_mode()
 
       case CMD_PREV_FIELD: /* Back one field */
         while (--highlight_field <= I_BEGIN ||
-            !*(&fsc->inode->i_mode + highlight_field))
-        {
+               !*(&fsc->inode->i_mode + highlight_field)) {
           if (highlight_field <= (I_BEGIN + 1))
             highlight_field = I_END;
         }
@@ -596,7 +594,8 @@ int inode_mode()
         break;
 
       case CMD_BLOCK_MODE_MC: /* Go to block mode, examine the block which is currently highlighted */
-        if (((highlight_field >= I_ZONE_0) && (highlight_field <= I_ZONE_LAST)) &&
+        if (((highlight_field >= I_ZONE_0) &&
+              (highlight_field <= I_ZONE_LAST)) &&
             GInode->i_zone[highlight_field - I_ZONE_0])
           current_block = GInode->i_zone[highlight_field - I_ZONE_0];
         cwrite_inode(current_inode, GInode, &modified);

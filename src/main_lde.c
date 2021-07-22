@@ -117,7 +117,10 @@ static int check_mount(char *name)
     int bytesRead = read(fd, mtab, statbuf.st_size);
     close(fd);
     if (-1 == bytesRead) {
-      lde_warn("Cannot read from /etc/mtab cannot check if mounted, errno=%d [%s]", errno, strerror(errno));
+      lde_warn(
+        "Cannot read from /etc/mtab cannot check if mounted, errno=%d [%s]",
+        errno,
+        strerror(errno));
       lde_flags.mounted = 0;
     } else {
       /* Set last character to 0 (we've allocated a space for the 0) */
@@ -166,7 +169,7 @@ void read_tables(int fs_type, unsigned long blocksize)
 
   nocache_read_block(0UL, super_block_buffer, sb->blocksize);
   lde_warn("User requested %s filesystem. Checking device . . .",
-           lde_typedata[fs_type].name);
+    lde_typedata[fs_type].name);
 
   if (fs_type == AUTODETECT) {
     for (++fs_type; fs_type < LAST_AUTO_FSTYPE; fs_type++) {
@@ -201,40 +204,40 @@ static void usage(void)
 static void long_usage(void)
 {
   fprintf(stderr,
-          "This is %s (version %s), Usage %s %s\n",
-          program_name,
-          LDE_VERSION,
-          program_name,
-          USAGE_STRING);
+    "This is %s (version %s), Usage %s %s\n",
+    program_name,
+    LDE_VERSION,
+    program_name,
+    USAGE_STRING);
   /* 12345678900123456789012345678901234567890123456789012345678901234567890123456789% */
   fprintf(stderr,
-          "   -i {number}          Dump inode to stdout (-I all inodes after {number})\n"
-          "   -b {number}          Dump block to stdout (-B all blocks after {number})\n"
-          "   -N {number}          Number of blocks to dump (using -I or -B option)\n"
-          "   -d {number}          Dump block's data to stdout (binary format)\n"
-          "   -s {number}          Override blocksize\n"
-          "   -S {string}          Search disk for data (questionable usefulness, try grep)\n"
-          "   -T {type}            Search disk for data, type={gz, tgz, script, {filename}}\n"
-          "   -L {number}          Search length (when using specified filename)\n"
-          "   -O {number}          Search offset (when using specified filename)\n"
-          "   -N {number}          Starting search block (defaults to first data zone)\n"
-          "   --indirects          Search for things that look like indirect blocks\n"
-          "   --ilookup            Lookup inodes for all matches when searching\n"
-          "                            (also use with -b)\n"
-          "   --recoverable        Check to see if inode is recoverable\n"
-          "                            (requires --ilookup or -i/-I)\n"
-          "   --all                Search entire disk (else just unused portions)\n"
-          "   --blanked-indirects  Work around indirects with useless info (Linux 2.0 bug)\n"
-          "   -t fstype            Overide the autodetect (-t help lists supported fs's)\n"
-          "   --help               Output this screen\n"
-          "   --paranoid           Open the device read only\n"
-          "   --append             Always append to recovery file (if file exists)\n"
-          "   --quiet              Turn off warning beeps\n"
-          "   --version            Print version information\n"
-          "   --write              Allow writes to the device\n"
-          "   --file name          Specify filename to save recovered inodes to\n"
-          "   --superscan          Search device for superblocks, may be used with -t\n"
-          "   --badblocks dir      Override badblocks using files in dir\n");
+    "   -i {number}          Dump inode to stdout (-I all inodes after {number})\n"
+    "   -b {number}          Dump block to stdout (-B all blocks after {number})\n"
+    "   -N {number}          Number of blocks to dump (using -I or -B option)\n"
+    "   -d {number}          Dump block's data to stdout (binary format)\n"
+    "   -s {number}          Override blocksize\n"
+    "   -S {string}          Search disk for data (questionable usefulness, try grep)\n"
+    "   -T {type}            Search disk for data, type={gz, tgz, script, {filename}}\n"
+    "   -L {number}          Search length (when using specified filename)\n"
+    "   -O {number}          Search offset (when using specified filename)\n"
+    "   -N {number}          Starting search block (defaults to first data zone)\n"
+    "   --indirects          Search for things that look like indirect blocks\n"
+    "   --ilookup            Lookup inodes for all matches when searching\n"
+    "                            (also use with -b)\n"
+    "   --recoverable        Check to see if inode is recoverable\n"
+    "                            (requires --ilookup or -i/-I)\n"
+    "   --all                Search entire disk (else just unused portions)\n"
+    "   --blanked-indirects  Work around indirects with useless info (Linux 2.0 bug)\n"
+    "   -t fstype            Overide the autodetect (-t help lists supported fs's)\n"
+    "   --help               Output this screen\n"
+    "   --paranoid           Open the device read only\n"
+    "   --append             Always append to recovery file (if file exists)\n"
+    "   --quiet              Turn off warning beeps\n"
+    "   --version            Print version information\n"
+    "   --write              Allow writes to the device\n"
+    "   --file name          Specify filename to save recovered inodes to\n"
+    "   --superscan          Search device for superblocks, may be used with -t\n"
+    "   --badblocks dir      Override badblocks using files in dir\n");
   exit(0);
 }
 
@@ -247,8 +250,7 @@ static void parse_cmdline(int argc, char **argv, struct _main_opts *opts)
   struct _search_types search_types[] = { { "tgz", gzip_tar_type, 4, 0 },
     { "gz", gzip_type, 2, 0 },
     { "script", "#!/", 3, 0 },
-    { "", NULL, 0, 0 }
-  };
+    { "", NULL, 0, 0 } };
 #if HAVE_GETOPT_LONG
   struct option long_options[] = { { "version", 0, 0, 'v' },
     { "help", 0, 0, 'h' },
@@ -276,8 +278,7 @@ static void parse_cmdline(int argc, char **argv, struct _main_opts *opts)
     { "logtofile", 0, 0, 'F' },
     { "superscan", 0, 0, 'P' },
     { "badblocks", 0, 0, 'X' },
-    { 0, 0, 0, 0 }
-  };
+    { 0, 0, 0, 0 } };
 #endif
 
   /* if (argc && *argv)
@@ -298,157 +299,157 @@ static void parse_cmdline(int argc, char **argv, struct _main_opts *opts)
 
     switch (c) {
 
-    case 0: /* long options only */
-      switch (option_index) {
-      case 0:
-      case 1:
-        break;
-      }
-      break;
-
-    case 'V': /* Display version */
-    case 'v':
-      lde_warn("This is %s (version %s).", program_name, LDE_VERSION);
-      exit(0);
-      break;
-    case 'a': /* Search disk space marked in use as well as unused */
-      lde_flags.search_all = 1;
-      break;
-    case 'J': /* Linux 2.0 blanked indirect workaround */
-      lde_flags.blanked_indirects = 1;
-      break;
-    case 'g': /* Search for an inode which contains the specified block */
-      opts->grep_mode = 1;
-      break;
-    case 'I':
-      opts->dump_all = 1;
-    case 'i': /* dump a formatted inode to stdout */
-      opts->dump_start = read_num(optarg);
-      opts->dumper = dump_inode;
-      break;
-    case 'B':
-      opts->dump_all = 1;
-    case 'b': /* dump a block to stdout (Hex/ASCII) */
-      opts->dump_start = read_num(optarg);
-      opts->dumper = dump_block;
-      break;
-    case 'n': /* limit number of inodes/blocks dumped */
-    case 'N':
-      opts->dump_end = read_num(optarg);
-      break;
-    case 'D':
-      opts->dump_all = 1;
-    case 'd': /* dump a block to stdout -- binary format -- why not use dd?? */
-      opts->dump_start = read_num(optarg);
-      opts->dumper = ddump_block;
-      break;
-    case 'r':
-    case 'p': /* open FS read only */
-      lde_flags.paranoid = 1;
-      break;
-    case 'P': /* Superblock scanner */
-      opts->superscan = 1;
-      opts->skiptableread = 1;
-      break;
-    case 'q': /* no audio -- well no beeps */
-      lde_flags.quiet = 1;
-      break;
-    case 's': /* Override blocksize */
-      opts->blocksize = read_num(optarg);
-      break;
-    case 'S': /* Search for a string of data */
-      opts->search_string = optarg;
-      opts->search_len = strlen(opts->search_string);
-      break;
-    case 't': /* Specify the FS on the disk */
-      i = AUTODETECT;
-      while (lde_typedata[i].name) {
-        if (!strncmp(optarg, lde_typedata[i].name, strlen(optarg))) {
-          opts->fs_type = i;
-          break;
+      case 0: /* long options only */
+        switch (option_index) {
+          case 0:
+          case 1:
+            break;
         }
-        i++;
-      }
-      if (!lde_typedata[i].name) {
-        lde_warn("`%s' type not recognized.", optarg);
+        break;
+
+      case 'V': /* Display version */
+      case 'v':
+        lde_warn("This is %s (version %s).", program_name, LDE_VERSION);
+        exit(0);
+        break;
+      case 'a': /* Search disk space marked in use as well as unused */
+        lde_flags.search_all = 1;
+        break;
+      case 'J': /* Linux 2.0 blanked indirect workaround */
+        lde_flags.blanked_indirects = 1;
+        break;
+      case 'g': /* Search for an inode which contains the specified block */
+        opts->grep_mode = 1;
+        break;
+      case 'I':
+        opts->dump_all = 1;
+      case 'i': /* dump a formatted inode to stdout */
+        opts->dump_start = read_num(optarg);
+        opts->dumper = dump_inode;
+        break;
+      case 'B':
+        opts->dump_all = 1;
+      case 'b': /* dump a block to stdout (Hex/ASCII) */
+        opts->dump_start = read_num(optarg);
+        opts->dumper = dump_block;
+        break;
+      case 'n': /* limit number of inodes/blocks dumped */
+      case 'N':
+        opts->dump_end = read_num(optarg);
+        break;
+      case 'D':
+        opts->dump_all = 1;
+      case 'd': /* dump a block to stdout -- binary format -- why not use dd?? */
+        opts->dump_start = read_num(optarg);
+        opts->dumper = ddump_block;
+        break;
+      case 'r':
+      case 'p': /* open FS read only */
+        lde_flags.paranoid = 1;
+        break;
+      case 'P': /* Superblock scanner */
+        opts->superscan = 1;
+        opts->skiptableread = 1;
+        break;
+      case 'q': /* no audio -- well no beeps */
+        lde_flags.quiet = 1;
+        break;
+      case 's': /* Override blocksize */
+        opts->blocksize = read_num(optarg);
+        break;
+      case 'S': /* Search for a string of data */
+        opts->search_string = optarg;
+        opts->search_len = strlen(opts->search_string);
+        break;
+      case 't': /* Specify the FS on the disk */
         i = AUTODETECT;
-        fprintf(stderr, "Supported file systems include: ");
         while (lde_typedata[i].name) {
-          fprintf(stderr, "\"%s\" ", lde_typedata[i].name);
+          if (!strncmp(optarg, lde_typedata[i].name, strlen(optarg))) {
+            opts->fs_type = i;
+            break;
+          }
           i++;
         }
-        fprintf(stderr, "\n");
-        exit(0);
-      }
-      break;
-    case 'T': /* Search for a file by type */
-      for (i = 0; strcmp(search_types[i].name, ""); i++) {
-        if (!strncmp(optarg, search_types[i].name, search_types[i].length)) {
-          opts->search_string = search_types[i].string;
-          opts->search_len = search_types[i].length;
-          opts->search_off = search_types[i].offset;
-          break;
-        }
-      }
-
-      if (opts->search_string == NULL) {
-        i = open(optarg, O_RDONLY | O_BINARY);
-        if (-1 != i) {
-          opts->search_string = malloc(MAX_BLOCK_SIZE);
-          if (-1 == read(i, opts->search_string, MAX_BLOCK_SIZE)) {
-            free(opts->search_string);
-            opts->search_string = NULL;
+        if (!lde_typedata[i].name) {
+          lde_warn("`%s' type not recognized.", optarg);
+          i = AUTODETECT;
+          fprintf(stderr, "Supported file systems include: ");
+          while (lde_typedata[i].name) {
+            fprintf(stderr, "\"%s\" ", lde_typedata[i].name);
+            i++;
           }
-          close(i);
-        } else {
-          lde_warn("Can't open search file: %s", opts->search_string);
+          fprintf(stderr, "\n");
+          exit(0);
         }
-      }
-      break;
-    case 'X': /* Where we'll look for data on disk read errors */
-      badblocks_directory = optarg;
-      break;
-    case 'O': /* Set offset for search string */
-      opts->search_off = read_num(optarg);
-      break;
-    case 'F': /* Log all errors/messages to /tmp/ldeerrors */
-      lde_flags.logtofile = 1;
-      break;
-    case 'L': /* Set length for search string */
-      opts->search_len = read_num(optarg);
-      if (opts->search_len > MAX_BLOCK_SIZE) {
-        lde_warn("Search length reset to %d blocks.", MAX_BLOCK_SIZE);
-        opts->search_len = MAX_BLOCK_SIZE;
-      }
-      break;
-    case 'w': /* Set FS writable */
-      lde_flags.write_ok = 1;
-      break;
-    case 'j': /* Search for indirect blocks. */
-      lde_flags.indirect_search = 1;
-      opts->search_string = "";
-      opts->search_len = 0;
-      break;
-    case 'k': /* Lookup inodes on search matches. */
-      lde_flags.inode_lookup = 1;
-      break;
-    case 'R': /* Check for recoverablilty on search matches. */
-      lde_flags.check_recover = 1;
-      break;
-    case 'A': /* Always append data when recovery file exists */
-      lde_flags.always_append = 1;
-      break;
-    case 'y': /* Don't do symbolic uid/gid lookups */
-      lde_flags.nosymbolic_guid = 1;
-      break;
-    case 'f': /* Specify name of recovery file */
-      opts->recover_file_name = optarg;
-      break;
-    case 'h': /* HELP */
-    case 'H':
-    case '?':
-      long_usage();
-      break;
+        break;
+      case 'T': /* Search for a file by type */
+        for (i = 0; strcmp(search_types[i].name, ""); i++) {
+          if (!strncmp(optarg, search_types[i].name, search_types[i].length)) {
+            opts->search_string = search_types[i].string;
+            opts->search_len = search_types[i].length;
+            opts->search_off = search_types[i].offset;
+            break;
+          }
+        }
+
+        if (opts->search_string == NULL) {
+          i = open(optarg, O_RDONLY | O_BINARY);
+          if (-1 != i) {
+            opts->search_string = malloc(MAX_BLOCK_SIZE);
+            if (-1 == read(i, opts->search_string, MAX_BLOCK_SIZE)) {
+              free(opts->search_string);
+              opts->search_string = NULL;
+            }
+            close(i);
+          } else {
+            lde_warn("Can't open search file: %s", opts->search_string);
+          }
+        }
+        break;
+      case 'X': /* Where we'll look for data on disk read errors */
+        badblocks_directory = optarg;
+        break;
+      case 'O': /* Set offset for search string */
+        opts->search_off = read_num(optarg);
+        break;
+      case 'F': /* Log all errors/messages to /tmp/ldeerrors */
+        lde_flags.logtofile = 1;
+        break;
+      case 'L': /* Set length for search string */
+        opts->search_len = read_num(optarg);
+        if (opts->search_len > MAX_BLOCK_SIZE) {
+          lde_warn("Search length reset to %d blocks.", MAX_BLOCK_SIZE);
+          opts->search_len = MAX_BLOCK_SIZE;
+        }
+        break;
+      case 'w': /* Set FS writable */
+        lde_flags.write_ok = 1;
+        break;
+      case 'j': /* Search for indirect blocks. */
+        lde_flags.indirect_search = 1;
+        opts->search_string = "";
+        opts->search_len = 0;
+        break;
+      case 'k': /* Lookup inodes on search matches. */
+        lde_flags.inode_lookup = 1;
+        break;
+      case 'R': /* Check for recoverablilty on search matches. */
+        lde_flags.check_recover = 1;
+        break;
+      case 'A': /* Always append data when recovery file exists */
+        lde_flags.always_append = 1;
+        break;
+      case 'y': /* Don't do symbolic uid/gid lookups */
+        lde_flags.nosymbolic_guid = 1;
+        break;
+      case 'f': /* Specify name of recovery file */
+        opts->recover_file_name = optarg;
+        break;
+      case 'h': /* HELP */
+      case 'H':
+      case '?':
+        long_usage();
+        break;
     }
   }
 
@@ -513,7 +514,7 @@ int main(int argc, char **argv)
     CURR_DEVICE = open(device_name, O_RDWR | O_BINARY);
     if (-1 == CURR_DEVICE) {
       lde_warn("No write access to \"%s\",  attempting to open read-only.",
-               device_name);
+        device_name);
       CURR_DEVICE = open(device_name, O_RDONLY | O_BINARY);
       lde_flags.write_ok = 0;
     }
@@ -552,7 +553,8 @@ int main(int argc, char **argv)
       close(fp);
       fp = open(main_opts.recover_file_name, O_WRONLY | O_APPEND | O_BINARY);
     } else { /* It's ok to create a new file */
-      fp = open(main_opts.recover_file_name, O_WRONLY | O_CREAT | O_BINARY, 0644);
+      fp =
+        open(main_opts.recover_file_name, O_WRONLY | O_CREAT | O_BINARY, 0644);
     }
 
     /* Make sure we got a valid file number, if so look up inode and recover it, else print warning */
@@ -617,7 +619,8 @@ int main(int argc, char **argv)
                 (check_recover_file(GInode->i_zone, GInode->i_size))) {
               printf("Inode 0x%lX recovery possible", nr);
               if (fsc->inode->i_dtime) {
-                printf(" (deleted %24s)", lde_ctime((time_t *)&(GInode->i_dtime)));
+                printf(
+                  " (deleted %24s)", lde_ctime((time_t *)&(GInode->i_dtime)));
               }
               if (fsc->inode->i_size) {
                 if (GInode->i_size > 1024 * 1024)
@@ -663,7 +666,7 @@ int main(int argc, char **argv)
             printf("found in inode 0x%lX\n", inode_nr);
           } else {
             printf("not found in any %sinode\n",
-                   ((lde_flags.search_all) ? "" : "unused "));
+              ((lde_flags.search_all) ? "" : "unused "));
           }
         }
         exit(0);
@@ -684,9 +687,9 @@ int main(int argc, char **argv)
     exit(0);
   } else if (main_opts.search_string != NULL) {
     search_fs((unsigned char *)main_opts.search_string,
-              main_opts.search_len,
-              main_opts.search_off,
-              main_opts.dump_end);
+      main_opts.search_len,
+      main_opts.search_off,
+      main_opts.dump_end);
     exit(0);
   } else if (main_opts.superscan) {
     search_for_superblocks(main_opts.fs_type);

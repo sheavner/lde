@@ -41,11 +41,13 @@ extern void log_error(char *echo_string);
 extern void tty_warn(char *fmt, ...);
 extern void no_warn(char *fmt, ...);
 extern int tty_mgetch(void);
-extern const char* lde_ctime(const time_t *t);
+extern const char *lde_ctime(const time_t *t);
 extern unsigned long lookup_blocksize(unsigned long nr);
 extern unsigned long read_num(char *cinput);
 extern void *cache_read_block(unsigned long block_nr, void *dest, int force);
-extern size_t nocache_read_block(unsigned long block_nr, void *dest, size_t size);
+extern size_t nocache_read_block(unsigned long block_nr,
+  void *dest,
+  size_t size);
 extern void init_disk_cache(void);
 extern unsigned long lde_seek_block(unsigned long block_nr);
 extern int write_block(unsigned long block_nr, void *data_buffer);

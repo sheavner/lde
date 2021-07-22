@@ -1,8 +1,8 @@
 ---
 # clang-format -style=file -i src/main_lde.c
-# find . -iname *.h -o -iname *.c | xargs clang-format -i -style=file
+# find . -iname \*.h -o -iname \*.c | xargs clang-format -i -style=file
 Language:        Cpp
-# BasedOnStyle:  Mozilla
+BasedOnStyle:  Mozilla
 AccessModifierOffset: -2
 AlignAfterOpenBracket: DontAlign
 AlignConsecutiveMacros: false
