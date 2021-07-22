@@ -25,7 +25,7 @@ list(APPEND SRCS "src/swiped/fileutils-3.12/filemode.c")
 
 if(${CMAKE_C_COMPILER_ID} MATCHES "Clang" OR ${CMAKE_C_COMPILER_ID} STREQUAL "GNU")
   if(LDE_DEBUG)
-    add_compile_options(-Wall)
+    add_compile_options(-Wall -Wno-pointer-sign)
   else(LDE_DEBUG)
     add_compile_options(-Wno-pointer-sign)
   endif(LDE_DEBUG)

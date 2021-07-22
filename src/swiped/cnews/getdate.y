@@ -27,7 +27,7 @@ static time_t timezone = 0;
 
 #define daysec (24L*60L*60L)
 
-	static int timeflag, dateflag, dayflag, relflag;
+	static int timeflag, dateflag, relflag;
 	static time_t relsec, relmonth;
 	static int hh, mm, ss, merid;
         /* Have to protect daylight with this autoconf variable,
@@ -49,7 +49,6 @@ static time_t timezone = 0;
 void yyerror(char *s);
 static time_t dateconv(int mm, int dd, int yy, int h, int m, 
          int s, int mer);
-static time_t dayconv(int ord, int day, time_t now);
 static time_t timeconv(int hh, int mm, int ss, int mer);
 static time_t monthadd(time_t sdate, time_t relmonth);
 static time_t daylcorr(time_t future, time_t now);
@@ -153,19 +152,6 @@ dateconv(int mm, int dd, int yy, int h, int m, int s, int mer)
 	jdate += tod;
 	jdate += timezone;  
 	return (jdate);
-}
-
-static time_t
-dayconv(int ord, int day, time_t now)
-{
-	register struct tm *loctime;
-	time_t tod;
-
-	tod = now;
-	loctime = localtime(&tod);
-	tod += daysec * ((day - loctime->tm_wday + 7) % 7);
-	tod += 7*daysec*(ord<=0?ord:ord-1);
-	return daylcorr(tod, now);
 }
 
 static time_t

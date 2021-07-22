@@ -549,17 +549,21 @@ int inode_mode()
         break;
 
       case CMD_NEXT_FIELD: /* Forward one field */
-        while ((!*(&fsc->inode->i_mode + (++highlight_field))) ||
-               (highlight_field >= I_END))
+        while (++highlight_field >= I_END || 
+               !*(&fsc->inode->i_mode + highlight_field))
+        {
           if (highlight_field >= (I_END - 1))
             highlight_field = I_BEGIN;
+        }
         break;
 
       case CMD_PREV_FIELD: /* Back one field */
-        while ((!*(&fsc->inode->i_mode + (--highlight_field))) ||
-               (highlight_field <= I_BEGIN))
+        while (--highlight_field <= I_BEGIN ||
+            !*(&fsc->inode->i_mode + highlight_field))
+        {
           if (highlight_field <= (I_BEGIN + 1))
             highlight_field = I_END;
+        }
         break;
 
       case REC_FILE0: /* Tag block under cursor as block 'n' of recovery file */
@@ -592,7 +596,8 @@ int inode_mode()
         break;
 
       case CMD_BLOCK_MODE_MC: /* Go to block mode, examine the block which is currently highlighted */
-        if (GInode->i_zone[highlight_field - I_ZONE_0])
+        if (((highlight_field >= I_ZONE_0) && (highlight_field <= I_ZONE_LAST)) &&
+            GInode->i_zone[highlight_field - I_ZONE_0])
           current_block = GInode->i_zone[highlight_field - I_ZONE_0];
         cwrite_inode(current_inode, GInode, &modified);
         return CMD_BLOCK_MODE;

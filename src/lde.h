@@ -187,7 +187,7 @@ enum
   I_ZONE_11,
   I_ZONE_12,
   I_ZONE_13,
-  I_ZONE_LAST,
+  I_ZONE_LAST,  // Last is valid and is the 15th inode block
   I_VERSION,
   I_FILE_ACL,
   I_DIR_ACL,
