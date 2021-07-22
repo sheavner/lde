@@ -393,7 +393,7 @@ int EXT2_dir_entry(int i, lde_buffer *block_buffer, lde_dirent *d)
 /* Reads the inode/block in use tables from disk */
 static void EXT2_read_tables()
 {
-  size_t isize, addr_per_block, inode_blocks_per_group;
+  size_t isize;
   unsigned long desc_loc, desc_blocks;
   int i;
 
@@ -406,10 +406,6 @@ static void EXT2_read_tables()
     free(zone_map);
   if (group_desc)
     free(group_desc);
-
-  addr_per_block = sb->blocksize / sizeof(unsigned long);
-  inode_blocks_per_group =
-    sb->s_inodes_per_group / (sb->blocksize / fsc->INODE_SIZE);
 
   /* Compute number of groups.  Add (sb->s_blocks_per_group - 1) to 
    * account for last group that may be incomplete */

@@ -144,7 +144,8 @@ int ncread(char *coutput, unsigned long *a, char **string)
     coutput);
   wrefresh(window_available);
   echo();
-  wgetstr(window_available, cinput);
+  wgetnstr(window_available, cinput, sizeof(cinput));
+  cinput[sizeof(cinput) - 1] = 0;
   noecho();
   wmove(window_available, LINE_NUMBER, 0);
   wclrtoeol(window_available);
