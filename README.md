@@ -2,8 +2,8 @@
 [![CMake-OSX](https://github.com/sheavner/lde/actions/workflows/cmake-osx.yml/badge.svg)](https://github.com/sheavner/lde/actions/workflows/cmake-osx.yml)
 [![CMake-MSVS](https://github.com/sheavner/lde/actions/workflows/cmake-win.yml/badge.svg)](https://github.com/sheavner/lde/actions/workflows/cmake-win.yml)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/23407/badge.svg)](https://scan.coverity.com/projects/sheavner-lde)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/sheavner/lde.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sheavner/lde/alerts/)
-[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/sheavner/lde.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sheavner/lde/context:cpp)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=sheavner_lde&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=sheavner_lde)
+[![CodeQL](https://github.com/sheavner/lde/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/sheavner/lde/actions/workflows/github-code-scanning/codeql)
 
 This is lde, the Linux disk editor, for Minix/Linux
 partitions.  It supports what were once the three most
